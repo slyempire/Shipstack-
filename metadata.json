@@ -1,0 +1,9 @@
+{
+  "name": "Shipstack",
+  "description": "The professional logistics operating stack. A comprehensive suite for managing Delivery Notes, fleet operations, and driver workflows.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}

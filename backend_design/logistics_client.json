@@ -1,0 +1,49 @@
+{
+  "name": "Logistics Client",
+  "doctype": "DocType",
+  "module": "Logistics Core",
+  "fields": [
+    {
+      "fieldname": "client_name",
+      "label": "Client Name",
+      "fieldtype": "Data",
+      "reqd": 1,
+      "unique": 1
+    },
+    {
+      "fieldname": "erp_type",
+      "label": "ERP Type",
+      "fieldtype": "Select",
+      "options": "SAP\nOdoo\nDynamics\nCustom\nSpreadsheet"
+    },
+    {
+      "fieldname": "api_key",
+      "label": "API Key",
+      "fieldtype": "Data",
+      "read_only": 1
+    },
+    {
+      "fieldname": "api_secret",
+      "label": "API Secret",
+      "fieldtype": "Password",
+      "read_only": 1
+    },
+    {
+      "fieldname": "webhook_url",
+      "label": "Callback Webhook URL",
+      "fieldtype": "Data",
+      "description": "URL to send updates back to client ERP"
+    },
+    {
+      "fieldname": "webhook_secret",
+      "label": "Webhook Signing Secret",
+      "fieldtype": "Password"
+    },
+    {
+      "fieldname": "is_active",
+      "label": "Is Active",
+      "fieldtype": "Check",
+      "default": 1
+    }
+  ]
+}

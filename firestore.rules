@@ -1,0 +1,66 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (
+          (request.auth.token.email == "joemugoh215@gmail.com") ||
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().role == 'ADMIN')
+        );
+    }
+
+    function isValidUser(data) {
+      return data.name is string && data.name.size() > 0 &&
+             data.email is string && data.email.size() > 0 &&
+             data.role in ['ADMIN', 'DISPATCHER', 'FINANCE', 'FACILITY', 'DRIVER', 'CLIENT', 'WAREHOUSE'];
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) && 
+                    (isAdmin() || (isOwner(userId) && request.resource.data.role != 'ADMIN'));
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) && 
+                    (isAdmin() || (isOwner(userId) && request.resource.data.role == resource.data.role));
+    }
+
+    function isTenantOwner(tenantId) {
+      return isAuthenticated() && getUserData().tenantId == tenantId;
+    }
+
+    function isValidDeliveryNote(data) {
+      return data.tenantId is string &&
+             data.externalId is string && data.externalId.size() > 0 &&
+             data.clientName is string && data.clientName.size() > 0 &&
+             data.status is string &&
+             data.priority in ['LOW', 'MEDIUM', 'HIGH'];
+    }
+
+    match /delivery_notes/{dnId} {
+      allow read: if isAuthenticated() && isTenantOwner(resource.data.tenantId);
+      allow create: if isAuthenticated() && isValidDeliveryNote(request.resource.data) && 
+                    isTenantOwner(request.resource.data.tenantId) &&
+                    (isAdmin() || getUserData().role == 'DISPATCHER');
+      allow update: if isAuthenticated() && isValidDeliveryNote(request.resource.data) && 
+                    isTenantOwner(resource.data.tenantId) &&
+                    (isAdmin() || 
+                     getUserData().role == 'DISPATCHER' ||
+                     (getUserData().role == 'DRIVER' && resource.data.driverId == request.auth.uid));
+    }
+
+    match /{document=**} {
+      allow read, write: if isAuthenticated() && isAdmin();
+    }
+  }
+}

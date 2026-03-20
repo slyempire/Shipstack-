@@ -1,0 +1,86 @@
+{
+  "name": "Shipment Request",
+  "doctype": "DocType",
+  "module": "Logistics Core",
+  "autoname": "SR-.YYYY.-.#####",
+  "fields": [
+    {
+      "fieldname": "external_id",
+      "label": "External ID (ERP Ref)",
+      "fieldtype": "Data",
+      "reqd": 1,
+      "unique": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "client",
+      "label": "Logistics Client",
+      "fieldtype": "Link",
+      "options": "Logistics Client",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "status",
+      "label": "Status",
+      "fieldtype": "Select",
+      "options": "Pending\nValidated\nDispatched\nIn Transit\nDelivered\nCancelled",
+      "default": "Pending",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "customer_name",
+      "label": "Customer Name",
+      "fieldtype": "Data",
+      "reqd": 1
+    },
+    {
+      "fieldname": "origin_address",
+      "label": "Origin Address",
+      "fieldtype": "Small Text",
+      "reqd": 1
+    },
+    {
+      "fieldname": "destination_address",
+      "label": "Destination Address",
+      "fieldtype": "Small Text",
+      "reqd": 1
+    },
+    {
+      "fieldname": "priority",
+      "label": "Priority",
+      "fieldtype": "Select",
+      "options": "Low\nMedium\nHigh\nCritical",
+      "default": "Medium"
+    },
+    {
+      "fieldname": "items",
+      "label": "Items",
+      "fieldtype": "Table",
+      "options": "Shipment Item"
+    },
+    {
+      "fieldname": "amended_from",
+      "label": "Amended From",
+      "fieldtype": "Link",
+      "options": "Shipment Request",
+      "print_hide": 1,
+      "no_copy": 1
+    }
+  ],
+  "permissions": [
+    {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1
+    },
+    {
+      "role": "Logistics Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1
+    }
+  ]
+}
