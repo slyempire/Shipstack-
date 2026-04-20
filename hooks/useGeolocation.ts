@@ -12,7 +12,7 @@ export const useGeolocation = (shouldWatch: boolean = false, dnId?: string) => {
 
   const requestLocation = useCallback(() => {
     if (!navigator.geolocation) {
-      setLocationPermission('unavailable');
+      setLocationPermission('denied');
       addNotification('Geolocation is not supported by your browser.', 'error');
       return;
     }

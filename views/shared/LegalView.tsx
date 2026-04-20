@@ -41,7 +41,7 @@ const LegalView: React.FC = () => {
              <div className="relative z-10 max-w-lg">
                 <h2 className="text-4xl font-black tracking-tighter uppercase mb-6 leading-none">Shipstack Operational Charter</h2>
                 <p className="text-white/40 text-sm font-medium leading-relaxed uppercase tracking-tight">
-                   The following protocols govern all data transmission, cargo handling, and pilot behavior within the Shipstack Logistics Grid. 
+                   The following protocols govern all data transmission, cargo handling, and driver behavior within the Shipstack Logistics Grid. 
                    Compliance is monitored in real-time by the Stack Guard protocol.
                 </p>
              </div>
@@ -61,7 +61,7 @@ const LegalView: React.FC = () => {
                         <strong> Shipstack Operations Division</strong>.
                       </p>
                       <p>
-                        Pilots and Facility Agents agree to the continuous logging of operational metrics for the purpose of 
+                        Drivers and Facility Agents agree to the continuous logging of operational metrics for the purpose of 
                         SLA verification and safety auditing. Unauthorized extraction of identity data is strictly prohibited.
                       </p>
                    </div>
@@ -78,7 +78,7 @@ const LegalView: React.FC = () => {
                         custody and liability for the cargo manifest. Handover is only complete when the destination site 
                         confirms receipt via Digital Signature and Photo Evidence.
                       </p>
-                      <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 flex gap-4 text-amber-800">
+                      <div className="p-4 bg-orange-50 rounded-xl border border-orange-100 flex gap-4 text-orange-800">
                          <AlertCircle className="shrink-0" size={20} />
                          <p className="text-[10px] font-bold uppercase tracking-wide">
                             Exceptions must be reported immediately via the Terminal's incident flag system. Failure to document 

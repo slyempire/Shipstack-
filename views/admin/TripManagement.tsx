@@ -8,6 +8,7 @@ import { Badge } from '../../packages/ui/Badge';
 import MapEngine from '../../components/MapEngine';
 import DocumentPreview from '../../components/DocumentPreview';
 import { useAuthStore, useAppStore } from '../../store';
+import { useTenant } from '../../hooks/useTenant';
 import { 
   Truck, 
   Plus, 
@@ -32,6 +33,7 @@ import {
 const TripManagement: React.FC = () => {
   const { user } = useAuthStore();
   const { addNotification } = useAppStore();
+  const { tenant } = useTenant();
   const location = useLocation();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [dns, setDns] = useState<DeliveryNote[]>([]);
@@ -96,8 +98,8 @@ const TripManagement: React.FC = () => {
     ]);
     setTrips(t);
     setDns(d);
-    setDrivers(drv);
-    setVehicles(veh);
+    setDrivers(Array.from(new Map(drv.map(item => [item.id, item])).values()));
+    setVehicles(Array.from(new Map(veh.map(item => [item.id, item])).values()));
     setFacilities(fac);
     setLoading(false);
   };
@@ -219,14 +221,24 @@ const TripManagement: React.FC = () => {
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <p className="text-sm font-medium text-slate-500">Consolidate orders into optimized vehicle runs for Northern Corridor efficiency.</p>
+            <p className="label-logistics text-slate-500 !mb-0">Build optimized vehicle routes for the Northern Corridor.</p>
           </div>
-          <button 
-            onClick={() => setIsFormOpen(true)}
-            className="bg-brand text-white px-6 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center gap-2 shadow-xl hover:bg-brand/90 transition-all active:scale-95"
-          >
-            <Plus size={16} /> Manifest Route
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setIsFormOpen(true)}
+              className="bg-brand text-white px-6 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center gap-2 shadow-xl hover:bg-brand/90 transition-all active:scale-95"
+            >
+              <Plus size={16} /> {tenant?.industry === 'E-COMMERCE' ? 'Assign Rider' : 'Create Route Manifest'}
+            </button>
+            {tenant?.industry === 'E-COMMERCE' && (
+              <button 
+                className="p-3 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-brand shadow-sm transition-all"
+                title="Secondary Actions"
+              >
+                <MoreVertical size={20} />
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -246,8 +258,8 @@ const TripManagement: React.FC = () => {
                       <Truck size={24} />
                     </div>
                     <div>
-                      <h3 className="text-xl font-black text-slate-900 leading-tight mb-1">{trip.routeTitle || 'Unnamed Route'}</h3>
-                      <p className="text-[10px] font-black text-brand uppercase tracking-widest">{trip.externalId} &bull; {trip.status}</p>
+                      <h3 className="heading-primary leading-tight mb-1">{trip.routeTitle || 'Unnamed Route'}</h3>
+                      <p className="mono-id text-brand uppercase tracking-widest">{trip.externalId} &bull; {trip.status}</p>
                     </div>
                   </div>
                   <Badge variant={trip.status === 'ACTIVE' ? 'transit' : 'neutral'}>{trip.status}</Badge>
@@ -255,37 +267,37 @@ const TripManagement: React.FC = () => {
 
                 <div className="grid grid-cols-2 gap-6 mb-8">
                    <div className="space-y-3">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Pilot Assignment</p>
+                      <p className="label-logistics text-slate-400">Driver Assignment</p>
                       <div className="flex items-center gap-2">
                          <div className="h-6 w-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500">
-                            {drivers.find(d => d.id === trip.driverId)?.name.charAt(0) || '?'}
+                            {drivers.find(d => d.id === trip.driverId)?.name?.charAt(0) || '?'}
                          </div>
-                         <span className="text-xs font-bold text-slate-700 truncate">{drivers.find(d => d.id === trip.driverId)?.name || 'Unassigned'}</span>
+                         <span className="body-value truncate-name">{drivers.find(d => d.id === trip.driverId)?.name || 'Unassigned'}</span>
                       </div>
                    </div>
                    <div className="space-y-3">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Vehicle Unit</p>
+                      <p className="label-logistics text-slate-400">Vehicle Unit</p>
                       <div className="flex items-center gap-2">
                          <RouteIcon size={14} className="text-slate-300" />
-                         <span className="text-xs font-bold text-slate-700">{vehicles.find(v => v.id === trip.vehicleId)?.plate || 'N/A'}</span>
+                         <span className="body-value truncate-name">{vehicles.find(v => v.id === trip.vehicleId)?.plate || 'N/A'}</span>
                       </div>
                    </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-6 mb-8 border-t border-slate-50 pt-6">
                    <div className="space-y-3">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">M-Pesa Allowance</p>
+                      <p className="label-logistics text-slate-400">Driver Allowance</p>
                       <div className="flex items-center gap-2">
                          <Zap size={14} className="text-emerald-500" />
-                         <span className="text-xs font-black text-slate-700">KES {trip.allowanceAmount?.toLocaleString() || '0'}</span>
+                         <span className="body-value">KES {trip.allowanceAmount?.toLocaleString() || '0'}</span>
                          <Badge variant="neutral" className="scale-75 origin-left">{trip.allowanceStatus || 'PENDING'}</Badge>
                       </div>
                    </div>
                    <div className="space-y-3">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Route Risk</p>
+                      <p className="label-logistics text-slate-400">Route Risk</p>
                       <div className="flex items-center gap-2">
-                         <AlertTriangle size={14} className={trip.routeRiskLevel === 'HIGH' ? 'text-red-500' : trip.routeRiskLevel === 'MEDIUM' ? 'text-amber-500' : 'text-emerald-500'} />
-                         <span className={`text-xs font-black uppercase ${trip.routeRiskLevel === 'HIGH' ? 'text-red-600' : trip.routeRiskLevel === 'MEDIUM' ? 'text-amber-600' : 'text-emerald-600'}`}>
+                         <AlertTriangle size={14} className={trip.routeRiskLevel === 'HIGH' ? 'text-[#ef4444]' : trip.routeRiskLevel === 'MEDIUM' ? 'text-[#f59e0b]' : 'text-[#64748b]'} />
+                         <span className={`body-value uppercase ${trip.routeRiskLevel === 'HIGH' ? 'text-[#ef4444]' : trip.routeRiskLevel === 'MEDIUM' ? 'text-[#f59e0b]' : 'text-[#64748b]'}`}>
                             {trip.routeRiskLevel || 'LOW'}
                          </span>
                       </div>
@@ -293,7 +305,7 @@ const TripManagement: React.FC = () => {
                 </div>
 
                 <div className="space-y-4">
-                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Mission Itinerary ({trip.dnIds.length} Stops)</p>
+                   <p className="label-logistics text-slate-400">Route Stops</p>
                    <div className="space-y-2">
                       {getDnDetails(trip.dnIds).slice(0, 2).map((dn, idx) => (
                          <div key={dn.id} className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100">
@@ -301,8 +313,8 @@ const TripManagement: React.FC = () => {
                                {idx + 1}
                             </div>
                             <div className="flex-1 min-w-0">
-                               <h4 className="text-xs font-black text-slate-800 truncate">{dn.clientName}</h4>
-                               <p className="text-[9px] text-slate-400 font-bold truncate uppercase">{dn.address}</p>
+                               <h4 className="body-value truncate-name">{dn.clientName}</h4>
+                               <p className="text-[9px] text-slate-400 font-bold truncate-name uppercase">{dn.address}</p>
                             </div>
                          </div>
                       ))}
@@ -317,7 +329,7 @@ const TripManagement: React.FC = () => {
                       <span className="flex items-center gap-1.5"><Clock size={12} /> {trip.startTime ? new Date(trip.startTime).toLocaleTimeString() : 'TBD'}</span>
                    </div>
                    <button className="text-brand text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 group-hover:gap-3 transition-all">
-                      Review Run <ArrowRight size={14} />
+                      View Route <ArrowRight size={14} />
                    </button>
                 </div>
               </div>
@@ -340,7 +352,7 @@ const TripManagement: React.FC = () => {
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Step {formStep} of 4: {
                       formStep === 1 ? 'Prioritization & Selection' :
                       formStep === 2 ? 'Route Optimization' :
-                      formStep === 3 ? 'Pilot & Asset Allocation' : 'Documentation Preparation'
+                      formStep === 3 ? 'Driver & Asset Allocation' : 'Documentation Preparation'
                     }</p>
                  </div>
               </div>
@@ -419,7 +431,7 @@ const TripManagement: React.FC = () => {
                           onChange={e => setFormData({...formData, routeRiskLevel: e.target.value as any})}
                           className={`w-full border-2 rounded-xl px-5 py-4 text-sm font-bold outline-none transition-all ${
                             formData.routeRiskLevel === 'HIGH' ? 'bg-red-50 border-red-200 text-red-600' : 
-                            formData.routeRiskLevel === 'MEDIUM' ? 'bg-amber-50 border-amber-200 text-amber-600' : 
+                            formData.routeRiskLevel === 'MEDIUM' ? 'bg-orange-50 border-orange-200 text-orange-600' : 
                             'bg-slate-50 border-slate-200 text-slate-900'
                           }`}
                         >
@@ -460,7 +472,7 @@ const TripManagement: React.FC = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Assigned Pilot</label>
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Assigned Driver</label>
                         <select 
                           required value={formData.driverId} onChange={e => setFormData({...formData, driverId: e.target.value})}
                           className="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-brand outline-none transition-all"
@@ -501,7 +513,7 @@ const TripManagement: React.FC = () => {
                     )}
 
                     <div className="space-y-2">
-                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">M-Pesa Driver Allowance (KES)</label>
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Driver Allowance (KES)</label>
                       <div className="relative">
                         <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">KES</span>
                         <input 
@@ -535,9 +547,9 @@ const TripManagement: React.FC = () => {
 
                 {formStep === 4 && (
                   <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                    <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl">
-                      <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mb-1">Step 6: Documentation Preparation</p>
-                      <p className="text-[11px] text-amber-800 leading-relaxed">Preparing digital delivery notes, invoices, and waybills for traceability.</p>
+                    <div className="bg-orange-50 border border-orange-100 p-4 rounded-2xl">
+                      <p className="text-[10px] font-bold text-orange-600 uppercase tracking-widest mb-1">Step 6: Documentation Preparation</p>
+                      <p className="text-[11px] text-orange-800 leading-relaxed">Preparing digital delivery notes, invoices, and waybills for traceability.</p>
                     </div>
                     
                     <div className="space-y-4">
@@ -615,7 +627,7 @@ const TripManagement: React.FC = () => {
                       Continue to {formStep === 1 ? 'Route Planning' : formStep === 2 ? 'Asset Allocation' : 'Documentation'}
                     </button>
                   ) : (
-                    <button onClick={handleCreateRun} className="flex-[2] bg-brand text-white py-5 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all">Manifest Run</button>
+                    <button onClick={handleCreateRun} className="flex-[2] bg-brand text-white py-5 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all">Create Route Manifest</button>
                   )}
                 </div>
               </div>
@@ -661,7 +673,7 @@ const TripManagement: React.FC = () => {
               <div className="flex-1 overflow-y-auto p-10 space-y-10 no-scrollbar">
                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100">
-                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Pilot assigned</p>
+                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Driver assigned</p>
                        <p className="text-sm font-black text-slate-900">{drivers.find(d => d.id === selectedTrip.driverId)?.name}</p>
                     </div>
                     <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100">

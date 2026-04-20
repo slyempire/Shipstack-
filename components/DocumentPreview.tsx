@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { DeliveryNote, LogisticsDocument, DocumentType } from '../types';
+import { DeliveryNote, LogisticsDocument, LogisticsDocumentType } from '../types';
 import { X, Printer, Download, CheckCircle2, ShieldCheck, QrCode } from 'lucide-react';
 
 interface DocumentPreviewProps {
@@ -59,7 +59,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ dn, doc, onClose }) =
                    <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2 mb-4">Logistics Provider</h4>
                    <p className="text-sm font-black mb-1">Alpha Transporters Ltd</p>
                    <p className="text-xs text-slate-600">Unit ID: {dn.vehicleId || 'N/A'}</p>
-                   <p className="text-xs text-slate-600">Pilot: {dn.driverId || 'Pending'}</p>
+                   <p className="text-xs text-slate-600">Driver: {dn.driverId || 'Pending'}</p>
                 </div>
                 <div>
                    <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-2 mb-4">Destination Target</h4>

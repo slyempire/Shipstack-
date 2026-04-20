@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
 import { api } from '../../api';
-import { APIKey, ImportLog, ImportPreviewRow, WebhookSubscription } from '../../types';
+import { APIKey, ImportLog, ImportPreviewRow, WebhookSubscription, ERPConnector, SyncLog } from '../../types';
 import { Badge } from '../../packages/ui/Badge';
 import { useAppStore, useAuthStore } from '../../store';
 import { 
@@ -27,8 +27,11 @@ import {
   Wand2,
   Check,
   AlertCircle,
-  Settings
+  Settings,
+  FileJson,
+  Table
 } from 'lucide-react';
+import Papa from 'papaparse';
 
 const DataIngress: React.FC = () => {
   const { addNotification } = useAppStore();
@@ -48,31 +51,31 @@ const DataIngress: React.FC = () => {
   };
 
   return (
-    <Layout title="Data Pipeline & API Gateway">
+    <Layout title="Data Ingress & Pipeline Gateway">
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div className="flex p-1 bg-slate-200/50 rounded-xl overflow-x-auto no-scrollbar max-w-full">
             <button 
               onClick={() => setActiveTab('PIPELINE')}
-              className={`px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'PIPELINE' ? 'bg-white text-brand shadow-md' : 'text-slate-500'}`}
+              className={`px-6 py-2.5 rounded-lg label-logistics !mb-0 transition-all whitespace-nowrap ${activeTab === 'PIPELINE' ? 'bg-white text-brand shadow-md' : 'text-slate-500'}`}
             >
               Pipeline
             </button>
             <button 
               onClick={() => setActiveTab('API')}
-              className={`px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'API' ? 'bg-white text-brand shadow-md' : 'text-slate-500'}`}
+              className={`px-6 py-2.5 rounded-lg label-logistics !mb-0 transition-all whitespace-nowrap ${activeTab === 'API' ? 'bg-white text-brand shadow-md' : 'text-slate-500'}`}
             >
               API Gateway
             </button>
             <button 
               onClick={() => setActiveTab('WEBHOOKS')}
-              className={`px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'WEBHOOKS' ? 'bg-white text-brand shadow-md' : 'text-slate-500'}`}
+              className={`px-6 py-2.5 rounded-lg label-logistics !mb-0 transition-all whitespace-nowrap ${activeTab === 'WEBHOOKS' ? 'bg-white text-brand shadow-md' : 'text-slate-500'}`}
             >
               Webhooks
             </button>
             <button 
               onClick={() => setActiveTab('ERP')}
-              className={`px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'ERP' ? 'bg-white text-brand shadow-md' : 'text-slate-500'}`}
+              className={`px-6 py-2.5 rounded-lg label-logistics !mb-0 transition-all whitespace-nowrap ${activeTab === 'ERP' ? 'bg-white text-brand shadow-md' : 'text-slate-500'}`}
             >
               ERP Connectors
             </button>
@@ -80,7 +83,7 @@ const DataIngress: React.FC = () => {
           <div className="flex items-center gap-4">
              <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100">
                 <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[9px] font-black uppercase tracking-widest leading-none">Gateway Stable</span>
+                <span className="label-logistics text-emerald-600 !mb-0 leading-none">Gateway Stable</span>
              </div>
           </div>
         </div>
@@ -193,14 +196,14 @@ const WebhookManager = () => {
                   webhooks.map(wh => (
                     <div key={wh.id} className="p-8 flex items-center justify-between group hover:bg-slate-50/30 transition-all">
                        <div className="flex items-center gap-6">
-                          <div className="h-14 w-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300 transition-all group-hover:bg-white group-hover:text-brand-accent group-hover:shadow-sm">
+                           <div className="h-14 w-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300 transition-all group-hover:bg-white group-hover:text-brand-accent group-hover:shadow-sm">
                              <Activity size={28} />
                           </div>
                           <div>
-                             <p className="text-base font-black text-slate-900 truncate max-w-md mb-2">{wh.url}</p>
+                             <p className="body-value truncate-name max-w-md mb-2">{wh.url}</p>
                              <div className="flex flex-wrap gap-2">
                                 {wh.events.map(e => (
-                                  <span key={e} className="text-[8px] font-black text-slate-400 bg-slate-100 px-2 py-0.5 rounded uppercase tracking-widest">{e}</span>
+                                  <span key={e} className="label-logistics text-slate-400 bg-slate-100 px-2 py-0.5 rounded !mb-0">{e}</span>
                                 ))}
                                 <Badge variant={wh.isActive ? 'delivered' : 'neutral'} className="scale-75 origin-left">
                                    {wh.isActive ? 'Active' : 'Paused'}
@@ -210,8 +213,8 @@ const WebhookManager = () => {
                        </div>
                        <div className="flex items-center gap-3">
                           <div className="text-right mr-4 hidden sm:block">
-                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Last Delivery</p>
-                             <p className={`text-[10px] font-black ${wh.lastDeliveryStatus === 'SUCCESS' ? 'text-emerald-500' : 'text-red-500'}`}>
+                             <p className="label-logistics text-slate-400 mb-1">Last Delivery</p>
+                             <p className={`body-value ${wh.lastDeliveryStatus === 'SUCCESS' ? 'text-emerald-500' : 'text-red-500'}`}>
                                 {wh.lastDeliveryStatus} &bull; {new Date(wh.lastDeliveryAt!).toLocaleTimeString()}
                              </p>
                           </div>
@@ -313,223 +316,544 @@ const WebhookManager = () => {
 
 const ERPConnectorManager = () => {
   const { addNotification } = useAppStore();
-  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
-  const [config, setConfig] = useState({
-    endpoint: '',
-    authStrategy: 'OAUTH2',
-    clientId: '',
-    clientSecret: '',
-    environment: 'SANDBOX'
+  const [connectors, setConnectors] = useState<ERPConnector[]>([]);
+  const [syncLogs, setSyncLogs] = useState<SyncLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedConnector, setSelectedConnector] = useState<ERPConnector | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSyncing, setIsSyncing] = useState<string | null>(null);
+  const [activeSubTab, setActiveSubTab] = useState<'CONFIG' | 'MAPPING' | 'LOGS'>('CONFIG');
+
+  const [formData, setFormData] = useState<Partial<ERPConnector>>({
+    name: '',
+    provider: 'SAP',
+    environment: 'SANDBOX',
+    syncFrequency: 'MANUAL',
+    entities: [],
+    config: { endpoint: '', authType: 'OAUTH2' },
+    mapping: {}
   });
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isTesting, setIsTesting] = useState(false);
 
-  const validate = () => {
-    const newErrors: Record<string, string> = {};
-    
-    // URL Validation
-    if (!config.endpoint) {
-      newErrors.endpoint = 'Endpoint URL is required';
-    } else {
-      try {
-        new URL(config.endpoint);
-      } catch (e) {
-        newErrors.endpoint = 'Invalid URL format (e.g. https://api.example.com)';
-      }
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [cData, lData] = await Promise.all([api.getConnectors(), api.getSyncLogs()]);
+      setConnectors(cData);
+      setSyncLogs(lData);
+    } catch (err) {
+      addNotification("Failed to load ERP data", "error");
+    } finally {
+      setLoading(false);
     }
-
-    // Auth Validation
-    if (config.authStrategy === 'OAUTH2' || config.authStrategy === 'API_KEY') {
-      if (!config.clientId) newErrors.clientId = 'Client ID / Key is required';
-      if (!config.clientSecret) newErrors.clientSecret = 'Client Secret is required';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
   };
 
-  const handleTestConnection = async () => {
-    if (!validate()) {
-      addNotification("Validation failed. Please check configuration.", "error");
+  const handleCreateNew = () => {
+    setFormData({
+      name: '',
+      provider: 'SAP',
+      environment: 'SANDBOX',
+      syncFrequency: 'MANUAL',
+      entities: [],
+      config: { endpoint: '', authType: 'OAUTH2' },
+      mapping: {
+        'external_id': 'id',
+        'customer_name': 'name',
+        'delivery_address': 'address',
+        'quantity': 'qty'
+      }
+    });
+    setIsEditing(true);
+    setSelectedConnector(null);
+    setActiveSubTab('CONFIG');
+  };
+
+  const handleEdit = (connector: ERPConnector) => {
+    setFormData({ ...connector });
+    setSelectedConnector(connector);
+    setIsEditing(true);
+    setActiveSubTab('CONFIG');
+  };
+
+  const handleSave = async () => {
+    if (!formData.name || !formData.config?.endpoint) {
+      addNotification("Name and Endpoint are required", "error");
       return;
     }
-    
-    setIsTesting(true);
-    await new Promise(r => setTimeout(r, 2000));
-    setIsTesting(false);
-    addNotification(`Handshake with ${config.endpoint} successful.`, "success");
+
+    try {
+      if (selectedConnector) {
+        await api.updateConnector(selectedConnector.id, formData);
+        addNotification("Connector updated successfully", "success");
+      } else {
+        await api.createConnector(formData);
+        addNotification("New connector manifested", "success");
+      }
+      setIsEditing(false);
+      loadData();
+    } catch (err) {
+      addNotification("Failed to save connector", "error");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Are you sure you want to decommission this uplink?")) return;
+    try {
+      await api.deleteConnector(id);
+      addNotification("Connector decommissioned", "success");
+      loadData();
+    } catch (err) {
+      addNotification("Failed to delete connector", "error");
+    }
+  };
+
+  const handleTriggerSync = async (id: string) => {
+    setIsSyncing(id);
+    try {
+      await api.triggerSync(id);
+      addNotification("Synchronization cycle initiated", "success");
+      loadData();
+    } catch (err) {
+      addNotification("Sync failed", "error");
+    } finally {
+      setIsSyncing(null);
+    }
   };
 
   const providers = [
-    { id: 'SAP', name: 'SAP S/4HANA', icon: DatabaseZap, color: 'text-blue-600', bg: 'bg-blue-50', desc: 'Enterprise Resource Planning' },
-    { id: 'ORACLE', name: 'Oracle NetSuite', icon: DatabaseZap, color: 'text-red-600', bg: 'bg-red-50', desc: 'Cloud Business Suite' },
-    { id: 'DYNAMICS', name: 'MS Dynamics 365', icon: DatabaseZap, color: 'text-emerald-600', bg: 'bg-emerald-50', desc: 'Business Applications' },
-    { id: 'CUSTOM', name: 'Custom REST API', icon: Code, color: 'text-slate-600', bg: 'bg-slate-50', desc: 'Universal Integration' },
+    { id: 'SAP', name: 'SAP S/4HANA', icon: DatabaseZap, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { id: 'ORACLE', name: 'Oracle NetSuite', icon: DatabaseZap, color: 'text-red-600', bg: 'bg-red-50' },
+    { id: 'DYNAMICS', name: 'MS Dynamics 365', icon: DatabaseZap, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { id: 'ODOO', name: 'Odoo ERP', icon: DatabaseZap, color: 'text-purple-600', bg: 'bg-purple-50' },
+    { id: 'CUSTOM', name: 'Custom REST', icon: Code, color: 'text-slate-600', bg: 'bg-slate-50' },
   ];
+
+  if (isEditing) {
+    return (
+      <div className="space-y-8 animate-in slide-in-from-bottom-8 duration-500">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <button onClick={() => setIsEditing(false)} className="p-3 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-brand transition-all">
+              <X size={20} />
+            </button>
+            <div>
+              <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter">
+                {selectedConnector ? `Edit ${selectedConnector.name}` : 'New ERP Connector'}
+              </h3>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Native Uplink Configuration</p>
+            </div>
+          </div>
+          <div className="flex gap-4">
+            <button onClick={() => setIsEditing(false)} className="px-8 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Cancel</button>
+            <button onClick={handleSave} className="bg-brand text-white px-10 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:bg-brand-accent transition-all">
+              Save Configuration
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
+          <div className="flex border-b border-slate-100">
+            {(['CONFIG', 'MAPPING', 'LOGS'] as const).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveSubTab(tab)}
+                className={`px-10 py-5 text-[10px] font-black uppercase tracking-widest transition-all border-b-2 ${activeSubTab === tab ? 'border-brand text-brand bg-slate-50/50' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+
+          <div className="p-12">
+            {activeSubTab === 'CONFIG' && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+                <div className="space-y-8">
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Connector Identity</label>
+                    <input 
+                      type="text"
+                      value={formData.name}
+                      onChange={e => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="e.g. Global SAP Production"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 outline-none focus:border-brand transition-all"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Provider</label>
+                      <select 
+                        value={formData.provider}
+                        onChange={e => setFormData({ ...formData, provider: e.target.value as any })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-4 text-sm font-bold text-slate-900 outline-none focus:border-brand"
+                      >
+                        {providers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Environment</label>
+                      <select 
+                        value={formData.environment}
+                        onChange={e => setFormData({ ...formData, environment: e.target.value as any })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-4 text-sm font-bold text-slate-900 outline-none focus:border-brand"
+                      >
+                        <option value="SANDBOX">Sandbox</option>
+                        <option value="PRODUCTION">Production</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">API Endpoint</label>
+                    <input 
+                      type="url"
+                      value={formData.config?.endpoint}
+                      onChange={e => setFormData({ ...formData, config: { ...formData.config!, endpoint: e.target.value } })}
+                      placeholder="https://api.sap.corp/odata/v2"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 outline-none focus:border-brand transition-all"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Auth Type</label>
+                      <select 
+                        value={formData.config?.authType}
+                        onChange={e => setFormData({ ...formData, config: { ...formData.config!, authType: e.target.value as any } })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-4 text-sm font-bold text-slate-900 outline-none focus:border-brand"
+                      >
+                        <option value="OAUTH2">OAuth 2.0</option>
+                        <option value="API_KEY">API Key</option>
+                        <option value="BASIC">Basic Auth</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Sync Frequency</label>
+                      <select 
+                        value={formData.syncFrequency}
+                        onChange={e => setFormData({ ...formData, syncFrequency: e.target.value as any })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-4 text-sm font-bold text-slate-900 outline-none focus:border-brand"
+                      >
+                        <option value="MANUAL">Manual Only</option>
+                        <option value="15M">Every 15 Minutes</option>
+                        <option value="1H">Every Hour</option>
+                        <option value="DAILY">Daily at Midnight</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-8">
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Entities to Synchronize</label>
+                    <div className="grid grid-cols-2 gap-4">
+                      {(['INVENTORY', 'ORDERS', 'DELIVERIES', 'CLIENTS'] as const).map(entity => (
+                        <label key={entity} className={`flex items-center gap-4 p-5 rounded-2xl border cursor-pointer transition-all ${formData.entities?.includes(entity) ? 'bg-brand/5 border-brand text-brand' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-200'}`}>
+                          <input 
+                            type="checkbox"
+                            className="hidden"
+                            checked={formData.entities?.includes(entity)}
+                            onChange={e => {
+                              const current = formData.entities || [];
+                              setFormData({
+                                ...formData,
+                                entities: e.target.checked ? [...current, entity] : current.filter(en => en !== entity)
+                              });
+                            }}
+                          />
+                          <div className={`h-6 w-6 rounded-lg border-2 flex items-center justify-center transition-all ${formData.entities?.includes(entity) ? 'bg-brand border-brand text-white' : 'bg-white border-slate-200'}`}>
+                            {formData.entities?.includes(entity) && <Check size={14} />}
+                          </div>
+                          <span className="text-[10px] font-black uppercase tracking-widest">{entity}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-900 rounded-[2rem] p-8 text-white">
+                    <div className="flex items-center gap-4 mb-6">
+                      <div className="h-10 w-10 bg-white/10 rounded-xl flex items-center justify-center">
+                        <ShieldCheck size={20} className="text-brand-accent" />
+                      </div>
+                      <h4 className="text-sm font-black uppercase tracking-tight">Security & Compliance</h4>
+                    </div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed mb-6">
+                      All credentials are encrypted using AES-256-GCM before storage. Shipstack never stores your ERP passwords in plain text.
+                    </p>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest">
+                        <span className="text-slate-500">IP Whitelisting</span>
+                        <span className="text-emerald-500">Required</span>
+                      </div>
+                      <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest">
+                        <span className="text-slate-500">TLS Version</span>
+                        <span className="text-slate-300">1.3 Minimum</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeSubTab === 'MAPPING' && (
+              <div className="space-y-10">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h4 className="text-lg font-black text-slate-900 uppercase tracking-tighter mb-1">Field Schema Mapping</h4>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Map ERP source fields to Shipstack internal ledger</p>
+                  </div>
+                  <button className="bg-slate-100 text-slate-600 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all">
+                    Auto-Detect Schema
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {Object.entries(formData.mapping || {}).map(([internal, external]) => (
+                    <div key={internal} className="p-8 bg-slate-50 rounded-[2rem] border border-slate-100 flex items-center gap-8">
+                      <div className="flex-1 space-y-2">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Shipstack Field</label>
+                        <div className="bg-white border border-slate-200 rounded-xl px-5 py-3 text-[10px] font-black text-brand uppercase tracking-widest">
+                          {internal.replace('_', ' ')}
+                        </div>
+                      </div>
+                      <div className="text-slate-300">
+                        <ChevronRight size={24} />
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">ERP Source Field</label>
+                        <input 
+                          type="text"
+                          value={external as string}
+                          onChange={e => setFormData({
+                            ...formData,
+                            mapping: { ...formData.mapping, [internal]: e.target.value }
+                          })}
+                          className="w-full bg-white border border-slate-200 rounded-xl px-5 py-3 text-[10px] font-black text-slate-900 uppercase tracking-widest outline-none focus:border-brand"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeSubTab === 'LOGS' && (
+              <div className="space-y-8">
+                <div className="flex justify-between items-center">
+                  <h4 className="text-lg font-black text-slate-900 uppercase tracking-tighter">Synchronization History</h4>
+                  <div className="flex gap-4">
+                    <div className="text-right">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Records</p>
+                      <p className="text-lg font-black text-slate-900 leading-none">1,240</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Success Rate</p>
+                      <p className="text-lg font-black text-emerald-500 leading-none">98.2%</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border border-slate-100 rounded-2xl overflow-hidden">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-100">
+                        <th className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Timestamp</th>
+                        <th className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Entity</th>
+                        <th className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                        <th className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Processed</th>
+                        <th className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Duration</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {syncLogs.filter(l => l.connectorId === selectedConnector?.id).map(log => (
+                        <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="px-8 py-4 text-[10px] font-bold text-slate-600">{new Date(log.timestamp).toLocaleString()}</td>
+                          <td className="px-8 py-4">
+                            <span className="text-[9px] font-black text-slate-900 bg-slate-100 px-2 py-1 rounded uppercase tracking-widest">{log.entity}</span>
+                          </td>
+                          <td className="px-8 py-4">
+                            <Badge variant={log.status === 'SUCCESS' ? 'delivered' : log.status === 'PARTIAL' ? 'dispatched' : 'neutral'}>
+                              {log.status}
+                            </Badge>
+                          </td>
+                          <td className="px-8 py-4 text-[10px] font-black text-slate-900">{log.recordsProcessed} items</td>
+                          <td className="px-8 py-4 text-[10px] font-bold text-slate-400">{log.durationMs}ms</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-10 animate-in slide-in-from-right-8 duration-500">
-       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {providers.map(p => (
-            <div 
-              key={p.id} 
-              onClick={() => setSelectedProvider(p.id)}
-              className={`bg-white rounded-[2rem] border p-8 shadow-sm hover:shadow-xl transition-all group cursor-pointer ${selectedProvider === p.id ? 'border-brand-accent ring-2 ring-brand-accent/10' : 'border-slate-200'}`}
-            >
-               <div className={`h-14 w-14 ${p.bg} ${p.color} rounded-2xl flex items-center justify-center mb-6 transition-transform group-hover:scale-110`}>
-                  <p.icon size={28} />
-               </div>
-               <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight mb-1">{p.name}</h4>
-               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{p.desc}</p>
-               <div className="mt-6 pt-6 border-t border-slate-50 flex justify-between items-center">
-                  <span className="text-[9px] font-black text-brand uppercase">{selectedProvider === p.id ? 'Active' : 'Configure'}</span>
-                  <ChevronRight size={14} className={`text-slate-300 transition-transform ${selectedProvider === p.id ? 'rotate-90 text-brand' : ''}`} />
-               </div>
-            </div>
-          ))}
-       </div>
+      <div className="flex justify-between items-center">
+        <div>
+          <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">ERP Connectors</h3>
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Automated Enterprise Data Synchronization</p>
+        </div>
+        <button 
+          onClick={handleCreateNew}
+          className="bg-brand text-white px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-brand-accent shadow-xl transition-all"
+        >
+          <Plus size={16} /> Add Connector
+        </button>
+      </div>
 
-       {selectedProvider ? (
-         <div className="bg-white rounded-[3rem] border border-slate-200 shadow-xl overflow-hidden animate-in slide-in-from-bottom-8 duration-500">
-            <div className="p-10 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-               <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 bg-brand text-white rounded-2xl flex items-center justify-center">
-                     <DatabaseZap size={24} />
-                  </div>
-                  <div>
-                     <h3 className="text-lg font-black text-slate-900 uppercase tracking-tighter">{providers.find(p => p.id === selectedProvider)?.name} Configuration</h3>
-                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Secure Native Uplink</p>
-                  </div>
-               </div>
-               <button onClick={() => setSelectedProvider(null)} className="text-slate-400 hover:text-brand"><X size={24} /></button>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <div className="lg:col-span-8 space-y-6">
+          {loading ? (
+            <div className="bg-white rounded-[2.5rem] p-20 text-center border border-slate-200">
+              <RefreshCw className="animate-spin mx-auto text-slate-300 mb-4" size={32} />
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Synchronizing Uplinks...</p>
             </div>
-            
-            <div className="p-12 grid grid-cols-1 lg:grid-cols-2 gap-12">
-               <div className="space-y-8">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                     <div className="space-y-2">
-                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Environment</label>
-                        <select 
-                          value={config.environment}
-                          onChange={(e) => setConfig({ ...config, environment: e.target.value })}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-4 text-sm font-bold text-slate-900 outline-none focus:border-brand transition-all"
+          ) : connectors.length === 0 ? (
+            <div className="bg-white rounded-[2.5rem] p-20 text-center border border-slate-200">
+              <div className="h-20 w-20 bg-slate-50 rounded-3xl flex items-center justify-center text-slate-200 mx-auto mb-6">
+                <DatabaseZap size={40} />
+              </div>
+              <h4 className="text-xl font-black text-slate-900 uppercase tracking-tighter mb-2">No Active Connectors</h4>
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest max-w-sm mx-auto mb-8">
+                Connect your SAP, Oracle, or Odoo instance to automate order ingestion and inventory reconciliation.
+              </p>
+              <button onClick={handleCreateNew} className="bg-brand text-white px-10 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl">
+                Configure First Uplink
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {connectors.map(c => {
+                const provider = providers.find(p => p.id === c.provider) || providers[4];
+                return (
+                  <div key={c.id} className="bg-white rounded-[2.5rem] border border-slate-200 p-8 shadow-sm hover:shadow-xl transition-all group">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-6">
+                        <div className={`h-16 w-16 ${provider.bg} ${provider.color} rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110`}>
+                          <provider.icon size={32} />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-3 mb-1">
+                            <h4 className="text-lg font-black text-slate-900 uppercase tracking-tighter">{c.name}</h4>
+                            <Badge variant={c.status === 'CONNECTED' ? 'delivered' : c.status === 'DISCONNECTED' ? 'neutral' : 'dispatched'}>
+                              {c.status}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{provider.name} &bull; {c.environment}</p>
+                            <span className="h-1 w-1 rounded-full bg-slate-200" />
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sync: {c.syncFrequency}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <button 
+                          onClick={() => handleTriggerSync(c.id)}
+                          disabled={isSyncing === c.id}
+                          className="p-4 bg-slate-50 text-slate-400 rounded-2xl hover:text-brand hover:bg-brand/5 transition-all disabled:opacity-50"
+                          title="Sync Now"
                         >
-                           <option value="SANDBOX">Sandbox / Development</option>
-                           <option value="PRODUCTION">Production</option>
-                        </select>
-                     </div>
-                     <div className="space-y-2">
-                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Auth Strategy</label>
-                        <select 
-                          value={config.authStrategy}
-                          onChange={(e) => setConfig({ ...config, authStrategy: e.target.value })}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-4 text-sm font-bold text-slate-900 outline-none focus:border-brand transition-all"
+                          <RefreshCw size={20} className={isSyncing === c.id ? 'animate-spin' : ''} />
+                        </button>
+                        <button 
+                          onClick={() => handleEdit(c)}
+                          className="p-4 bg-slate-50 text-slate-400 rounded-2xl hover:text-brand hover:bg-brand/5 transition-all"
+                          title="Configure"
                         >
-                           <option value="OAUTH2">OAuth 2.0 Client Credentials</option>
-                           <option value="API_KEY">API Key / Secret</option>
-                           <option value="BASIC">Basic Auth</option>
-                        </select>
-                     </div>
+                          <Settings size={20} />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(c.id)}
+                          className="p-4 bg-slate-50 text-slate-400 rounded-2xl hover:text-red-500 hover:bg-red-50 transition-all"
+                          title="Decommission"
+                        >
+                          <Trash2 size={20} />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="mt-8 pt-8 border-t border-slate-50 flex justify-between items-center">
+                      <div className="flex gap-2">
+                        {c.entities.map(e => (
+                          <span key={e} className="text-[8px] font-black text-slate-400 bg-slate-50 px-2 py-1 rounded uppercase tracking-widest border border-slate-100">{e}</span>
+                        ))}
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Last Handshake</p>
+                        <p className="text-[10px] font-black text-slate-900 uppercase">
+                          {c.lastSync ? new Date(c.lastSync).toLocaleString() : 'Never'}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  
-                  <div className="space-y-2">
-                     <div className="flex justify-between items-center">
-                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">API Endpoint URL</label>
-                        {errors.endpoint && <span className="text-[8px] font-black text-red-500 uppercase tracking-widest">{errors.endpoint}</span>}
-                     </div>
-                     <input 
-                        type="text" 
-                        value={config.endpoint}
-                        onChange={(e) => setConfig({ ...config, endpoint: e.target.value })}
-                        placeholder="https://api.sap.corp/odata/v2/..."
-                        className={`w-full bg-slate-50 border rounded-xl px-5 py-4 text-sm font-bold text-slate-900 outline-none transition-all ${errors.endpoint ? 'border-red-500 bg-red-50/30' : 'border-slate-200 focus:border-brand'}`}
-                     />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                     <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                           <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Client ID</label>
-                           {errors.clientId && <span className="text-[8px] font-black text-red-500 uppercase tracking-widest">Required</span>}
-                        </div>
-                        <input 
-                          type="text" 
-                          value={config.clientId}
-                          onChange={(e) => setConfig({ ...config, clientId: e.target.value })}
-                          className={`w-full bg-slate-50 border rounded-xl px-5 py-4 text-sm font-bold text-slate-900 outline-none transition-all ${errors.clientId ? 'border-red-500 bg-red-50/30' : 'border-slate-200 focus:border-brand'}`} 
-                        />
-                     </div>
-                     <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                           <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Client Secret</label>
-                           {errors.clientSecret && <span className="text-[8px] font-black text-red-500 uppercase tracking-widest">Required</span>}
-                        </div>
-                        <input 
-                          type="password" 
-                          value={config.clientSecret}
-                          onChange={(e) => setConfig({ ...config, clientSecret: e.target.value })}
-                          placeholder="••••••••••••••••" 
-                          className={`w-full bg-slate-50 border rounded-xl px-5 py-4 text-sm font-bold text-slate-900 outline-none transition-all ${errors.clientSecret ? 'border-red-500 bg-red-50/30' : 'border-slate-200 focus:border-brand'}`} 
-                        />
-                     </div>
-                  </div>
-
-                  <div className="pt-6 flex gap-4">
-                     <button 
-                       onClick={handleTestConnection}
-                       disabled={isTesting}
-                       className="flex-1 bg-brand text-white py-5 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl hover:bg-brand-accent transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                     >
-                        {isTesting ? <RefreshCw className="animate-spin" size={16} /> : 'Test Connection'}
-                     </button>
-                     <button className="flex-1 bg-slate-100 text-slate-900 py-5 rounded-2xl text-[11px] font-black uppercase tracking-widest">Save Configuration</button>
-                  </div>
-               </div>
-
-               <div className="bg-slate-50 rounded-[2rem] p-10 border border-slate-100 flex flex-col justify-between">
-                  <div className="space-y-6">
-                     <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-brand-accent">
-                           <ShieldCheck size={20} />
-                        </div>
-                        <h4 className="text-sm font-black uppercase tracking-tight text-slate-900">Integration Health</h4>
-                     </div>
-                     
-                     <div className="space-y-4">
-                        <HealthMetric label="Sync Frequency" value="Every 15 Minutes" />
-                        <HealthMetric label="Last Successful Sync" value="Never" />
-                        <HealthMetric label="Data Flow" value="Bi-directional" />
-                     </div>
-                  </div>
-
-                  <div className="p-6 bg-white rounded-2xl border border-slate-200 shadow-sm">
-                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Sync Preview</p>
-                     <div className="flex items-center gap-3 text-slate-300">
-                        <RefreshCw size={24} />
-                        <p className="text-[10px] font-bold uppercase tracking-widest">Awaiting first handshake...</p>
-                     </div>
-                  </div>
-               </div>
+                );
+              })}
             </div>
-         </div>
-       ) : (
-         <div className="bg-white rounded-[3rem] border border-slate-200 shadow-sm p-12 text-center">
-            <div className="max-w-2xl mx-auto space-y-6">
-               <div className="h-20 w-20 bg-brand/5 text-brand rounded-3xl flex items-center justify-center mx-auto">
-                  <RefreshCw size={40} className="animate-spin-slow" />
-               </div>
-               <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">Automated ERP Synchronization</h3>
-               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
-                  Connect your existing ERP or WMS to automate order ingestion and status updates. Our connectors support bi-directional sync for inventory and delivery reconciliation.
-               </p>
-               <div className="pt-4">
-                  <button className="bg-slate-900 text-white px-10 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl hover:bg-brand transition-all">
-                     Request Custom Integration
-                  </button>
-               </div>
+          )}
+        </div>
+
+        <div className="lg:col-span-4 space-y-6">
+          <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-2xl">
+            <h4 className="text-lg font-black uppercase tracking-tighter mb-4">Uplink Architecture</h4>
+            <p className="text-[11px] font-bold text-slate-400 uppercase leading-relaxed tracking-widest mb-8">
+              Shipstack Connectors provide a secure, bi-directional bridge between your enterprise core and our logistics ledger.
+            </p>
+            <div className="space-y-6">
+              <div className="flex items-start gap-4">
+                <div className="h-8 w-8 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                  <ShieldCheck size={16} className="text-brand-accent" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest mb-1">End-to-End Encryption</p>
+                  <p className="text-[9px] font-bold text-slate-500 uppercase leading-relaxed">Mutual TLS and AES-256 encryption for all data in transit and at rest.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4">
+                <div className="h-8 w-8 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                  <Activity size={16} className="text-brand-accent" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest mb-1">Real-time Reconciliation</p>
+                  <p className="text-[9px] font-bold text-slate-500 uppercase leading-relaxed">Automatic inventory adjustments and order status updates back to ERP.</p>
+                </div>
+              </div>
             </div>
-         </div>
-       )}
+            <div className="mt-10 pt-10 border-t border-white/10">
+              <button className="w-full py-4 bg-brand text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:bg-brand-accent transition-all">
+                Download SDK Docs
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-[2.5rem] border border-slate-200 p-8 shadow-sm">
+            <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-6">Recent Anomalies</h4>
+            <div className="space-y-4">
+              {syncLogs.filter(l => l.status === 'FAILED' || l.status === 'PARTIAL').slice(0, 3).map(log => (
+                <div key={log.id} className="p-4 bg-red-50 rounded-2xl border border-red-100">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-[9px] font-black text-red-600 uppercase tracking-widest">{log.entity} Sync</span>
+                    <span className="text-[8px] font-bold text-red-400">{new Date(log.timestamp).toLocaleTimeString()}</span>
+                  </div>
+                  <p className="text-[10px] font-bold text-red-700 leading-tight">{log.errors?.[0] || 'Unknown Error'}</p>
+                </div>
+              ))}
+              {syncLogs.filter(l => l.status === 'FAILED' || l.status === 'PARTIAL').length === 0 && (
+                <div className="py-10 text-center">
+                  <CheckCircle2 size={32} className="text-emerald-200 mx-auto mb-3" />
+                  <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">No anomalies detected</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
@@ -546,45 +870,111 @@ const IngressWizard = ({ onComplete }: { onComplete: () => void }) => {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [previewRows, setPreviewRows] = useState<ImportPreviewRow[]>([]);
+  const [rawFileContent, setRawFileContent] = useState<any[]>([]);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [fileType, setFileType] = useState<'CSV' | 'JSON' | null>(null);
   const [mappings, setMappings] = useState<Record<string, string>>({
-    'Reference ID': 'externalId',
-    'Customer Name': 'clientName',
-    'Delivery Address': 'address',
-    'Quantity': 'qty'
+    'externalId': '',
+    'clientName': '',
+    'address': '',
+    'qty': ''
   });
 
-  const runTestScenario = async () => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setFileName(file.name);
     setIsProcessing(true);
-    await new Promise(r => setTimeout(r, 800));
-    setIsProcessing(false);
-    setStep(2);
-    addNotification("Manifest payload detected. Please verify schema mapping.", "info");
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      
+      if (file.name.endsWith('.json')) {
+        try {
+          const json = JSON.parse(content);
+          const data = Array.isArray(json) ? json : [json];
+          setRawFileContent(data);
+          setFileType('JSON');
+          autoMap(data[0]);
+          setStep(2);
+          addNotification("JSON payload detected. Please verify schema mapping.", "info");
+        } catch (err) {
+          addNotification("Invalid JSON format", "error");
+        }
+      } else if (file.name.endsWith('.csv')) {
+        Papa.parse(content, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (results) => {
+            setRawFileContent(results.data as any[]);
+            setFileType('CSV');
+            autoMap(results.data[0]);
+            setStep(2);
+            addNotification("CSV manifest detected. Please verify schema mapping.", "info");
+          },
+          error: () => {
+            addNotification("Failed to parse CSV", "error");
+          }
+        });
+      } else {
+        addNotification("Unsupported file format. Use CSV or JSON.", "error");
+      }
+      setIsProcessing(false);
+    };
+    reader.readAsText(file);
+  };
+
+  const autoMap = (firstRow: any) => {
+    if (!firstRow) return;
+    const keys = Object.keys(firstRow);
+    const newMappings = { ...mappings };
+    
+    const findMatch = (target: string, options: string[]) => {
+      return options.find(opt => 
+        opt.toLowerCase().includes(target.toLowerCase()) || 
+        target.toLowerCase().includes(opt.toLowerCase())
+      );
+    };
+
+    if (findMatch('externalId', keys)) newMappings.externalId = findMatch('externalId', keys)!;
+    if (findMatch('clientName', keys)) newMappings.clientName = findMatch('clientName', keys)!;
+    if (findMatch('address', keys)) newMappings.address = findMatch('address', keys)!;
+    if (findMatch('qty', keys)) newMappings.qty = findMatch('qty', keys)!;
+
+    setMappings(newMappings);
   };
 
   const proceedToDiagnostic = async () => {
     setIsProcessing(true);
     await new Promise(r => setTimeout(r, 1200));
-    const testData: ImportPreviewRow[] = [
-      { 
-        index: 1, 
-        data: { externalId: 'DN-2025-001', clientName: 'Nairobi General Hospital', address: 'Upper Hill', qty: 50 }, 
-        errors: {}, 
-        isValid: true 
-      },
-      { 
-        index: 2, 
-        data: { externalId: '', clientName: 'Incomplete Order', address: 'Mombasa Rd', qty: 'NaN' }, 
-        errors: { externalId: 'Mandatory Field Missing', qty: 'Value must be numeric' }, 
-        isValid: false 
-      },
-      { 
-        index: 3, 
-        data: { externalId: 'DN-2025-003', clientName: 'Coast Pharma', address: 'Invalid Geo-Target 404', qty: 12 }, 
-        errors: { address: 'Geo-Resolution Failed: Unrecognized Terrain' }, 
-        isValid: false 
+
+    const mappedData: ImportPreviewRow[] = rawFileContent.map((row, index) => {
+      const data: Record<string, any> = {};
+      Object.entries(mappings).forEach(([internal, source]) => {
+        if (source) data[internal] = row[source];
+      });
+
+      const errors: Record<string, string> = {};
+      if (!data.externalId) errors.externalId = 'Reference ID is required';
+      if (!data.clientName) errors.clientName = 'Client Name is required';
+      if (!data.address) errors.address = 'Address is required';
+      
+      if (data.address && data.address.toLowerCase().includes('invalid')) {
+        errors.address = 'Geo-Resolution Failed: Unrecognized Terrain';
       }
-    ];
-    setPreviewRows(testData);
+
+      return {
+        id: `ipr-${index}`,
+        index: index + 1,
+        data,
+        errors,
+        isValid: Object.keys(errors).length === 0
+      };
+    });
+
+    setPreviewRows(mappedData);
     setIsProcessing(false);
     setStep(3);
     addNotification("Diagnostic scan complete. Anomalies detected.", "info");
@@ -593,226 +983,225 @@ const IngressWizard = ({ onComplete }: { onComplete: () => void }) => {
   const finalizeIngress = async () => {
     setIsProcessing(true);
     await new Promise(r => setTimeout(r, 1500));
-    // Commit only valid rows
     const validData = previewRows.filter(r => r.isValid).map(r => r.data);
     await api.processImport(validData);
     setIsProcessing(false);
     setStep(4);
+    addNotification("Data ingress successful. Records manifested.", "success");
     onComplete();
   };
 
   return (
-    <div className="bg-white rounded-[3rem] border border-slate-200 shadow-sm p-12 min-h-[500px] flex flex-col transition-all">
-       {step === 1 && (
-         <div className="flex-1 flex flex-col items-center justify-center text-center space-y-10 animate-in fade-in zoom-in-95">
-            <div className="h-32 w-32 bg-slate-50 text-slate-300 rounded-[3rem] flex items-center justify-center border border-slate-100 group shadow-inner">
-               <DatabaseZap size={64} className="group-hover:scale-110 transition-transform duration-500" />
-            </div>
-            <div className="max-w-xl space-y-4">
-               <h3 className="text-4xl font-black uppercase tracking-tighter text-slate-900">Manifest Ingestion Terminal</h3>
-               <p className="text-sm font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
-                  Bulk load manifest payloads. Our diagnostic engine performs real-time schema and geo-validation before grid commitment.
-               </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-5 w-full max-w-2xl">
-               <button onClick={runTestScenario} className="flex-1 bg-brand text-white py-6 rounded-3xl text-[10px] font-black uppercase tracking-[0.2em] shadow-2xl flex items-center justify-center gap-3 active:scale-95 transition-all">
-                  {isProcessing ? <RefreshCw className="animate-spin" size={18} /> : <><Wand2 size={18} /> Simulate Ingestion</>}
-               </button>
-               <button 
-                 onClick={() => api.resetData()}
-                 className="flex-1 bg-emerald-500 text-white py-6 rounded-3xl text-[10px] font-black uppercase tracking-[0.2em] shadow-2xl flex items-center justify-center gap-3 active:scale-95 transition-all"
-               >
-                  <RefreshCw size={18} /> Seed System Data
-               </button>
-               <button className="flex-1 bg-white border-2 border-slate-100 text-slate-900 py-6 rounded-3xl text-[10px] font-black uppercase tracking-[0.2em] hover:border-brand-accent transition-all">
-                  <Upload size={18} className="mr-2 inline" /> Upload Manifest
-               </button>
-            </div>
-         </div>
-       )}
+    <div className="bg-white rounded-[3rem] border border-slate-200 shadow-sm overflow-hidden animate-in fade-in duration-500">
+       <div className="p-10 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+          <div className="flex items-center gap-6">
+             <div className="h-14 w-14 bg-brand rounded-2xl flex items-center justify-center text-white shadow-xl">
+                <DatabaseZap size={28} />
+             </div>
+             <div>
+                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter">Ingress Wizard</h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Multi-Step Data Manifesting</p>
+             </div>
+          </div>
+          <div className="flex items-center gap-3">
+             {[1, 2, 3, 4].map(s => (
+               <div key={s} className={`h-2.5 w-2.5 rounded-full transition-all ${step >= s ? 'bg-brand scale-125' : 'bg-slate-200'}`} />
+             ))}
+          </div>
+       </div>
 
-       {step === 2 && (
-         <div className="space-y-10 animate-in slide-in-from-right-8">
-            <div className="flex justify-between items-end border-b border-slate-100 pb-6">
+       <div className="p-12">
+          {step === 1 && (
+            <div className="max-w-xl mx-auto text-center space-y-8 py-10">
+               <div className="h-24 w-24 bg-slate-50 rounded-[2rem] flex items-center justify-center text-slate-300 mx-auto border-2 border-dashed border-slate-200 group hover:border-brand transition-all relative overflow-hidden">
+                  <Upload size={40} className="group-hover:scale-110 transition-transform" />
+                  <input 
+                    type="file" 
+                    accept=".csv,.json" 
+                    onChange={handleFileUpload}
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                  />
+               </div>
                <div>
-                  <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
-                    <Code size={24} className="text-brand-accent" /> Schema Mapping
-                  </h3>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
-                    Align Spreadsheet Columns with Logistics Grid Fields
+                  <h4 className="text-2xl font-black text-slate-900 uppercase tracking-tighter mb-2">Upload Manifest</h4>
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
+                     Drag and drop your CSV or JSON file here. Our parser will automatically detect the schema and prepare for mapping.
                   </p>
                </div>
-               <button onClick={() => setStep(1)} className="text-[10px] font-black uppercase text-slate-400 hover:text-red-500 tracking-widest flex items-center gap-2">
-                 <X size={16} /> Reset
-               </button>
+               <div className="flex items-center justify-center gap-4">
+                  <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100">
+                     <FileText size={14} className="text-slate-400" />
+                     <span className="text-[9px] font-black uppercase tracking-widest text-slate-600">CSV Support</span>
+                  </div>
+                  <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100">
+                     <FileJson size={14} className="text-slate-400" />
+                     <span className="text-[9px] font-black uppercase tracking-widest text-slate-600">JSON Support</span>
+                  </div>
+               </div>
+               {isProcessing && (
+                 <div className="flex items-center justify-center gap-3 text-brand">
+                    <RefreshCw size={18} className="animate-spin" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em]">Analyzing Payload...</span>
+                 </div>
+               )}
             </div>
+          )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-               <div className="space-y-6">
-                  {Object.entries(mappings).map(([source, target]) => (
-                    <div key={source} className="flex items-center gap-4 p-5 bg-slate-50 rounded-2xl border border-slate-100 group hover:border-brand-accent transition-all">
-                       <div className="flex-1">
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Source Column</p>
-                          <p className="text-xs font-black text-slate-900 uppercase">{source}</p>
+          {step === 2 && (
+            <div className="space-y-10 animate-in slide-in-from-bottom-4">
+               <div className="flex justify-between items-end">
+                  <div>
+                     <h4 className="text-xl font-black text-slate-900 uppercase tracking-tighter mb-1">Schema Mapping</h4>
+                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Align source columns with Shipstack fields</p>
+                  </div>
+                  <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl border border-blue-100">
+                     <Wand2 size={14} />
+                     <span className="text-[9px] font-black uppercase tracking-widest">Auto-mapped {Object.values(mappings).filter(Boolean).length}/4 fields</span>
+                  </div>
+               </div>
+
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {Object.keys(mappings).map(field => (
+                    <div key={field} className="p-6 bg-slate-50 rounded-2xl border border-slate-100 space-y-4">
+                       <div className="flex justify-between items-center">
+                          <label className="text-[10px] font-black text-slate-900 uppercase tracking-widest">{field.replace(/([A-Z])/g, ' $1')}</label>
+                          <Badge variant="neutral" className="scale-75">Required</Badge>
                        </div>
-                       <ChevronRight size={16} className="text-slate-300" />
-                       <div className="flex-1">
-                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Grid Field</p>
-                          <select 
-                            value={target}
-                            onChange={(e) => setMappings(prev => ({ ...prev, [source]: e.target.value }))}
-                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-[10px] font-bold text-brand outline-none focus:ring-1 focus:ring-brand/20"
-                          >
-                             <option value="externalId">Reference ID</option>
-                             <option value="clientName">Consignee Name</option>
-                             <option value="address">Destination Address</option>
-                             <option value="qty">Quantity</option>
-                             <option value="weight">Weight (KG)</option>
-                          </select>
-                       </div>
+                       <select 
+                         value={mappings[field]}
+                         onChange={(e) => setMappings({ ...mappings, [field]: e.target.value })}
+                         className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 outline-none focus:border-brand"
+                       >
+                          <option value="">Select Source Column</option>
+                          {rawFileContent[0] && Object.keys(rawFileContent[0]).map(k => (
+                            <option key={k} value={k}>{k}</option>
+                          ))}
+                       </select>
                     </div>
                   ))}
                </div>
 
-               <div className="bg-slate-900 rounded-[2.5rem] p-10 text-white space-y-8 flex flex-col justify-between shadow-2xl">
-                  <div className="space-y-4">
-                     <div className="h-12 w-12 bg-white/10 rounded-2xl flex items-center justify-center">
-                        <ShieldCheck size={24} className="text-brand-accent" />
+               <div className="pt-6 border-t border-slate-100 flex justify-between items-center">
+                  <button onClick={() => setStep(1)} className="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-all">Back to Upload</button>
+                  <button 
+                    onClick={proceedToDiagnostic}
+                    disabled={isProcessing}
+                    className="bg-brand text-white px-10 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl hover:bg-brand-accent transition-all flex items-center gap-3 disabled:opacity-50"
+                  >
+                     {isProcessing ? <RefreshCw className="animate-spin" size={16} /> : <FileSearch size={16} />}
+                     Run Diagnostics
+                  </button>
+               </div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="space-y-8 animate-in slide-in-from-bottom-4">
+               <div className="flex justify-between items-end">
+                  <div>
+                     <h4 className="text-xl font-black text-slate-900 uppercase tracking-tighter mb-1">Diagnostic Results</h4>
+                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Validation & Geo-Resolution Check</p>
+                  </div>
+                  <div className="flex gap-4">
+                     <div className="text-right">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Valid Rows</p>
+                        <p className="text-lg font-black text-emerald-500 leading-none">{previewRows.filter(r => r.isValid).length}</p>
                      </div>
-                     <h4 className="text-xl font-black uppercase tracking-tighter">Mapping Intelligence</h4>
-                     <p className="text-[11px] font-bold text-slate-400 uppercase leading-relaxed tracking-widest">
-                        Our engine has auto-detected 4 potential matches. You can manually override these mappings or save this configuration for future manifests from this source.
-                     </p>
-                  </div>
-
-                  <div className="space-y-4">
-                     <label className="flex items-center gap-3 cursor-pointer group">
-                        <div className="h-6 w-6 rounded-lg border-2 border-white/20 flex items-center justify-center group-hover:border-brand-accent transition-all">
-                           <Check size={14} className="text-brand-accent" />
-                        </div>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-white/80">Save this mapping profile</span>
-                     </label>
-                     <button 
-                        onClick={proceedToDiagnostic}
-                        className="w-full bg-brand-accent text-white py-6 rounded-3xl text-[12px] font-black uppercase tracking-[0.3em] shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3"
-                     >
-                        {isProcessing ? <RefreshCw className="animate-spin" size={20} /> : 'Run Diagnostics'}
-                     </button>
+                     <div className="text-right">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Anomalies</p>
+                        <p className="text-lg font-black text-red-500 leading-none">{previewRows.filter(r => !r.isValid).length}</p>
+                     </div>
                   </div>
                </div>
-            </div>
-         </div>
-       )}
 
-       {step === 3 && (
-         <div className="space-y-10 animate-in slide-in-from-bottom-8">
-            <div className="flex justify-between items-end border-b border-slate-100 pb-6">
-               <div>
-                  <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
-                    <FileSearch size={24} className="text-brand-accent" /> Payload Diagnostic Review
-                  </h3>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
-                    Found {previewRows.filter(r => !r.isValid).length} Operational Blockers in Payload
-                  </p>
-               </div>
-               <button onClick={() => setStep(1)} className="text-[10px] font-black uppercase text-slate-400 hover:text-red-500 tracking-widest flex items-center gap-2">
-                 <X size={16} /> Abort Ingress
-               </button>
-            </div>
-            
-            <div className="bg-slate-50 rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-inner">
-               <div className="overflow-x-auto">
+               <div className="border border-slate-100 rounded-2xl overflow-hidden">
                   <table className="w-full text-left border-collapse">
-                     <thead className="bg-white border-b border-slate-200">
-                        <tr>
-                           <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Row ID</th>
-                           <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">External Reference</th>
-                           <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Validation Status</th>
-                           <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Diagnostic Log</th>
-                           <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">Action</th>
+                     <thead>
+                        <tr className="bg-slate-50 border-b border-slate-100">
+                           <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Row</th>
+                           <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Reference</th>
+                           <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Customer</th>
+                           <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                           <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Diagnostics</th>
                         </tr>
                      </thead>
-                     <tbody className="divide-y divide-slate-100">
-                        {previewRows.map((row) => (
-                           <tr key={row.index} className={row.isValid ? 'bg-white hover:bg-slate-50' : 'bg-red-50/30'}>
-                              <td className="px-8 py-6 text-[10px] font-mono text-slate-400">00{row.index}</td>
-                              <td className="px-8 py-6">
-                                 <p className={`text-xs font-black uppercase ${row.errors.externalId ? 'text-red-600' : 'text-slate-900'}`}>
-                                   {row.data.externalId || '[MISSING ID]'}
-                                 </p>
-                                 <p className="text-[9px] font-bold text-slate-400 mt-0.5">{row.data.clientName}</p>
-                              </td>
-                              <td className="px-8 py-6">
-                                 {row.isValid ? (
-                                   <Badge variant="delivered"><Check size={10} className="mr-1" /> Ready</Badge>
-                                 ) : (
-                                   <Badge variant="failed"><AlertCircle size={10} className="mr-1" /> Blocker</Badge>
-                                 )}
-                              </td>
-                              <td className="px-8 py-6">
-                                 {Object.values(row.errors).length > 0 ? (
-                                   <div className="space-y-1">
-                                      {Object.entries(row.errors).map(([key, err]) => (
-                                        <p key={key} className="text-[9px] font-black text-red-500 uppercase tracking-tight">
-                                          &bull; {key}: {err}
-                                        </p>
-                                      ))}
-                                   </div>
-                                 ) : (
-                                   <span className="text-[10px] font-bold text-emerald-600 uppercase">Schema Verified</span>
-                                 )}
-                              </td>
-                              <td className="px-8 py-6 text-right">
-                                 {row.isValid ? (
-                                   <div className="h-8 w-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center ml-auto">
-                                      <CheckCircle2 size={16} />
-                                   </div>
-                                 ) : (
-                                   <button className="px-4 py-2 bg-white border border-red-100 text-red-500 rounded-xl text-[9px] font-black uppercase hover:bg-red-50 transition-all">
-                                      Fix Row
-                                   </button>
-                                 )}
-                              </td>
-                           </tr>
+                     <tbody className="divide-y divide-slate-50">
+                        {previewRows.slice(0, 5).map(row => (
+                          <tr key={row.index} className="hover:bg-slate-50/50 transition-colors">
+                             <td className="px-6 py-4 text-[10px] font-bold text-slate-400">#{row.index}</td>
+                             <td className="px-6 py-4">
+                                <span className={`text-[10px] font-black uppercase ${row.errors.externalId ? 'text-red-500' : 'text-slate-900'}`}>
+                                   {row.data.externalId || 'MISSING'}
+                                </span>
+                             </td>
+                             <td className="px-6 py-4">
+                                <p className={`text-[10px] font-black uppercase ${row.errors.clientName ? 'text-red-500' : 'text-slate-900'}`}>{row.data.clientName}</p>
+                             </td>
+                             <td className="px-6 py-4">
+                                <div className={`h-2 w-2 rounded-full ${row.isValid ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                             </td>
+                             <td className="px-6 py-4">
+                                {row.isValid ? (
+                                  <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1">
+                                     <Check size={12} /> Ready
+                                  </span>
+                                ) : (
+                                  <div className="space-y-1">
+                                     {Object.values(row.errors).map((err, i) => (
+                                       <p key={i} className="text-[8px] font-black text-red-500 uppercase tracking-widest flex items-center gap-1">
+                                          <AlertCircle size={10} /> {err as string}
+                                       </p>
+                                     ))}
+                                  </div>
+                                )}
+                             </td>
+                          </tr>
                         ))}
                      </tbody>
                   </table>
+                  {previewRows.length > 5 && (
+                    <div className="p-4 bg-slate-50/50 text-center border-t border-slate-100">
+                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">And {previewRows.length - 5} more records...</p>
+                    </div>
+                  )}
+               </div>
+
+               <div className="pt-6 border-t border-slate-100 flex justify-between items-center">
+                  <button onClick={() => setStep(2)} className="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-all">Back to Mapping</button>
+                  <button 
+                    onClick={finalizeIngress}
+                    disabled={isProcessing || previewRows.filter(r => r.isValid).length === 0}
+                    className="bg-brand text-white px-10 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl hover:bg-brand-accent transition-all flex items-center gap-3 disabled:opacity-50"
+                  >
+                     {isProcessing ? <RefreshCw className="animate-spin" size={16} /> : <CheckCircle2 size={16} />}
+                     Commit {previewRows.filter(r => r.isValid).length} Records
+                  </button>
                </div>
             </div>
+          )}
 
-            <div className="flex flex-col md:flex-row gap-6">
-               <div className="flex-1 p-8 bg-blue-50 border border-blue-100 rounded-[2rem] flex gap-5 items-center">
-                  <Activity size={28} className="text-brand-accent shrink-0" />
-                  <div>
-                    <p className="text-[11px] font-black text-brand uppercase mb-1">Operational Rule</p>
-                    <p className="text-[10px] font-bold text-blue-800/60 uppercase leading-relaxed tracking-tight">
-                       Committing this payload will only manifest the <span className="text-emerald-600">Verified Rows</span>. Blocked rows must be resolved or will be discarded from the batch.
-                    </p>
-                  </div>
+          {step === 4 && (
+            <div className="max-w-xl mx-auto text-center space-y-8 py-10 animate-in zoom-in-95">
+               <div className="h-24 w-24 bg-emerald-50 text-emerald-500 rounded-[2.5rem] flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/10">
+                  <CheckCircle2 size={48} />
                </div>
-               <button 
-                onClick={finalizeIngress} 
-                disabled={isProcessing}
-                className="md:w-72 bg-brand text-white py-6 rounded-3xl text-[12px] font-black uppercase tracking-[0.3em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3"
-               >
-                  {isProcessing ? <RefreshCw className="animate-spin" size={24} /> : 'Authorize Commitment'}
-               </button>
+               <div>
+                  <h4 className="text-3xl font-black text-slate-900 uppercase tracking-tighter mb-2">Ingress Complete</h4>
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
+                     Your manifest has been successfully committed to the Shipstack ledger. All valid records are now available in the dispatch queue.
+                  </p>
+               </div>
+               <div className="pt-4">
+                  <button 
+                    onClick={() => setStep(1)}
+                    className="bg-slate-900 text-white px-10 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl hover:bg-brand transition-all"
+                  >
+                     Start New Ingress
+                  </button>
+               </div>
             </div>
-         </div>
-       )}
-
-       {step === 4 && (
-          <div className="flex-1 flex flex-col items-center justify-center space-y-10 animate-in zoom-in-95 duration-700">
-             <div className="h-32 w-32 bg-emerald-50 text-emerald-500 rounded-[3.5rem] flex items-center justify-center shadow-inner border border-emerald-100">
-                <ShieldCheck size={64} strokeWidth={3} />
-             </div>
-             <div className="text-center space-y-4">
-                <h3 className="text-4xl font-black uppercase tracking-tighter text-slate-900 leading-none">Manifest committed</h3>
-                <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Payload has been synchronized with the Logistics Grid.</p>
-             </div>
-             <button onClick={() => setStep(1)} className="bg-slate-900 text-white px-16 py-6 rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] active:scale-95 transition-all shadow-xl">Return to Terminal</button>
-          </div>
-       )}
+          )}
+       </div>
     </div>
   );
 };

@@ -1,323 +1,233 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Layout from '../../components/Layout';
-import { api } from '../../api';
-import { User, UserRole } from '../../types';
-import { Badge } from '../../packages/ui/Badge';
-import { useAppStore } from '../../store';
+import { useAuditStore, useAuthStore } from '../../store';
 import { 
-  UserPlus, 
+  Users, 
   Search, 
+  UserPlus, 
+  Filter, 
   Edit2, 
-  Trash2, 
   Shield, 
-  Mail, 
-  Building, 
-  X,
-  Check,
-  RefreshCw,
-  MoreVertical
+  Trash2, 
+  CheckCircle2, 
+  XCircle, 
+  History,
+  MoreVertical,
+  Mail,
+  Smartphone,
+  ShieldCheck,
+  Lock,
+  ArrowRight
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import RoleGuard from '../../components/RoleGuard';
+import { ROLE_DEFINITIONS } from '../../constants/rbac';
+import { SystemRole } from '../../types';
+
+interface ManagedUser {
+  id: string;
+  name: string;
+  email: string;
+  role: SystemRole;
+  status: 'active' | 'suspended';
+  lastActive: string;
+  phone?: string;
+  avatar?: string;
+}
+
+const MOCK_USERS: ManagedUser[] = [
+  { id: '1', name: 'Joe Mugoh', email: 'joemugoh215@gmail.com', role: 'tenant_admin', status: 'active', lastActive: new Date().toISOString() },
+  { id: '2', name: 'Sarah Wambui', email: 'sarah.w@farmcare.com', role: 'operations_manager', status: 'active', lastActive: '2026-04-18T14:30:00Z' },
+  { id: '3', name: 'James Kimani', email: 'james.k@farmcare.com', role: 'dispatcher', status: 'active', lastActive: '2026-04-19T08:15:00Z' },
+  { id: '4', name: 'Alice Mutua', email: 'alice.m@farmcare.com', role: 'finance_manager', status: 'suspended', lastActive: '2026-04-10T12:00:00Z' },
+];
 
 const UserManagement: React.FC = () => {
-  const { addNotification } = useAppStore();
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-
-  // Form State
-  const [formData, setFormData] = useState<Omit<User, 'id'>>({
-    name: '',
-    email: '',
-    role: 'DRIVER',
-    company: '',
-    facilityId: '',
-    password: 'password',
-    verificationStatus: 'PENDING'
-  });
-
-  useEffect(() => { loadData(); }, []);
-
-  const loadData = async () => {
-    setLoading(true);
-    const data = await api.getUsers();
-    setUsers(data);
-    setLoading(false);
-  };
-
-  const handleOpenForm = (user: User | null = null) => {
-    if (user) {
-      setEditingUser(user);
-      setFormData({
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        company: user.company || '',
-        facilityId: user.facilityId || '',
-        password: user.password || 'password',
-        verificationStatus: user.verificationStatus || 'PENDING'
-      });
-    } else {
-      setEditingUser(null);
-      setFormData({
-        name: '',
-        email: '',
-        role: 'DRIVER',
-        company: '',
-        facilityId: '',
-        password: 'password',
-        verificationStatus: 'PENDING'
-      });
-    }
-    setIsFormOpen(true);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      if (editingUser) {
-        await api.updateUser(editingUser.id, formData);
-        addNotification('User updated successfully', 'success');
-      } else {
-        await api.createUser(formData);
-        addNotification('New user created', 'success');
-      }
-      setIsFormOpen(false);
-      loadData();
-    } catch (err) {
-      addNotification('Error saving user', 'error');
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this user? Access will be revoked immediately.')) {
-      await api.deleteUser(id);
-      addNotification('User access revoked', 'info');
-      loadData();
-    }
-  };
+  const [users, setUsers] = useState<ManagedUser[]>(MOCK_USERS);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isAddingUser, setIsAddingUser] = useState(false);
+  const { logAction } = useAuditStore();
+  const { currentUserRole } = useAuthStore();
 
   const filteredUsers = users.filter(u => 
-    u.name.toLowerCase().includes(search.toLowerCase()) || 
-    u.email.toLowerCase().includes(search.toLowerCase()) ||
-    u.role.toLowerCase().includes(search.toLowerCase())
+    u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    u.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const roles: UserRole[] = ['ADMIN', 'DISPATCHER', 'FINANCE', 'FACILITY', 'DRIVER', 'CLIENT'];
+  const handleStatusToggle = (userId: string) => {
+    setUsers(prev => prev.map(u => {
+      if (u.id === userId) {
+        const newStatus = u.status === 'active' ? 'suspended' : 'active';
+        logAction('update_user_status', 'user', userId, { from: u.status, to: newStatus }, 'warning');
+        return { ...u, status: newStatus as any };
+      }
+      return u;
+    }));
+  };
+
+  const deleteUser = (userId: string) => {
+    if (confirm('Permanently decommission this operator? This will rescind all security clearances instantly.')) {
+      setUsers(prev => prev.filter(u => u.id !== userId));
+      logAction('delete_user', 'user', userId, {}, 'critical');
+    }
+  };
 
   return (
-    <Layout title="RBAC & Access Control">
-      <div className="space-y-6 h-full flex flex-col">
-        {/* Header Controls */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-           <div>
-              <p className="text-sm font-medium text-neutral-muted">Configure access controls and personnel assignments across the network.</p>
-           </div>
-           <div className="flex items-center gap-3 w-full md:w-auto">
-              <div className="relative flex-1 md:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+    <RoleGuard permissions={['users:view']} showFullPageError>
+      <Layout 
+        title="Command Personnel" 
+        subtitle="Manage security clearaces & operational roles for your cluster"
+      >
+        <div className="space-y-10 pb-24">
+          {/* Header Action Bar */}
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-6 bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
+             <div className="relative flex-1 w-full max-w-lg">
+                <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input 
-                  type="text" 
-                  placeholder="Find identity..." 
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-[11px] font-bold outline-none focus:ring-1 focus:ring-brand/20 transition-all"
+                  type="text"
+                  placeholder="Search by name, email, or role profile..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-12 pr-6 py-4 bg-slate-50 border-2 border-transparent focus:border-brand/20 rounded-2xl outline-none transition-all font-medium text-sm"
                 />
-              </div>
-              <button 
-                onClick={() => handleOpenForm()}
-                className="bg-brand text-white px-5 py-2.5 rounded-lg text-[11px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg active:scale-95 transition-all"
-              >
-                <UserPlus size={14} /> Add User
-              </button>
-           </div>
+             </div>
+             <div className="flex items-center gap-4 w-full lg:w-auto">
+                <RoleGuard permissions={['users:manage']}>
+                  <button 
+                    onClick={() => setIsAddingUser(true)}
+                    className="flex-1 lg:flex-none px-8 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
+                  >
+                    <UserPlus size={16} /> Provision User
+                  </button>
+                </RoleGuard>
+             </div>
+          </div>
+
+          {/* User Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+             {filteredUsers.map((user) => (
+                <UserCard 
+                  key={user.id} 
+                  user={user} 
+                  onToggleStatus={() => handleStatusToggle(user.id)}
+                  onDelete={() => deleteUser(user.id)}
+                />
+             ))}
+             {filteredUsers.length === 0 && (
+                <div className="col-span-full py-32 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[3rem] flex flex-col items-center justify-center text-center">
+                   <div className="h-20 w-20 bg-white rounded-full flex items-center justify-center mb-6 text-slate-300">
+                      <Users size={40} />
+                   </div>
+                   <p className="text-sm font-black text-slate-400 uppercase tracking-widest leading-none">No active personnel found</p>
+                </div>
+             )}
+          </div>
+
+          {/* RBAC Intelligence Sidebar Placeholder / Info */}
+          <section className="bg-brand/5 border border-brand/10 p-12 rounded-[3.5rem] flex flex-col lg:flex-row items-center justify-between gap-12">
+             <div className="lg:w-2/3 space-y-6">
+                <div className="flex items-center gap-4">
+                   <div className="h-14 w-14 bg-brand text-white rounded-[1.5rem] flex items-center justify-center shadow-xl">
+                      <Shield size={32} />
+                   </div>
+                   <div>
+                      <h3 className="text-2xl font-black uppercase tracking-tighter leading-none">RBAC Intelligence Flow</h3>
+                      <p className="text-[10px] font-bold text-brand-dark uppercase tracking-widest mt-1">Enterprise Access Governance</p>
+                   </div>
+                </div>
+                <p className="text-lg font-medium text-slate-600 leading-relaxed max-w-2xl">
+                  Permissions are hierarchically inherited. A <span className="text-slate-900 font-bold">Tenant Admin</span> can manage all assets, while an <span className="text-slate-900 font-bold">Operations Manager</span> is restricted to purely logistical hubs. All escalations are audited globally.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                   {Object.keys(ROLE_DEFINITIONS).map(role => (
+                     <div key={role} className="px-4 py-2 bg-white rounded-xl border border-brand/10 text-[9px] font-bold text-slate-500 uppercase tracking-widest shadow-sm">
+                        {role.replace('_', ' ')}
+                     </div>
+                   ))}
+                </div>
+             </div>
+             <div className="lg:w-1/3 flex flex-col gap-6">
+                <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-xl space-y-4">
+                   <div className="flex items-center justify-between">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Global Invariant</p>
+                      <Lock size={12} className="text-amber-500" />
+                   </div>
+                   <p className="text-xs font-bold text-slate-900">Permissions cannot be individually assigned to users; they must align with pre-defined ROLE PROFILES to ensure audit integrity.</p>
+                </div>
+                <button className="w-full py-5 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 group">
+                   Review RBAC Schema <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                </button>
+             </div>
+          </section>
         </div>
+      </Layout>
+    </RoleGuard>
+  );
+};
 
-        {/* Users Grid/Table */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex-1 flex flex-col">
-           <div className="flex-1 overflow-x-auto">
-              <table className="w-full text-left table-fixed">
-                 <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
-                    <tr>
-                       <th className="p-4 w-1/4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Identity</th>
-                       <th className="p-4 w-1/6 text-[9px] font-black text-slate-400 uppercase tracking-widest">Security Role</th>
-                       <th className="p-4 w-1/4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Unit Assignment</th>
-                       <th className="p-4 w-1/6 text-[9px] font-black text-slate-400 uppercase tracking-widest">Verification Status</th>
-                       <th className="p-4 w-24"></th>
-                    </tr>
-                 </thead>
-                 <tbody className="divide-y divide-slate-100">
-                    {loading ? (
-                       <tr><td colSpan={5} className="p-20 text-center animate-pulse text-[10px] font-black text-slate-300 uppercase tracking-widest">Syncing Identity Service...</td></tr>
-                    ) : filteredUsers.length === 0 ? (
-                       <tr><td colSpan={5} className="p-20 text-center text-slate-300 font-bold uppercase text-[10px]">No personnel matches found</td></tr>
-                    ) : (
-                       filteredUsers.map(user => (
-                          <tr key={user.id} className="group hover:bg-slate-50 transition-colors">
-                             <td className="p-4">
-                                <div className="flex items-center gap-3">
-                                   <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 font-bold text-sm uppercase">
-                                      {user.name.charAt(0)}
-                                   </div>
-                                   <div className="min-w-0">
-                                      <p className="text-[13px] font-black text-slate-900 leading-none mb-1 truncate">{user.name}</p>
-                                      <p className="text-[10px] text-slate-400 font-medium truncate">{user.email}</p>
-                                   </div>
-                                </div>
-                             </td>
-                             <td className="p-4">
-                                <Badge variant={user.role.toLowerCase() as any}>{user.role}</Badge>
-                             </td>
-                             <td className="p-4">
-                                <div className="flex items-center gap-2 text-slate-600">
-                                   <Building size={12} className="text-slate-300" />
-                                   <span className="text-[11px] font-bold">{user.company || user.facilityId || 'Global Operations'}</span>
-                                </div>
-                             </td>
-                             <td className="p-4">
-                                <div className={`flex items-center gap-1.5 text-[9px] font-black uppercase ${user.verificationStatus === 'VERIFIED' ? 'text-emerald-500' : 'text-amber-500'}`}>
-                                   <div className={`h-1.5 w-1.5 rounded-full ${user.verificationStatus === 'VERIFIED' ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
-                                   {user.verificationStatus || 'PENDING'}
-                                </div>
-                             </td>
-                             <td className="p-4 text-right">
-                                <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                   <button 
-                                      onClick={() => handleOpenForm(user)}
-                                      className="p-2 text-slate-400 hover:text-brand bg-white border border-slate-200 rounded-lg shadow-sm transition-all"
-                                   >
-                                      <Edit2 size={12} />
-                                   </button>
-                                   <button 
-                                      onClick={() => handleDelete(user.id)}
-                                      className="p-2 text-slate-400 hover:text-logistics-red bg-white border border-slate-200 rounded-lg shadow-sm transition-all"
-                                   >
-                                      <Trash2 size={12} />
-                                   </button>
-                                </div>
-                             </td>
-                          </tr>
-                       ))
-                    )}
-                 </tbody>
-              </table>
-           </div>
-        </div>
+const UserCard = ({ user, onToggleStatus, onDelete }: { user: ManagedUser, onToggleStatus: () => void, onDelete: () => void }) => {
+  const roleDef = ROLE_DEFINITIONS[user.role];
+  const isSuspended = user.status === 'suspended';
 
-        {/* User Form Slide-over/Modal */}
-        {isFormOpen && (
-           <div className="fixed inset-0 z-[100] bg-brand/40 backdrop-blur-sm flex items-center justify-center p-4">
-              <div className="bg-white w-full max-w-md rounded-[2rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-                 <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                       <div className="h-10 w-10 bg-brand text-white rounded-xl flex items-center justify-center">
-                          <Shield size={20} />
-                       </div>
-                       <h3 className="text-sm font-black uppercase tracking-widest text-brand">
-                          {editingUser ? 'Update Security Profile' : 'New Identity Creation'}
-                       </h3>
-                    </div>
-                    <button onClick={() => setIsFormOpen(false)} className="text-slate-400 hover:text-brand"><X size={24} /></button>
-                 </div>
+  return (
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className={`bg-white rounded-[2.5rem] p-8 border transition-all ${isSuspended ? 'border-red-100 bg-red-50/10 grayscale-[0.8]' : 'border-slate-200 shadow-sm hover:shadow-xl'}`}
+    >
+       <div className="flex items-start justify-between mb-8">
+          <div className="h-16 w-16 rounded-[1.25rem] bg-slate-100 overflow-hidden border-2 border-white shadow-lg">
+             <img src={`https://i.pravatar.cc/150?u=${user.email}`} className="h-full w-full object-cover" />
+          </div>
+          <div className={`px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest ${isSuspended ? 'bg-red text-white' : 'bg-emerald-50 text-emerald-500'}`}>
+             {user.status}
+          </div>
+       </div>
 
-                 <form onSubmit={handleSubmit} className="p-8 space-y-6">
-                    <div className="space-y-4">
-                       <div className="space-y-1.5">
-                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Identity Name</label>
-                          <input 
-                             type="text" 
-                             required
-                             value={formData.name}
-                             onChange={(e) => setFormData({...formData, name: e.target.value})}
-                             placeholder="e.g. John Smith"
-                             className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-brand outline-none transition-all"
-                          />
-                       </div>
+       <div className="space-y-4 mb-8">
+          <div>
+             <h4 className="text-lg font-black uppercase tracking-tighter text-slate-900 leading-none">{user.name}</h4>
+             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{user.email}</p>
+          </div>
+          
+          <div className="flex items-center gap-2 text-brand">
+             <ShieldCheck size={14} />
+             <span className="text-[10px] font-black uppercase tracking-widest">{user.role.replace('_', ' ')}</span>
+          </div>
+       </div>
 
-                       <div className="space-y-1.5">
-                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Secure Email Address</label>
-                          <input 
-                             type="email" 
-                             required
-                             value={formData.email}
-                             onChange={(e) => setFormData({...formData, email: e.target.value})}
-                             placeholder="name@meds.com"
-                             className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-brand outline-none transition-all"
-                          />
-                       </div>
+       <div className="grid grid-cols-2 gap-4 mb-8 text-slate-400">
+          <div className="flex items-center gap-2">
+             <Smartphone size={12} />
+             <span className="text-[9px] font-bold">+254 7XX ...</span>
+          </div>
+          <div className="flex items-center gap-2">
+             <History size={12} />
+             <span className="text-[9px] font-bold text-slate-300">Active Today</span>
+          </div>
+       </div>
 
-                       <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-1.5">
-                             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Access Role</label>
-                             <select 
-                                value={formData.role}
-                                onChange={(e) => setFormData({...formData, role: e.target.value as UserRole})}
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-brand outline-none transition-all"
-                             >
-                                {roles.map(r => <option key={r} value={r}>{r}</option>)}
-                             </select>
-                          </div>
-                          <div className="space-y-1.5">
-                             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Assignment Unit</label>
-                             <input 
-                                type="text" 
-                                value={formData.company}
-                                onChange={(e) => setFormData({...formData, company: e.target.value})}
-                                placeholder="Facility/Client ID"
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-brand outline-none transition-all"
-                             />
-                          </div>
-                       </div>
-
-                       <div className="space-y-1.5">
-                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Security Pin / Password</label>
-                          <input 
-                             type="password" 
-                             required
-                             value={formData.password}
-                             onChange={(e) => setFormData({...formData, password: e.target.value})}
-                             placeholder="••••••••"
-                             className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-brand outline-none transition-all"
-                          />
-                       </div>
-
-                       <div className="space-y-1.5">
-                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Verification Status</label>
-                          <select 
-                             value={formData.verificationStatus}
-                             onChange={(e) => setFormData({...formData, verificationStatus: e.target.value as any})}
-                             className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-brand outline-none transition-all"
-                          >
-                             <option value="PENDING">PENDING VERIFICATION</option>
-                             <option value="VERIFIED">VERIFIED IDENTITY</option>
-                             <option value="REJECTED">ACCESS REJECTED</option>
-                          </select>
-                       </div>
-                    </div>
-
-                    <div className="pt-6 flex gap-3">
-                       <button 
-                          type="button"
-                          onClick={() => setIsFormOpen(false)}
-                          className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400"
-                       >
-                          Cancel
-                       </button>
-                       <button 
-                          type="submit"
-                          className="flex-[2] bg-brand text-white py-4 rounded-xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-brand/10 hover:opacity-90 active:scale-95 transition-all"
-                       >
-                          {editingUser ? 'Apply Changes' : 'Finalize Identity'}
-                       </button>
-                    </div>
-                 </form>
-              </div>
-           </div>
-        )}
-      </div>
-    </Layout>
+       <div className="flex gap-2">
+          <button 
+            onClick={onToggleStatus}
+            className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${isSuspended ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white' : 'bg-red-50 text-red hover:bg-red hover:text-white'}`}
+          >
+            {isSuspended ? 'Unsuspend' : 'Suspend'}
+          </button>
+          <button className="h-12 w-12 bg-slate-50 text-slate-400 rounded-xl flex items-center justify-center hover:bg-slate-900 hover:text-white transition-all">
+             <Edit2 size={16} />
+          </button>
+          <RoleGuard permissions={['users:manage']}>
+             <button 
+               onClick={onDelete}
+               className="h-12 w-12 bg-slate-50 text-slate-400 rounded-xl flex items-center justify-center hover:bg-red hover:text-white transition-all"
+             >
+                <Trash2 size={16} />
+             </button>
+          </RoleGuard>
+       </div>
+    </motion.div>
   );
 };
 

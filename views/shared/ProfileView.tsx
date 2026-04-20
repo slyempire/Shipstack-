@@ -60,9 +60,9 @@ const ProfileView: React.FC = () => {
 
   const ContentWrapper = ({ children, title }: { children?: React.ReactNode, title: string }) => {
     if (user?.role === 'DRIVER') return (
-      <div className="min-h-screen bg-slate-900 text-white font-sans p-6 pb-20">
+      <div className="min-h-screen bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-sans p-6 pb-20 transition-colors duration-300">
         <header className="flex items-center gap-4 mb-8 pt-8">
-           <button onClick={() => navigate(-1)} className="p-2 bg-white/10 rounded-xl"><ChevronLeft size={20}/></button>
+           <button onClick={() => navigate(-1)} className="p-2 bg-slate-100 dark:bg-white/10 rounded-xl text-slate-400 dark:text-white"><ChevronLeft size={20}/></button>
            <h1 className="text-xl font-black uppercase tracking-widest">{title}</h1>
         </header>
         {children}
@@ -78,7 +78,7 @@ const ProfileView: React.FC = () => {
         <div className={`bg-white rounded-[2.5rem] border border-slate-200 p-10 shadow-sm relative overflow-hidden flex flex-col md:flex-row gap-10 ${user?.role === 'DRIVER' ? 'bg-slate-800 border-white/5 text-white' : ''}`}>
            <div className="relative shrink-0">
               <div className="h-32 w-32 rounded-[2rem] bg-brand text-white flex items-center justify-center text-4xl font-black shadow-2xl relative overflow-hidden">
-                {user?.name.charAt(0)}
+                {user?.name?.charAt(0) || '?'}
                 <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer">
                    <Camera size={24} />
                 </div>
@@ -188,7 +188,7 @@ const ProfileView: React.FC = () => {
            <div className="md:col-span-5 space-y-6">
               <div className={`bg-white rounded-[2rem] border p-8 shadow-sm ${user?.role === 'DRIVER' ? 'bg-slate-800 border-white/5' : ''}`}>
                  <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
-                    <Lock size={14} className="text-amber-500" /> Security Protocol
+                    <Lock size={14} className="text-orange-500" /> Security Protocol
                  </h3>
                  <div className="space-y-4">
                     <button 

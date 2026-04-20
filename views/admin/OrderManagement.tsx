@@ -4,7 +4,9 @@ import Layout from '../../components/Layout';
 import { api } from '../../api';
 import { Order, DeliveryItem } from '../../types';
 import { Badge } from '../../packages/ui/Badge';
-import { useAppStore } from '../../store';
+import { useAppStore, useAuthStore } from '../../store';
+import { useTenant } from '../../hooks/useTenant';
+import RoleGuard from '../../components/RoleGuard';
 import { 
   ShoppingBag, 
   Search, 
@@ -19,11 +21,14 @@ import {
   CreditCard,
   Clock,
   User,
-  Package
+  Package,
+  RefreshCw
 } from 'lucide-react';
 
 const OrderManagement: React.FC = () => {
   const { addNotification } = useAppStore();
+  const { user } = useAuthStore();
+  const { tenant, formatCurrency, currencySymbol } = useTenant();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -31,6 +36,8 @@ const OrderManagement: React.FC = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
+  const [batchProcessing, setBatchProcessing] = useState(false);
   const [newOrderData, setNewOrderData] = useState({
     customerName: '',
     items: [{ name: '', qty: 1, unit: 'unit', sku: '' }],
@@ -38,12 +45,15 @@ const OrderManagement: React.FC = () => {
     notes: ''
   });
 
-  useEffect(() => { loadOrders(); }, []);
+  useEffect(() => { 
+    if (tenant?.id) loadOrders(); 
+  }, [tenant?.id]);
 
   const loadOrders = async () => {
+    if (!tenant?.id) return;
     setLoading(true);
     try {
-      const data = await api.getOrders();
+      const data = await api.getOrders(tenant.id);
       setOrders(data);
     } catch (err) {
       addNotification("Failed to load orders", "error");
@@ -53,20 +63,50 @@ const OrderManagement: React.FC = () => {
   };
 
   const handleApprove = async (order: Order) => {
-    // In a real app, this would call an API to approve and potentially convert to a DN
-    addNotification(`Order ${order.externalId} approved and queued for dispatch.`, "success");
-    loadOrders();
+    const requestId = `ord-app-${order.id}-${Date.now()}`;
+    try {
+      await api.batchApproveOrders([order.id], user?.role, requestId);
+      addNotification(`Order ${order.externalId} approved and queued for dispatch.`, "success");
+      loadOrders();
+    } catch (err) {
+      addNotification("Approval failed", "error");
+    }
+  };
+
+  const handleBatchApprove = async () => {
+    if (selectedOrders.length === 0) return;
+    setBatchProcessing(true);
+    const requestId = `ord-batch-${Date.now()}`;
+    try {
+      await api.batchApproveOrders(selectedOrders, user?.role, requestId);
+      addNotification(`Batch approved ${selectedOrders.length} orders for dispatch.`, "success");
+      setSelectedOrders([]);
+      loadOrders();
+    } catch (err) {
+      addNotification("Batch approval failed", "error");
+    } finally {
+      setBatchProcessing(false);
+    }
+  };
+
+  const toggleOrderSelection = (id: string) => {
+    if (selectedOrders.includes(id)) {
+      setSelectedOrders(selectedOrders.filter(oid => oid !== id));
+    } else {
+      setSelectedOrders([...selectedOrders, id]);
+    }
   };
 
   const handleCreateOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+    const requestId = `ord-create-${Date.now()}`;
     try {
       await api.createOrder({
         ...newOrderData,
         status: 'PENDING',
         paymentStatus: 'UNPAID',
         fraudScore: Math.floor(Math.random() * 20)
-      });
+      }, tenant?.id || 'tenant-1', requestId);
       addNotification("New sales order created successfully.", "success");
       setIsCreateModalOpen(false);
       setNewOrderData({
@@ -93,23 +133,37 @@ const OrderManagement: React.FC = () => {
       <div className="space-y-8">
         {/* Stats Header */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <StatCard label="Pending Approval" value={orders.filter(o => o.status === 'PENDING').length} icon={Clock} color="text-amber-500" />
-          <StatCard label="Total Revenue" value={`KES ${(orders.reduce((acc, o) => acc + o.totalAmount, 0) / 1000).toFixed(1)}K`} icon={CreditCard} color="text-emerald-500" />
+          <StatCard label="Pending Approval" value={orders.filter(o => o.status === 'PENDING').length} icon={Clock} color="text-orange-500" />
+          <StatCard label="Total Revenue" value={formatCurrency(orders.reduce((acc, o) => acc + o.totalAmount, 0))} icon={CreditCard} color="text-emerald-500" />
           <StatCard label="Avg Fraud Score" value={(orders.reduce((acc, o) => acc + (o.fraudScore || 0), 0) / orders.length || 0).toFixed(1)} icon={ShieldCheck} color="text-blue-500" />
           <StatCard label="Total Orders" value={orders.length} icon={ShoppingBag} color="text-slate-500" />
         </div>
 
         {/* Controls */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="relative flex-1 w-full md:max-w-md">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-            <input 
-              type="text" 
-              placeholder="Search by Order ID or Customer..." 
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-brand outline-none transition-all"
-            />
+          <div className="flex items-center gap-4 flex-1 w-full">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <input 
+                type="text" 
+                placeholder="Search by Order ID or Customer..." 
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-12 pr-4 py-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-brand outline-none transition-all"
+              />
+            </div>
+            <RoleGuard allowedRoles={['ADMIN', 'DISPATCHER']}>
+              {selectedOrders.length > 0 && (
+                <button 
+                  onClick={handleBatchApprove}
+                  disabled={batchProcessing}
+                  className="bg-emerald-500 text-white px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-2 shadow-xl hover:opacity-90 active:scale-95 transition-all animate-in slide-in-from-left-4"
+                >
+                  {batchProcessing ? <RefreshCw size={16} className="animate-spin" /> : <ShieldCheck size={16} />}
+                  Batch Approve ({selectedOrders.length})
+                </button>
+              )}
+            </RoleGuard>
           </div>
           <div className="flex items-center gap-3 w-full md:w-auto">
             <select 
@@ -122,12 +176,14 @@ const OrderManagement: React.FC = () => {
               <option value="APPROVED">Approved</option>
               <option value="REJECTED">Rejected</option>
             </select>
-            <button 
-              onClick={() => setIsCreateModalOpen(true)}
-              className="bg-brand text-white px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-2 shadow-xl hover:opacity-90 active:scale-95 transition-all"
-            >
-              <Plus size={16} /> New Sales Order
-            </button>
+            <RoleGuard allowedRoles={['ADMIN', 'DISPATCHER']}>
+              <button 
+                onClick={() => setIsCreateModalOpen(true)}
+                className="bg-brand text-white px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-2 shadow-xl hover:opacity-90 active:scale-95 transition-all"
+              >
+                <Plus size={16} /> New Sales Order
+              </button>
+            </RoleGuard>
           </div>
         </div>
 
@@ -136,23 +192,45 @@ const OrderManagement: React.FC = () => {
           <table className="w-full text-left">
             <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
               <tr>
-                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Order Reference</th>
-                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Customer</th>
-                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Amount</th>
-                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Risk</th>
-                <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                <th className="px-8 py-6 w-12">
+                  <div 
+                    onClick={() => {
+                      if (selectedOrders.length === filteredOrders.length) {
+                        setSelectedOrders([]);
+                      } else {
+                        setSelectedOrders(filteredOrders.map(o => o.id));
+                      }
+                    }}
+                    className={`h-5 w-5 rounded border-2 cursor-pointer flex items-center justify-center transition-all ${selectedOrders.length === filteredOrders.length ? 'bg-brand border-brand' : 'border-slate-300'}`}
+                  >
+                    {selectedOrders.length === filteredOrders.length && <CheckCircle size={12} className="text-white" />}
+                  </div>
+                </th>
+                <th className="px-8 py-6 label-logistics">Order Reference</th>
+                <th className="px-8 py-6 label-logistics">Customer</th>
+                <th className="px-8 py-6 label-logistics">Amount</th>
+                <th className="px-8 py-6 label-logistics">Status</th>
+                <th className="px-8 py-6 label-logistics">Risk</th>
+                <th className="px-8 py-6 label-logistics text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
               {loading ? [1,2,3].map(i => <SkeletonRow key={i} />) :
                 filteredOrders.map(order => (
-                  <tr key={order.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                  <tr key={order.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group ${selectedOrders.includes(order.id) ? 'bg-brand/5' : ''}`}>
+                    <td className="px-8 py-6">
+                      <div 
+                        onClick={() => toggleOrderSelection(order.id)}
+                        className={`h-5 w-5 rounded border-2 cursor-pointer flex items-center justify-center transition-all ${selectedOrders.includes(order.id) ? 'bg-brand border-brand' : 'border-slate-300'}`}
+                      >
+                        {selectedOrders.includes(order.id) && <CheckCircle size={12} className="text-white" />}
+                      </div>
+                    </td>
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center text-slate-400"><ShoppingBag size={18} /></div>
                         <div>
-                          <span className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight block">{order.externalId}</span>
+                          <span className="body-value truncate-name block">{order.externalId}</span>
                           <span className="text-[10px] text-slate-400 font-bold uppercase">{new Date(order.createdAt).toLocaleDateString()}</span>
                         </div>
                       </div>
@@ -160,11 +238,11 @@ const OrderManagement: React.FC = () => {
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-2">
                         <User size={14} className="text-slate-300 dark:text-slate-600" />
-                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{order.customerName}</span>
+                        <span className="body-value truncate-name">{order.customerName}</span>
                       </div>
                     </td>
                     <td className="px-8 py-6">
-                      <span className="text-xs font-black text-slate-900 dark:text-white">{order.currency} {order.totalAmount.toLocaleString()}</span>
+                      <span className="body-value">{formatCurrency(order.totalAmount)}</span>
                     </td>
                     <td className="px-8 py-6">
                       <Badge variant={order.status === 'APPROVED' ? 'delivered' : order.status === 'PENDING' ? 'neutral' : 'failed'}>
@@ -185,14 +263,16 @@ const OrderManagement: React.FC = () => {
                         >
                           <Eye size={14} />
                         </button>
-                        {order.status === 'PENDING' && (
-                          <button 
-                            onClick={() => handleApprove(order)}
-                            className="p-2 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 bg-white dark:bg-slate-800 border border-emerald-100 dark:border-emerald-500/20 rounded-lg shadow-sm transition-all"
-                          >
-                            <CheckCircle size={14} />
-                          </button>
-                        )}
+                        <RoleGuard allowedRoles={['ADMIN', 'DISPATCHER']}>
+                          {order.status === 'PENDING' && (
+                            <button 
+                              onClick={() => handleApprove(order)}
+                              className="p-2 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 bg-white dark:bg-slate-800 border border-emerald-100 dark:border-emerald-500/20 rounded-lg shadow-sm transition-all"
+                            >
+                              <CheckCircle size={14} />
+                            </button>
+                          )}
+                        </RoleGuard>
                       </div>
                     </td>
                   </tr>
@@ -317,7 +397,7 @@ const OrderManagement: React.FC = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Total Amount (KES)</label>
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Total Amount ({currencySymbol})</label>
                     <input 
                       type="number" required
                       value={isNaN(newOrderData.totalAmount) ? '' : newOrderData.totalAmount}
@@ -429,7 +509,7 @@ const StatCard = ({ label, value, icon: Icon, color }: any) => (
       <Icon size={24} />
     </div>
     <div>
-      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{label}</p>
+      <p className="label-logistics text-slate-400 mb-1">{label}</p>
       <p className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter">{value}</p>
     </div>
   </div>

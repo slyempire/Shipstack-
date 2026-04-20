@@ -1,6 +1,6 @@
 {
   "name": "Shipstack",
-  "description": "The professional logistics operating stack. A comprehensive suite for managing Delivery Notes, fleet operations, and driver workflows.",
+  "description": "Professional logistics OS with vertical-specific intelligence for Agriculture, Healthcare, and E-commerce. Features intelligent dispatch, cold-chain monitoring, and marketplace automation.",
   "requestFramePermissions": [
     "camera",
     "microphone",

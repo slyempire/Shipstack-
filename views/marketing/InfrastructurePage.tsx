@@ -77,7 +77,7 @@ const InfrastructurePage: React.FC = () => {
               <div className="space-y-6">
                 <h2 className="mobile-h2 uppercase font-display text-slate-900">The <span className="text-brand-teal">Stack</span> Architecture</h2>
                 <p className="text-slate-500 font-medium leading-relaxed">
-                  Our infrastructure is built on a multi-layered architecture that ensures data integrity from the pilot's handset to the corporate boardroom.
+                  Our infrastructure is built on a multi-layered architecture that ensures data integrity from the driver's handset to the corporate boardroom.
                 </p>
               </div>
 
@@ -95,7 +95,7 @@ const InfrastructurePage: React.FC = () => {
                 <LayerItem 
                   icon={Lock} 
                   title="Identity & Access (RBAC)" 
-                  desc="Granular security roles ensure that pilots, dispatchers, and facility managers only access the data relevant to their unit."
+                  desc="Granular security roles ensure that drivers, dispatchers, and facility managers only access the data relevant to their unit."
                 />
               </div>
             </div>

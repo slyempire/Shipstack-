@@ -4,7 +4,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore, useAppStore, useTenantStore } from '../../store';
 import { api } from '../../api';
 import Layout from '../../components/Layout';
-import { ModuleId, User, PermissionRequest } from '../../types';
+import { ModuleId, User, PermissionRequest, UserPreferences } from '../../types';
+import { getContrastTextColor } from '../../utils/color';
 import { 
   Settings, 
   Bell, 
@@ -41,20 +42,47 @@ const SettingsView: React.FC = () => {
   const { addNotification } = useAppStore();
   const navigate = useNavigate();
   
-  const [prefs, setPrefs] = useState(user?.preferences || {
-    theme: 'LIGHT',
+  const defaultPrefs: UserPreferences = {
+    theme: 'light',
     notifications: { email: true, push: true, sms: false },
     highContrast: false,
-    autoSync: true
+    autoSync: true,
+    language: 'en'
+  };
+
+  const [prefs, setPrefs] = useState<UserPreferences>(() => {
+    if (!user?.preferences) return defaultPrefs;
+    const userPrefs = user.preferences as any;
+    return {
+      ...defaultPrefs,
+      ...userPrefs,
+      notifications: typeof userPrefs.notifications === 'object' ? {
+        ...(defaultPrefs.notifications as any),
+        ...userPrefs.notifications
+      } : userPrefs.notifications || defaultPrefs.notifications
+    };
   });
 
-  const [tenantModules, setTenantModules] = useState<ModuleId[]>(currentTenant?.enabledModules || []);
-  const [securitySettings, setSecuritySettings] = useState(currentTenant?.securitySettings || {
+  const [tenantModules, setTenantModules] = useState<ModuleId[]>([]);
+  const [securitySettings, setSecuritySettings] = useState({
     auditLogging: true,
     twoFactorAuth: false,
     requireNTSAVerification: true
   });
-  const [brandColor, setBrandColor] = useState(currentTenant?.settings?.primaryColor || '#0F2A44');
+  const [brandColor, setBrandColor] = useState('#0F2A44');
+  const contrastText = getContrastTextColor(brandColor);
+
+  useEffect(() => {
+    if (currentTenant) {
+      setTenantModules(currentTenant.enabledModules || []);
+      setSecuritySettings(currentTenant.securitySettings || {
+        auditLogging: true,
+        twoFactorAuth: false,
+        requireNTSAVerification: true
+      });
+      setBrandColor(currentTenant.settings?.primaryColor || '#0F2A44');
+    }
+  }, [currentTenant?.id]);
 
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -130,16 +158,20 @@ const SettingsView: React.FC = () => {
     }
   };
 
-  const handleToggle = (key: string, subKey?: string) => {
-    const newPrefs = { ...prefs };
-    if (subKey) {
-      // @ts-ignore
-      newPrefs.notifications[subKey] = !newPrefs.notifications[subKey];
-    } else {
-      // @ts-ignore
-      newPrefs[key] = !newPrefs[key];
-    }
-    setPrefs(newPrefs);
+  const handleToggle = (key: keyof UserPreferences, subKey?: string) => {
+    setPrefs(prev => {
+      const newPrefs = { ...prev };
+      if (key === 'notifications' && subKey) {
+        const currentNotifs = typeof prev.notifications === 'object' ? prev.notifications : { email: true, push: true, sms: false };
+        newPrefs.notifications = {
+          ...currentNotifs,
+          [subKey]: !(currentNotifs as any)[subKey]
+        } as any;
+      } else if (key !== 'notifications' && key !== 'theme' && key !== 'language') {
+        (newPrefs as any)[key] = !prev[key as keyof UserPreferences];
+      }
+      return newPrefs;
+    });
   };
 
   const toggleModule = (moduleId: ModuleId) => {
@@ -157,6 +189,17 @@ const SettingsView: React.FC = () => {
   const handleSave = async () => {
     if (!user) return;
     try {
+      console.log('[Settings] Saving configurations...', { prefs, tenantModules, securitySettings, brandColor });
+      
+      if (!currentTenant) {
+        console.warn('[Settings] currentTenant is missing, fetching...');
+        const fetchedTenant = await api.getTenant('current');
+        if (!fetchedTenant) {
+          throw new Error('Could not resolve tenant for saving.');
+        }
+        updateTenant(fetchedTenant);
+      }
+
       const updatedUser = await api.updateUser(user.id, { preferences: prefs });
       login(updatedUser, 'mock-token');
       
@@ -172,46 +215,45 @@ const SettingsView: React.FC = () => {
           }
         };
         
-        if (currentTenant) {
-          await api.updateTenant(currentTenant.id, tenantData);
-        }
-        
-        updateTenant(tenantData);
+        console.log('[Settings] Updating tenant...', tenantData);
+        const savedTenant = await api.updateTenant(currentTenant?.id || 'tenant-1', tenantData);
+        updateTenant(savedTenant);
       }
       
-      addNotification('Configurations applied.', 'success');
+      addNotification('Configurations applied successfully.', 'success');
     } catch (err) {
-      addNotification('Sync error.', 'error');
+      console.error('[Settings] Save failed:', err);
+      addNotification('Sync error: Failed to apply configurations.', 'error');
     }
   };
 
-  const SettingRow = ({ icon: Icon, title, desc, action }: any) => (
-    <div className="flex items-center justify-between p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm group hover:border-brand-accent transition-all">
-       <div className="flex items-center gap-5">
-          <div className="h-12 w-12 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-xl flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-all">
-             <Icon size={24} />
-          </div>
-          <div>
-             <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{title}</h4>
-             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{desc}</p>
-          </div>
-       </div>
-       {action}
-    </div>
-  );
+const SettingRow = React.memo(({ icon: Icon, title, desc, action }: any) => (
+  <div className="flex items-center justify-between p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm group hover:border-brand-accent transition-all">
+     <div className="flex items-center gap-5">
+        <div className="h-12 w-12 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-xl flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-all">
+           <Icon size={24} />
+        </div>
+        <div>
+           <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{title}</h4>
+           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{desc}</p>
+        </div>
+     </div>
+     {action}
+  </div>
+));
 
-  const Toggle = ({ active, onClick }: { active: boolean, onClick: () => void }) => (
-    <button onClick={onClick} className={`w-12 h-6 rounded-full transition-all relative ${active ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-700'}`}>
-       <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${active ? 'right-1' : 'left-1'}`} />
-    </button>
-  );
+const Toggle = React.memo(({ active, onClick }: { active: boolean, onClick: () => void }) => (
+  <button onClick={onClick} className={`w-12 h-6 rounded-full transition-all relative ${active ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-700'}`}>
+     <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${active ? 'right-1' : 'left-1'}`} />
+  </button>
+));
 
   // Fix: Added optional children to the props type to satisfy TS compiler in JSX context
   const ContentWrapper = ({ children, title }: { children?: React.ReactNode, title: string }) => {
     if (user?.role === 'DRIVER') return (
-      <div className="min-h-screen bg-slate-900 text-white font-sans p-6 pb-20">
+      <div className="min-h-screen bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-sans p-6 pb-20 transition-colors duration-300">
         <header className="flex items-center gap-4 mb-8 pt-8">
-           <button onClick={() => navigate(-1)} className="p-2 bg-white/10 rounded-xl"><ChevronLeft size={20}/></button>
+           <button onClick={() => navigate(-1)} className="p-2 bg-slate-100 dark:bg-white/10 rounded-xl text-slate-400 dark:text-white"><ChevronLeft size={20}/></button>
            <h1 className="text-xl font-black uppercase tracking-widest">{title}</h1>
         </header>
         {children}
@@ -268,7 +310,7 @@ const SettingsView: React.FC = () => {
                       <div className="flex-1 space-y-4 w-full">
                          <p className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight">Terminal Primary Color</p>
                          <div className="flex flex-wrap gap-3">
-                            {['#0F2A44', '#1F6AE1', '#1FB6A6', '#7C3AED', '#EC4899', '#F59E0B', '#10B981'].map(color => (
+                            {['#0F2A44', '#1F6AE1', '#1FB6A6', '#7C3AED', '#EC4899', '#10B981'].map(color => (
                               <button 
                                 key={color}
                                 onClick={() => setBrandColor(color)}
@@ -363,7 +405,19 @@ const SettingsView: React.FC = () => {
                   icon={prefs.theme === 'DARK' ? Moon : Sun} 
                   title="Terminal Theme" 
                   desc={prefs.theme === 'DARK' ? "Dark mode active" : "Light mode active"} 
-                  action={<Toggle active={prefs.theme === 'DARK'} onClick={() => setPrefs(prev => ({ ...prev, theme: prev.theme === 'DARK' ? 'LIGHT' : 'DARK' }))} />}
+                  action={
+                    <div className="flex items-center gap-4">
+                      {prefs.theme === 'DARK' && (
+                        <button 
+                          onClick={() => setPrefs(prev => ({ ...prev, theme: 'LIGHT' }))}
+                          className="text-[9px] font-black uppercase text-brand hover:underline"
+                        >
+                          Reset to Light
+                        </button>
+                      )}
+                      <Toggle active={prefs.theme === 'DARK'} onClick={() => setPrefs(prev => ({ ...prev, theme: prev.theme === 'DARK' ? 'LIGHT' : 'DARK' }))} />
+                    </div>
+                  }
                 />
                 <SettingRow 
                   icon={RefreshCw} 
@@ -454,7 +508,7 @@ const SettingsView: React.FC = () => {
                       return (
                         <div key={req.id} className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex items-center justify-between">
                           <div className="flex items-center gap-5">
-                            <div className="h-12 w-12 bg-amber-50 dark:bg-amber-900/20 text-amber-600 rounded-xl flex items-center justify-center">
+                            <div className="h-12 w-12 bg-orange-50 dark:bg-orange-900/20 text-orange-600 rounded-xl flex items-center justify-center">
                               <Lock size={24} />
                             </div>
                             <div>
@@ -501,13 +555,13 @@ const SettingsView: React.FC = () => {
                   icon={Bell} 
                   title="Push Notifications" 
                   desc="Immediate mobile status alerts" 
-                  action={<Toggle active={prefs.notifications.push} onClick={() => handleToggle('notifications', 'push')} />}
+                  action={<Toggle active={(prefs.notifications as any).push} onClick={() => handleToggle('notifications', 'push')} />}
                 />
                 <SettingRow 
                   icon={Database} 
                   title="Email Digests" 
                   desc="Periodic operational summaries" 
-                  action={<Toggle active={prefs.notifications.email} onClick={() => handleToggle('notifications', 'email')} />}
+                  action={<Toggle active={(prefs.notifications as any).email} onClick={() => handleToggle('notifications', 'email')} />}
                 />
              </div>
           </section>
@@ -542,7 +596,7 @@ const SettingsView: React.FC = () => {
           <div className="flex justify-end pt-10">
              <button 
               onClick={handleSave}
-              className="px-12 py-5 bg-brand text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all flex items-center gap-3"
+              className={`px-12 py-5 bg-brand ${contrastText} rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all flex items-center gap-3`}
              >
                 <ShieldCheck size={18} /> Apply Terminal Rules
              </button>

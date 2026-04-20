@@ -65,9 +65,18 @@ export class FrappeService {
       const result: FrappeResponse<T> = await response.json();
       return result.data;
     } catch (error) {
-      console.error(`Frappe API Error [${method} ${endpoint}]:`, error);
+      // Don't log noisy network errors if we're going to handle them in the caller
+      if (error instanceof TypeError && error.message === 'Failed to fetch') {
+        // This is a network error, the caller (api.ts) will handle it and set isFrappeHealthy = false
+      } else {
+        console.error(`Frappe API Error [${method} ${endpoint}]:`, error);
+      }
       throw error;
     }
+  }
+
+  static async callMethod<T>(method: string, args: any = {}): Promise<T> {
+    return this.request<T>('POST', `api/method/${method}`, args);
   }
 
   // --- Generic Resource Methods ---
@@ -102,7 +111,17 @@ export class FrappeService {
 
   // --- Specialized Methods ---
 
-  static async callMethod<T>(method: string, args: any = {}): Promise<T> {
-    return this.request<T>('POST', `api/method/${method}`, args);
+  static async checkHealth(): Promise<boolean> {
+    if (!BASE_URL) return false;
+    try {
+      // Try to call a simple method or just check if the base URL is reachable
+      const response = await fetch(`${BASE_URL}/api/method/frappe.ping`, {
+        method: 'GET',
+        headers: this.getHeaders(),
+      });
+      return response.ok;
+    } catch (err) {
+      return false;
+    }
   }
 }

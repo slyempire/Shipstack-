@@ -1,211 +1,201 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Layout from '../../components/Layout';
-import { api } from '../../api';
-import { Badge } from '../../packages/ui/Badge';
+import { useAuditStore } from '../../store';
 import { 
   ShieldCheck, 
-  Lock, 
-  History, 
-  Eye, 
+  Search, 
+  Filter, 
+  Download, 
   AlertTriangle, 
-  CheckCircle2, 
-  Server, 
-  Globe,
-  Fingerprint,
-  Key,
-  Database
+  ShieldAlert, 
+  Info, 
+  Activity,
+  Calendar,
+  User,
+  ExternalLink,
+  Lock,
+  RefreshCw,
+  History
 } from 'lucide-react';
+import { format } from 'date-fns';
+import { motion } from 'framer-motion';
+import RoleGuard from '../../components/RoleGuard';
 
 const SecurityAudit: React.FC = () => {
-  const [logs, setLogs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { auditLog } = useAuditStore();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [severityFilter, setSeverityFilter] = useState<'ALL' | 'info' | 'warning' | 'critical'>('ALL');
 
-  useEffect(() => {
-    const loadLogs = async () => {
-      // Simulate fetching security audit logs
-      const securityLogs = [
-        { id: 'sec-1', action: 'User Login', user: 'admin@meds.com', ip: '192.168.1.1', timestamp: new Date().toISOString(), status: 'SUCCESS' },
-        { id: 'sec-2', action: 'Asset Modification', user: 'admin@meds.com', ip: '192.168.1.1', timestamp: new Date(Date.now() - 100000).toISOString(), status: 'SUCCESS' },
-        { id: 'sec-3', action: 'Unauthorized Access Attempt', user: 'unknown', ip: '45.12.3.99', timestamp: new Date(Date.now() - 500000).toISOString(), status: 'BLOCKED' },
-        { id: 'sec-4', action: 'Data Export', user: 'finance@meds.com', ip: '192.168.1.5', timestamp: new Date(Date.now() - 1000000).toISOString(), status: 'SUCCESS' },
-      ];
-      setLogs(securityLogs);
-      setLoading(false);
-    };
-    loadLogs();
-  }, []);
+  const filteredLogs = auditLog.filter(log => {
+    const matchesSearch = 
+      log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      log.resource.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      log.userEmail.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSeverity = severityFilter === 'ALL' || log.severity === severityFilter;
+    return matchesSearch && matchesSeverity;
+  });
 
-  const isoStandards = [
-    { name: 'ISO 27001', status: 'COMPLIANT', description: 'Information Security Management System' },
-    { name: 'ISO 9001', status: 'COMPLIANT', description: 'Quality Management Systems' },
-    { name: 'GDPR / Data Protection Act', status: 'COMPLIANT', description: 'Personal Data Privacy & Protection' },
-    { name: 'ISO 28000', status: 'IN_PROGRESS', description: 'Security Management Systems for Supply Chain' }
-  ];
+  const getSeverityStyles = (severity: string) => {
+    switch (severity) {
+      case 'critical': return 'bg-red-50 text-red-600 border-red-100';
+      case 'warning': return 'bg-amber-50 text-amber-600 border-amber-100';
+      default: return 'bg-slate-50 text-slate-500 border-slate-100';
+    }
+  };
+
+  const getSeverityIcon = (severity: string) => {
+    switch (severity) {
+      case 'critical': return <ShieldAlert size={14} />;
+      case 'warning': return <AlertTriangle size={14} />;
+      default: return <Info size={14} />;
+    }
+  };
 
   return (
-    <Layout title="Security & Compliance Center">
-      <div className="space-y-8">
-        {/* Security Overview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="h-12 w-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
-                <ShieldCheck size={24} />
-              </div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Security Score</p>
-                <h3 className="text-2xl font-black text-slate-900">98%</h3>
-              </div>
-            </div>
-            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-              <div className="h-full bg-emerald-500 w-[98%]"></div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="h-12 w-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
-                <Lock size={24} />
-              </div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Encryption</p>
-                <h3 className="text-2xl font-black text-slate-900">AES-256</h3>
-              </div>
-            </div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">At-rest & In-transit</p>
-          </div>
-
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="h-12 w-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center">
-                <Fingerprint size={24} />
-              </div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">MFA Status</p>
-                <h3 className="text-2xl font-black text-slate-900">Enforced</h3>
-              </div>
-            </div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">All Admin Accounts</p>
-          </div>
-
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="h-12 w-12 bg-slate-50 text-slate-600 rounded-2xl flex items-center justify-center">
-                <Database size={24} />
-              </div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Data Residency</p>
-                <h3 className="text-2xl font-black text-slate-900">Africa/KE</h3>
-              </div>
-            </div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Local Cloud Nodes</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* ISO Standards Compliance */}
-          <div className="lg:col-span-1 space-y-6">
-            <div className="bg-white rounded-[2.5rem] border border-slate-200 p-8 shadow-sm">
-              <h3 className="text-sm font-black uppercase tracking-[0.2em] text-brand mb-8 flex items-center gap-2">
-                <CheckCircle2 size={18} /> ISO Compliance
-              </h3>
-              <div className="space-y-6">
-                {isoStandards.map(std => (
-                  <div key={std.name} className="flex items-start gap-4">
-                    <div className={`mt-1 h-2 w-2 rounded-full shrink-0 ${std.status === 'COMPLIANT' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-[11px] font-black text-slate-900 uppercase tracking-tight">{std.name}</span>
-                        <Badge variant={std.status === 'COMPLIANT' ? 'delivered' : 'neutral'}>{std.status}</Badge>
-                      </div>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase leading-tight">{std.description}</p>
-                    </div>
+    <RoleGuard permissions={['security:view']} showFullPageError>
+      <Layout 
+        title="Security Audit Terminal" 
+        subtitle="Unalterable operational ledger & access logs"
+      >
+        <div className="space-y-8 pb-20">
+          {/* Metrics Overview */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+             {[
+               { label: 'Total Logs', value: auditLog.length, icon: Activity, color: 'text-slate-900' },
+               { label: 'Critical Errors', value: auditLog.filter(l => l.severity === 'critical').length, icon: ShieldAlert, color: 'text-red-600' },
+               { label: 'Security Breaches', value: 0, icon: Lock, color: 'text-emerald-600' },
+               { label: 'Active Sessions', value: 12, icon: User, color: 'text-blue-600' }
+             ].map((stat, i) => (
+               <div key={i} className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex items-center justify-between">
+                  <div>
+                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">{stat.label}</p>
+                     <p className={`text-2xl font-black ${stat.color} leading-none`}>{stat.value}</p>
                   </div>
-                ))}
-              </div>
-              <button className="w-full mt-10 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:bg-slate-100 transition-all">
-                Download Compliance Report
-              </button>
-            </div>
-
-            <div className="bg-brand text-white rounded-[2.5rem] p-8 shadow-xl shadow-brand/20">
-              <h3 className="text-sm font-black uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                <Key size={18} /> Security Measures
-              </h3>
-              <ul className="space-y-4">
-                <li className="flex items-center gap-3 text-[11px] font-bold uppercase tracking-wide">
-                  <div className="h-5 w-5 bg-white/20 rounded-lg flex items-center justify-center"><CheckCircle2 size={12} /></div>
-                  End-to-End Encryption
-                </li>
-                <li className="flex items-center gap-3 text-[11px] font-bold uppercase tracking-wide">
-                  <div className="h-5 w-5 bg-white/20 rounded-lg flex items-center justify-center"><CheckCircle2 size={12} /></div>
-                  Role-Based Access Control
-                </li>
-                <li className="flex items-center gap-3 text-[11px] font-bold uppercase tracking-wide">
-                  <div className="h-5 w-5 bg-white/20 rounded-lg flex items-center justify-center"><CheckCircle2 size={12} /></div>
-                  Automated Threat Detection
-                </li>
-                <li className="flex items-center gap-3 text-[11px] font-bold uppercase tracking-wide">
-                  <div className="h-5 w-5 bg-white/20 rounded-lg flex items-center justify-center"><CheckCircle2 size={12} /></div>
-                  ISO 27001 Certified Infrastructure
-                </li>
-              </ul>
-            </div>
+                  <div className={`h-12 w-12 bg-slate-50 rounded-2xl flex items-center justify-center ${stat.color}`}>
+                     <stat.icon size={20} />
+                  </div>
+               </div>
+             ))}
           </div>
 
-          {/* Audit Logs */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm h-full flex flex-col">
-              <div className="p-8 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-                <h3 className="text-sm font-black uppercase tracking-[0.2em] text-brand flex items-center gap-2">
-                  <History size={18} /> Security Audit Logs
-                </h3>
-                <button className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-brand transition-all">
-                  Export Logs
-                </button>
-              </div>
-              <div className="flex-1 overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead className="bg-slate-50/50 border-b border-slate-100">
-                    <tr>
-                      <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Event</th>
-                      <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Identity</th>
-                      <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Network Source</th>
-                      <th className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50">
-                    {logs.map(log => (
-                      <tr key={log.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-8 py-6">
-                          <div className="flex flex-col">
-                            <span className="text-[11px] font-black text-slate-900 uppercase tracking-tight">{log.action}</span>
-                            <span className="text-[9px] text-slate-400 font-bold uppercase">{new Date(log.timestamp).toLocaleString()}</span>
-                          </div>
-                        </td>
-                        <td className="px-8 py-6">
-                          <span className="text-[11px] font-bold text-slate-600">{log.user}</span>
-                        </td>
-                        <td className="px-8 py-6">
-                          <div className="flex items-center gap-2 text-slate-400">
-                            <Globe size={12} />
-                            <span className="text-[11px] font-mono font-bold">{log.ip}</span>
-                          </div>
-                        </td>
-                        <td className="px-8 py-6">
-                          <Badge variant={log.status === 'SUCCESS' ? 'delivered' : 'neutral'}>{log.status}</Badge>
-                        </td>
+          {/* Filtering Header */}
+          <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col lg:flex-row items-center gap-6">
+             <div className="relative flex-1 w-full">
+                <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input 
+                  type="text"
+                  placeholder="Query action, resource, or operator email..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-12 pr-6 py-4 bg-slate-50 rounded-2xl border border-transparent focus:border-brand/20 outline-none text-sm font-medium transition-all"
+                />
+             </div>
+             <div className="flex items-center gap-2">
+                {['ALL', 'info', 'warning', 'critical'].map(sev => (
+                  <button
+                    key={sev}
+                    onClick={() => setSeverityFilter(sev as any)}
+                    className={`px-6 py-3 rounded-xl text-[10px] font-black capitalize transition-all ${severityFilter === sev ? 'bg-slate-900 text-white shadow-xl' : 'bg-slate-50 text-slate-400 hover:text-slate-600'}`}
+                  >
+                    {sev}
+                  </button>
+                ))}
+             </div>
+             <button className="hidden lg:flex items-center gap-2 px-6 py-4 bg-emerald-50 text-emerald-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all">
+                <Download size={16} /> Export CSV
+             </button>
+          </div>
+
+          {/* Table */}
+          <div className="bg-white rounded-[3rem] border border-slate-200 shadow-xl overflow-hidden">
+             <table className="w-full border-collapse text-left">
+                <thead>
+                   <tr className="bg-slate-50 border-b border-slate-200">
+                      <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Timestamp</th>
+                      <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Action</th>
+                      <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Resource</th>
+                      <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Operator</th>
+                      <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Severity</th>
+                      <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest"></th>
+                   </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                   {filteredLogs.map((log) => (
+                      <motion.tr 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        key={log.id} 
+                        className="hover:bg-slate-50/50 transition-colors group"
+                      >
+                         <td className="px-8 py-5 whitespace-nowrap">
+                            <div className="flex flex-col">
+                               <p className="text-xs font-bold text-slate-900">{format(new Date(log.timestamp), 'MMM d, HH:mm:ss')}</p>
+                               <span className="text-[10px] font-medium text-slate-400 uppercase">{format(new Date(log.timestamp), 'yyyy')}</span>
+                            </div>
+                         </td>
+                         <td className="px-8 py-5">
+                            <span className="text-[10px] font-black text-slate-900 uppercase tracking-tight bg-slate-100 px-3 py-1 rounded-lg">
+                               {log.action.replace(/_/g, ' ')}
+                            </span>
+                         </td>
+                         <td className="px-8 py-5">
+                            <div className="flex items-center gap-2">
+                               <p className="text-xs font-bold text-slate-700">{log.resource}</p>
+                               <span className="text-[9px] font-medium text-slate-400">#{log.resourceId?.slice(-6)}</span>
+                            </div>
+                         </td>
+                         <td className="px-8 py-5">
+                            <div className="flex items-center gap-3">
+                               <div className="h-8 w-8 bg-slate-100 rounded-lg flex items-center justify-center overflow-hidden">
+                                  <img src={`https://i.pravatar.cc/150?u=${log.userEmail}`} className="h-full w-full grayscale" />
+                               </div>
+                               <p className="text-[11px] font-bold text-slate-600">{log.userEmail}</p>
+                            </div>
+                         </td>
+                         <td className="px-8 py-5">
+                            <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-widest ${getSeverityStyles(log.severity)}`}>
+                               {getSeverityIcon(log.severity)}
+                               {log.severity}
+                            </div>
+                         </td>
+                         <td className="px-8 py-5 text-right">
+                            <button className="h-10 w-10 text-slate-400 hover:text-brand bg-transparent hover:bg-brand/10 rounded-xl transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                               <ExternalLink size={16} />
+                            </button>
+                         </td>
+                      </motion.tr>
+                   ))}
+                   {filteredLogs.length === 0 && (
+                      <tr>
+                         <td colSpan={6} className="py-20 text-center">
+                            <div className="flex flex-col items-center">
+                               <History size={40} className="text-slate-200 mb-4" />
+                               <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">No matching security logs found</p>
+                            </div>
+                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                   )}
+                </tbody>
+             </table>
+          </div>
+
+          {/* Verification Banner */}
+          <div className="bg-slate-900 p-8 rounded-[3rem] text-white flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative">
+             <ShieldCheck size={180} className="absolute -right-10 -bottom-10 opacity-5" />
+             <div className="space-y-2 relative z-10">
+                <h4 className="text-xl font-black uppercase tracking-tighter leading-none">Immutable History Active</h4>
+                <p className="text-[11px] font-medium text-white/50 max-w-lg leading-relaxed uppercase tracking-widest">
+                  This ledger uses internal hash-chaining to ensure log integrity. Any attempt to modify audit records will trigger a critical infrastructure alarm.
+                </p>
+             </div>
+             <button className="px-10 py-5 bg-white text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl flex items-center gap-2 transform active:scale-95 transition-all">
+                <RefreshCw size={16} /> Run Integrity Scan
+             </button>
           </div>
         </div>
-      </div>
-    </Layout>
+      </Layout>
+    </RoleGuard>
   );
 };
 

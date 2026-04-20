@@ -1,66 +1,49 @@
 
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
+  Lightbulb, 
   ChevronRight, 
   ChevronLeft, 
-  Layers, 
-  Truck, 
-  Map as MapIcon, 
-  Package, 
   ShieldCheck, 
-  Zap,
-  LayoutDashboard,
-  Route as RouteIcon,
-  DatabaseZap,
-  FileText,
-  DollarSign
+  Zap, 
+  Target, 
+  Info,
+  ArrowRight
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { useAuthStore } from '../store';
+import { SystemRole } from '../types';
 
 interface GuideStep {
   title: string;
-  desc: string;
-  icon: any;
-  color: string;
-  features: string[];
+  description: string;
+  icon: React.ReactNode;
+  targetedTo?: SystemRole[];
 }
 
-const guideSteps: GuideStep[] = [
+const GUIDE_STEPS: GuideStep[] = [
   {
-    title: "Operational Command",
-    desc: "The central nervous system of your logistics fleet. Monitor global health and mission status from a single pane of glass.",
-    icon: LayoutDashboard,
-    color: "bg-blue-500",
-    features: ["Real-time KPI tracking", "Fleet status overview", "Revenue & Volume analytics"]
+    title: "RBAC Governance",
+    description: "Your platform now operates on high-fidelity granular permissions. Monitor the 'Security Clearance' badge in your profile for your current operational tier.",
+    icon: <ShieldCheck className="text-emerald-500" />,
+    targetedTo: ['super_admin', 'tenant_admin']
   },
   {
-    title: "Operations Hub",
-    desc: "Manage the lifecycle of delivery notes. From initial receipt to final dispatch, this is where cargo meets movement.",
-    icon: Package,
-    color: "bg-brand",
-    features: ["Delivery Note queue", "Bulk order processing", "Status management"]
+    title: "Vertical Intelligence",
+    description: "The Marketplace isn't just a store—it's your growth engine. Inject industry-specific logic like Healthcare Pharamceuticals or Cold Chain directly into your stack.",
+    icon: <Target className="text-brand" />,
   },
   {
-    title: "Dispatch Workspace",
-    desc: "The tactical engine. Consolidate orders into optimized runs, assign pilots, and initialize vehicle missions.",
-    icon: RouteIcon,
-    color: "bg-brand-accent",
-    features: ["Route optimization", "Vehicle & Pilot assignment", "Run manifest generation"]
+    title: "Cortex Deployment",
+    description: "Operational insights are now evidence-backed. Look for the 'AI-assisted' label on recommendations to see the underlying ML logic.",
+    icon: <Zap className="text-amber-500" />,
+    targetedTo: ['operations_manager', 'dispatcher']
   },
   {
-    title: "Live Tracking",
-    desc: "Street-level telemetry. Watch your fleet move across the East African corridor with audited GPS precision.",
-    icon: MapIcon,
-    color: "bg-emerald-500",
-    features: ["Real-time GPS tracking", "ETA calculations", "Geofence alerts"]
-  },
-  {
-    title: "Commercial Hub",
-    desc: "Automate the financial layer. Generate invoices, manage rate profiles, and settle accounts with industrial clarity.",
-    icon: FileText,
-    color: "bg-amber-500",
-    features: ["Automated invoicing", "Custom rate profiles", "Financial reporting"]
+    title: "Audit Transparency",
+    description: "Every significant action—from module installs to role changes—is logged with sub-second precision in the Security Audit terminal.",
+    icon: <Info className="text-slate-400" />,
   }
 ];
 
@@ -69,112 +52,115 @@ interface FeatureGuideProps {
   onClose: () => void;
 }
 
-const FeatureGuide: React.FC<FeatureGuideProps> = ({ isOpen, onClose }) => {
+export const FeatureGuide: React.FC<FeatureGuideProps> = ({ isOpen, onClose }) => {
   const [currentStep, setCurrentStep] = useState(0);
+  const { currentUserRole } = useAuthStore();
 
-  if (!isOpen) return null;
+  const filteredSteps = GUIDE_STEPS.filter(step => 
+    !step.targetedTo || step.targetedTo.includes(currentUserRole)
+  );
 
-  const step = guideSteps[currentStep];
-  const Icon = step.icon;
+  const nextStep = () => {
+    if (currentStep < filteredSteps.length - 1) {
+      setCurrentStep(s => s + 1);
+    } else {
+      onClose();
+    }
+  };
+
+  const prevStep = () => {
+    if (currentStep > 0) {
+      setCurrentStep(s => s - 1);
+    }
+  };
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 sm:p-6">
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-        className="absolute inset-0 bg-brand/40 backdrop-blur-xl"
-      />
-      
-      <motion.div 
-        initial={{ scale: 0.9, opacity: 0, y: 20 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.9, opacity: 0, y: 20 }}
-        className="relative w-full max-w-2xl bg-white rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
-      >
-        <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 bg-brand text-white rounded-2xl flex items-center justify-center shadow-lg">
-              <Layers size={20} />
-            </div>
-            <div>
-              <h3 className="text-sm font-black uppercase tracking-widest text-brand leading-none mb-1">Platform Guide</h3>
-              <p className="text-[10px] font-bold text-slate-400 uppercase">Step {currentStep + 1} of {guideSteps.length}</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors">
-            <X size={24} />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-8 sm:p-12">
-          <AnimatePresence mode="wait">
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[5000] flex items-center justify-center p-6 bg-slate-950/40 backdrop-blur-md">
             <motion.div 
-              key={currentStep}
-              initial={{ x: 20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -20, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-10"
+              initial={{ scale: 0.9, opacity: 0, y: 30 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 30 }}
+              className="w-full max-w-lg bg-white rounded-[3rem] overflow-hidden shadow-2xl relative"
             >
-              <div className="flex flex-col items-center text-center">
-                <div className={`h-24 w-24 ${step.color} text-white rounded-[2rem] flex items-center justify-center shadow-2xl mb-8`}>
-                  <Icon size={48} strokeWidth={2.5} />
-                </div>
-                <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter mb-4">{step.title}</h2>
-                <p className="text-sm text-slate-500 font-medium leading-relaxed max-w-md">{step.desc}</p>
+              <button 
+                onClick={() => onClose()}
+                className="absolute top-8 right-8 text-slate-400 hover:text-slate-900 transition-colors"
+              >
+                <X size={20} />
+              </button>
+
+              <div className="p-12">
+                 <div className="flex items-center gap-3 mb-8">
+                    <div className="h-10 w-10 bg-slate-50 rounded-xl flex items-center justify-center">
+                       <Lightbulb size={20} className="text-yellow-500" />
+                    </div>
+                    <div>
+                       <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Intelligence Briefing</h3>
+                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1">
+                          Step {currentStep + 1} of {filteredSteps.length}
+                       </p>
+                    </div>
+                 </div>
+
+                 <AnimatePresence mode="wait">
+                    <motion.div 
+                      key={currentStep}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      className="space-y-6 min-h-[160px]"
+                    >
+                       <div className="h-20 w-20 bg-slate-50 rounded-[2rem] flex items-center justify-center mb-6">
+                          {filteredSteps[currentStep].icon}
+                       </div>
+                       <h4 className="text-2xl font-black uppercase tracking-tighter text-slate-900 leading-none">
+                          {filteredSteps[currentStep].title}
+                       </h4>
+                       <p className="text-sm text-slate-500 font-medium leading-relaxed">
+                          {filteredSteps[currentStep].description}
+                       </p>
+                    </motion.div>
+                 </AnimatePresence>
+
+                 <div className="mt-12 flex items-center justify-between">
+                    <div className="flex gap-2">
+                       {filteredSteps.map((_, i) => (
+                         <div 
+                           key={i} 
+                           className={`h-1.5 rounded-full transition-all ${i === currentStep ? 'w-8 bg-brand' : 'w-2 bg-slate-100'}`}
+                         />
+                       ))}
+                    </div>
+                    
+                    <div className="flex gap-3">
+                       <button 
+                         onClick={prevStep}
+                         disabled={currentStep === 0}
+                         className="h-12 w-12 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-100 transition-all"
+                       >
+                         <ChevronLeft size={20} />
+                       </button>
+                       <button 
+                         onClick={nextStep}
+                         className="px-8 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-xl active:scale-95 transition-all"
+                       >
+                         {currentStep === filteredSteps.length - 1 ? 'Get Started' : 'Next Intelligence'} <ArrowRight size={14} />
+                       </button>
+                    </div>
+                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {step.features.map((feature, i) => (
-                  <div key={i} className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                    <div className={`h-2 w-2 rounded-full ${step.color}`} />
-                    <span className="text-[11px] font-black uppercase tracking-tight text-slate-700">{feature}</span>
-                  </div>
-                ))}
+              <div className="bg-slate-50 px-12 py-6 border-t border-slate-100 flex items-center justify-between text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                 <span>Operational Guide v4.0</span>
+                 <span className="text-brand">Confidential Ops Only</span>
               </div>
             </motion.div>
-          </AnimatePresence>
-        </div>
-
-        <div className="p-8 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-          <div className="flex gap-2">
-            {guideSteps.map((_, i) => (
-              <div 
-                key={i} 
-                className={`h-1.5 rounded-full transition-all duration-300 ${i === currentStep ? `w-8 ${step.color}` : 'w-2 bg-slate-200'}`} 
-              />
-            ))}
           </div>
-          
-          <div className="flex gap-3">
-            {currentStep > 0 && (
-              <button 
-                onClick={() => setCurrentStep(prev => prev - 1)}
-                className="px-6 py-3 rounded-xl border border-slate-200 text-slate-400 font-black uppercase text-[10px] tracking-widest hover:bg-white transition-all flex items-center gap-2"
-              >
-                <ChevronLeft size={14} /> Back
-              </button>
-            )}
-            
-            <button 
-              onClick={() => {
-                if (currentStep < guideSteps.length - 1) {
-                  setCurrentStep(prev => prev + 1);
-                } else {
-                  onClose();
-                }
-              }}
-              className={`px-8 py-3 rounded-xl ${step.color} text-white font-black uppercase text-[10px] tracking-widest shadow-lg active:scale-95 transition-all flex items-center gap-2`}
-            >
-              {currentStep === guideSteps.length - 1 ? "Get Started" : "Next Pillar"} <ChevronRight size={14} />
-            </button>
-          </div>
-        </div>
-      </motion.div>
-    </div>
-  );
-};
+        )}
+      </AnimatePresence>
+    );
+  };
 
 export default FeatureGuide;

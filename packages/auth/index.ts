@@ -20,5 +20,6 @@ export const isDriver = (user: User | null) =>
   user?.role === 'DRIVER';
 
 export const formatUserRole = (role: UserRole) => {
+  if (!role) return '';
   return role.charAt(0) + role.slice(1).toLowerCase();
 };

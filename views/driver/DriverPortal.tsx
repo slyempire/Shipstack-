@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore, useAppStore } from '../../store';
 import { api } from '../../api';
-import { DeliveryNote, DNStatus, LogisticsDocument, DocumentStatus, Facility, LogisticsType, SafetyEventType } from '../../types';
+import { DeliveryNote, DNStatus, LogisticsDocument, LogisticsDocumentStatus, Facility, LogisticsType, SafetyEventType } from '../../types';
 import { useGeolocation } from '../../hooks/useGeolocation';
 import { useTripTelemetry } from '../../hooks/useTripTelemetry';
 import { offlineDb } from '../../services/offlineDb';
@@ -50,7 +50,12 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   CreditCard,
-  Receipt
+  Receipt,
+  CloudRain,
+  TrafficCone,
+  MessageSquare,
+  Map as MapIcon,
+  PhoneCall
 } from 'lucide-react';
 import { PaymentModal } from '../../components/PaymentModal';
 
@@ -72,7 +77,7 @@ const DriverPortal: React.FC = () => {
   const [dns, setDns] = useState<DeliveryNote[]>([]);
   const [currentDn, setCurrentDn] = useState<DeliveryNote | null>(null);
   const [facilities, setFacilities] = useState<Facility[]>([]);
-  const [step, setStep] = useState<'CHECK_IN' | 'BRIEFING' | 'LIST' | 'EXECUTION' | 'SUCCESS' | 'INSPECTION' | 'NOTIFICATIONS' | 'EXCEPTION' | 'RECONCILIATION' | 'FLEET_MAP' | 'SAFETY_PASSPORT'>('CHECK_IN');
+  const [step, setStep] = useState<'CHECK_IN' | 'BRIEFING' | 'LIST' | 'EXECUTION' | 'SUCCESS' | 'INSPECTION' | 'NOTIFICATIONS' | 'EXCEPTION' | 'RECONCILIATION' | 'FLEET_MAP' | 'SAFETY_PASSPORT' | 'WALLET'>('CHECK_IN');
   const [allActiveDns, setAllActiveDns] = useState<DeliveryNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -109,6 +114,28 @@ const DriverPortal: React.FC = () => {
   const [customerPhone, setCustomerPhone] = useState('');
   const [eTimsInvoice, setETimsInvoice] = useState<any>(null);
   const [isGeneratingEtims, setIsGeneratingEtims] = useState(false);
+  const [isVoiceActive, setIsVoiceActive] = useState(false);
+
+  // Wallet State
+  const [walletBalance, setWalletBalance] = useState(12450);
+  const [earnings, setEarnings] = useState([
+    { id: 'e-1', date: '2024-03-28', amount: 3500, status: 'PAID' },
+    { id: 'e-2', date: '2024-03-29', amount: 4200, status: 'PENDING' }
+  ]);
+  const [showWallet, setShowWallet] = useState(false);
+
+  // Weather & Traffic State
+  const [weatherAdvisory, setWeatherAdvisory] = useState<{ type: string, severity: 'LOW' | 'MEDIUM' | 'HIGH', message: string } | null>(null);
+  const [trafficAdvisory, setTrafficAdvisory] = useState<{ type: string, delay: string, message: string } | null>(null);
+  const [showAdvisoryModal, setShowAdvisoryModal] = useState(false);
+
+  // Chat State
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatRecipient, setChatRecipient] = useState<'DISPATCH' | 'WAREHOUSE'>('DISPATCH');
+  const [chatMessages, setChatMessages] = useState<{ sender: 'DRIVER' | 'DISPATCH' | 'WAREHOUSE', text: string, time: string }[]>([
+    { sender: 'DISPATCH', text: 'Welcome to your shift. Drive safely!', time: '08:00 AM' }
+  ]);
+  const [newMessage, setNewMessage] = useState('');
 
   // Inspection State
   const [inspectionData, setInspectionData] = useState<Record<string, { status: 'PASS' | 'FAIL', photo?: string }>>({});
@@ -118,12 +145,14 @@ const DriverPortal: React.FC = () => {
     { id: 'brakes', label: 'Brake Fluid & Function' },
     { id: 'fluids', label: 'Oil & Coolant Levels' },
     { id: 'lights', label: 'Headlights & Indicators' },
+    { id: 'cargo_restraints', label: 'Cargo Restraints & Straps' },
     { id: 'gps', label: 'GPS Signal & Terminal' },
     { id: 'cleanliness', label: 'Vehicle Cleanliness' }
   ];
 
   // Evidence State
   const [pickedItems, setPickedItems] = useState<Record<number, boolean>>({});
+  const [itemConditions, setItemConditions] = useState<Record<number, 'GOOD' | 'DAMAGED'>>({});
   const [loadingConfirmed, setLoadingConfirmed] = useState(false);
   const [odoStart, setOdoStart] = useState('');
   const [odoEnd, setOdoEnd] = useState('');
@@ -132,6 +161,8 @@ const DriverPortal: React.FC = () => {
   const [tempLog, setTempLog] = useState<string>('');
   const [isTempVerified, setIsTempVerified] = useState(false);
   const [showSignaturePad, setShowSignaturePad] = useState(false);
+
+  const [isFinalShiftSuccess, setIsFinalShiftSuccess] = useState(false);
 
   const isEnRouteStatus = currentDn?.status === DNStatus.IN_TRANSIT;
   const isAtSiteStatus = currentDn?.status === DNStatus.DELIVERED;
@@ -185,6 +216,26 @@ const DriverPortal: React.FC = () => {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     
+    // Simulate Weather/Traffic Updates
+    const advisoryInterval = setInterval(() => {
+      if (Math.random() > 0.95) {
+        setWeatherAdvisory({
+          type: 'Heavy Rain',
+          severity: 'MEDIUM',
+          message: 'Expect slippery roads on A104. Reduce speed.'
+        });
+        addNotification("Weather Advisory: Heavy Rain detected on route.", "info");
+      }
+      if (Math.random() > 0.95) {
+        setTrafficAdvisory({
+          type: 'Congestion',
+          delay: '15 mins',
+          message: 'Heavy traffic at Museum Hill. Rerouting suggested.'
+        });
+        addNotification("Traffic Alert: 15 min delay ahead.", "info");
+      }
+    }, 30000);
+
     // Harsh Braking Detection
     const handleMotion = (event: DeviceMotionEvent) => {
       const accel = event.accelerationIncludingGravity;
@@ -200,12 +251,49 @@ const DriverPortal: React.FC = () => {
     
     window.addEventListener('devicemotion', handleMotion);
     
+    // Voice Command Setup
+    let recognition: any = null;
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
+      recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+
+      recognition.onresult = (event: any) => {
+        const command = event.results[event.results.length - 1][0].transcript.toLowerCase();
+        console.log('Voice Command:', command);
+        
+        if (command.includes('arrive') || command.includes('here')) {
+          handleArrival();
+        } else if (command.includes('start') || command.includes('trip')) {
+          handleStartTrip();
+        } else if (command.includes('sos') || command.includes('emergency')) {
+          handleSOS();
+        } else if (command.includes('wallet') || command.includes('money')) {
+          setStep('WALLET');
+        } else if (command.includes('list') || command.includes('back')) {
+          setStep('LIST');
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        setIsVoiceActive(false);
+      };
+    }
+
+    if (isVoiceActive && recognition) {
+      recognition.start();
+    }
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       window.removeEventListener('devicemotion', handleMotion);
+      if (recognition) recognition.stop();
     };
-  }, []);
+  }, [isVoiceActive]);
 
   const logSafetyEvent = async (type: SafetyEventType, severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL') => {
     const event = {
@@ -275,7 +363,9 @@ const DriverPortal: React.FC = () => {
         data = await api.getDriverTrips(user?.id || '');
         // Cache to offlineDb
         await offlineDb.deliveryNotes.clear();
-        await offlineDb.deliveryNotes.bulkAdd(data);
+        // Ensure data is unique by id before bulk operations
+        const uniqueData = Array.from(new Map(data.map(item => [item.id, item])).values());
+        await offlineDb.deliveryNotes.bulkPut(uniqueData);
       } else {
         data = await offlineDb.deliveryNotes.toArray();
       }
@@ -357,6 +447,7 @@ const DriverPortal: React.FC = () => {
       }
       addNotification("Reconciliation complete.", "success");
       setStep('SUCCESS');
+      setIsFinalShiftSuccess(true);
     } finally {
       setIsSubmitting(false);
     }
@@ -369,6 +460,28 @@ const DriverPortal: React.FC = () => {
       addNotification("Verify all cargo items before departure.", "error");
       return;
     }
+    const allConditionsSet = currentDn.items.every((_, idx) => itemConditions[idx]);
+    if (!allConditionsSet) {
+      addNotification("Verify condition of all items before departure.", "error");
+      return;
+    }
+
+    const hasDamagedItems = currentDn.items.some((_, idx) => itemConditions[idx] === 'DAMAGED');
+    if (hasDamagedItems) {
+      const damagedIndices: Record<number, boolean> = {};
+      currentDn.items.forEach((_, idx) => {
+        if (itemConditions[idx] === 'DAMAGED') {
+          damagedIndices[idx] = true;
+        }
+      });
+      setSelectedExceptionItems(damagedIndices);
+      setExceptionType('DAMAGED_CARGO');
+      setExceptionNotes('Items found damaged during pre-departure inspection.');
+      addNotification("Damaged items detected. Please complete the exception report.", "error");
+      setStep('EXCEPTION');
+      return;
+    }
+
     if (!sealVerified && currentDn.industry === 'MEDICAL') {
       addNotification("ISO 28000: Cargo seal verification required.", "error");
       return;
@@ -471,6 +584,26 @@ const DriverPortal: React.FC = () => {
     }
   };
 
+  const handleSendMessage = () => {
+    if (!newMessage.trim()) return;
+    const msg = {
+      sender: 'DRIVER' as const,
+      text: newMessage,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    setChatMessages(prev => [...prev, msg]);
+    setNewMessage('');
+    
+    // Simulate response
+    setTimeout(() => {
+      setChatMessages(prev => [...prev, {
+        sender: chatRecipient,
+        text: chatRecipient === 'DISPATCH' ? 'Roger that. Keep us updated.' : 'Loading dock is ready for you.',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }]);
+    }, 2000);
+  };
+
   const handleInspectionStatus = (id: string, status: 'PASS' | 'FAIL') => {
     setInspectionData(prev => ({ 
       ...prev, 
@@ -508,11 +641,16 @@ const DriverPortal: React.FC = () => {
       await api.saveInspection({
         driverId: user?.id || 'unknown',
         vehicleId: 'v-1', // Mock vehicle
+        date: new Date().toISOString(),
         items: {
-          tires: inspectionData.tires.status,
-          brakes: inspectionData.brakes.status,
-          fluids: inspectionData.fluids.status,
-          lights: inspectionData.lights.status
+          fuel: inspectionData.fuel?.status || 'PASS',
+          tires: inspectionData.tires?.status || 'PASS',
+          brakes: inspectionData.brakes?.status || 'PASS',
+          fluids: inspectionData.fluids?.status || 'PASS',
+          lights: inspectionData.lights?.status || 'PASS',
+          cargo_restraints: inspectionData.cargo_restraints?.status || 'PASS',
+          gps: inspectionData.gps?.status || 'PASS',
+          cleanliness: inspectionData.cleanliness?.status || 'PASS'
         },
         photos: Object.fromEntries(
           Object.entries(inspectionData)
@@ -534,46 +672,59 @@ const DriverPortal: React.FC = () => {
   };
 
   if (step === 'BRIEFING') return (
-    <div className="min-h-screen bg-slate-900 font-sans flex flex-col p-8 text-white">
-      <div className="flex-1 flex flex-col justify-center space-y-12">
-        <div className="space-y-4">
-          <p className="text-brand-accent font-black uppercase tracking-[0.3em] text-[10px]">Mission Briefing</p>
-          <h2 className="text-4xl font-black uppercase tracking-tighter leading-none">Good Morning,<br/>{user?.name.split(' ')[0]}</h2>
+    <div className="min-h-screen bg-navy text-white font-sans flex flex-col p-6 transition-colors duration-300">
+      <header className="flex justify-between items-center mb-8">
+        <div className="h-10 w-10 bg-brand text-white rounded-xl flex items-center justify-center shadow-lg shadow-brand/20">
+          <Truck size={20} />
+        </div>
+        <div className="flex gap-2">
+          <button onClick={() => setIsChatOpen(true)} className="h-10 w-10 bg-charcoal text-white/60 border border-white/5 rounded-xl flex items-center justify-center active:scale-90 transition-all">
+            <MessageSquare size={18} />
+          </button>
+          <button onClick={() => setShowAdvisoryModal(true)} className="h-10 w-10 bg-charcoal text-white/60 border border-white/5 rounded-xl flex items-center justify-center active:scale-90 transition-all">
+            <CloudRain size={18} />
+          </button>
+        </div>
+      </header>
+      <div className="flex-1 flex flex-col justify-center space-y-8">
+        <div className="space-y-2">
+          <p className="label-logistics !text-brand">Mission Briefing</p>
+          <h2 className="heading-primary !text-4xl">Good Morning,<br/>{user?.name.split(' ')[0]}</h2>
         </div>
 
-        <div className="grid grid-cols-1 gap-6">
-          <div className="p-6 bg-white/5 border border-white/10 rounded-[2rem] flex items-center gap-6">
-            <div className="h-14 w-14 bg-brand text-white rounded-2xl flex items-center justify-center shadow-lg">
-              <Truck size={28} />
+        <div className="grid grid-cols-1 gap-4">
+          <div className="bg-charcoal p-6 rounded-2xl border-l-4 border-l-brand flex items-center gap-4 shadow-2xl">
+            <div className="h-12 w-12 bg-navy text-brand rounded-xl flex items-center justify-center shadow-lg">
+              <Truck size={24} />
             </div>
             <div>
-              <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1">Today's Load</p>
-              <h4 className="text-xl font-black uppercase tracking-tight">{dns.length} Deliveries</h4>
+              <p className="label-logistics mb-1">Today's Load</p>
+              <h4 className="body-value !text-xl">{dns.length} Deliveries</h4>
             </div>
           </div>
 
-          <div className="p-6 bg-white/5 border border-white/10 rounded-[2rem] flex items-center gap-6">
-            <div className="h-14 w-14 bg-emerald-500 text-white rounded-2xl flex items-center justify-center shadow-lg">
-              <ShieldCheck size={28} />
+          <div className="bg-charcoal p-6 rounded-2xl border-l-4 border-l-emerald flex items-center gap-4 shadow-2xl">
+            <div className="h-12 w-12 bg-navy text-emerald rounded-xl flex items-center justify-center shadow-lg">
+              <ShieldCheck size={24} />
             </div>
             <div>
-              <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1">Safety Focus</p>
-              <h4 className="text-xl font-black uppercase tracking-tight">Wet Road Conditions</h4>
+              <p className="label-logistics !text-emerald/60 mb-1">Safety Focus</p>
+              <h4 className="body-value !text-xl">Wet Road Conditions</h4>
             </div>
           </div>
         </div>
 
-        <div className="space-y-4">
-          <p className="text-[10px] font-black text-white/20 uppercase tracking-widest">Route Summary</p>
-          <div className="space-y-3">
-            <div className="flex items-center gap-3 text-white/60">
-              <div className="h-2 w-2 rounded-full bg-brand"></div>
-              <span className="text-xs font-bold uppercase tracking-tight">Nairobi Central Hub</span>
+        <div className="space-y-2">
+          <p className="label-logistics">Route Summary</p>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-white/60">
+              <div className="h-1.5 w-1.5 rounded-full bg-brand"></div>
+              <span className="text-[10px] font-black uppercase tracking-tight">Nairobi Central Hub</span>
             </div>
-            <div className="h-8 w-px bg-white/10 ml-1"></div>
-            <div className="flex items-center gap-3 text-white/60">
-              <div className="h-2 w-2 rounded-full bg-brand-accent"></div>
-              <span className="text-xs font-bold uppercase tracking-tight">Mombasa Road Corridor</span>
+            <div className="h-6 w-px bg-white/10 ml-0.5"></div>
+            <div className="flex items-center gap-2 text-white/60">
+              <div className="h-1.5 w-1.5 rounded-full bg-brand"></div>
+              <span className="text-[10px] font-black uppercase tracking-tight">Mombasa Road Corridor</span>
             </div>
           </div>
         </div>
@@ -581,7 +732,7 @@ const DriverPortal: React.FC = () => {
 
       <button 
         onClick={() => setStep('INSPECTION')}
-        className="w-full py-6 bg-brand text-white rounded-2xl font-black uppercase text-sm tracking-[0.2em] shadow-2xl active:scale-95 transition-all"
+        className="btn-primary w-full h-16 mt-8"
       >
         Start Pre-Trip Inspection
       </button>
@@ -589,22 +740,22 @@ const DriverPortal: React.FC = () => {
   );
 
   if (step === 'CHECK_IN') return (
-    <div className="h-screen flex flex-col items-center justify-center p-12 text-center bg-white animate-in fade-in duration-700">
-      <div className="h-24 w-24 bg-brand text-white rounded-full flex items-center justify-center mb-8 shadow-2xl scale-110">
-        <Clock size={48} strokeWidth={3} />
+    <div className="h-screen flex flex-col items-center justify-center p-12 text-center bg-navy animate-in fade-in duration-700">
+      <div className="h-28 w-28 bg-brand text-white rounded-full flex items-center justify-center mb-10 shadow-2xl scale-110">
+        <Clock size={56} strokeWidth={3} />
       </div>
-      <h2 className="text-3xl font-black mb-2 tracking-tighter uppercase text-slate-900">Shift Start</h2>
-      <p className="text-slate-400 font-bold mb-12 uppercase text-[10px] tracking-[0.25em]">Clock in to receive assignments.</p>
+      <h2 className="heading-primary !text-4xl mb-3">Shift Start</h2>
+      <p className="label-logistics mb-12">Clock in to receive assignments.</p>
       <button 
         onClick={handleClockIn} 
         disabled={isSubmitting}
-        className="w-full max-w-xs bg-brand text-white py-5 rounded-2xl font-black uppercase text-xs tracking-widest active:scale-95 shadow-lg flex items-center justify-center gap-3"
+        className="btn-primary w-full max-w-xs h-16 flex items-center justify-center gap-4"
       >
-        {isSubmitting ? <RefreshCw className="animate-spin" size={20} /> : <><Play size={16} fill="currentColor" /> Clock In</>}
+        {isSubmitting ? <RefreshCw className="animate-spin" size={24} /> : <><Play size={20} fill="currentColor" /> Clock In</>}
       </button>
       <button 
         onClick={() => { logout(); navigate('/login'); }} 
-        className="mt-8 text-[10px] font-black text-slate-300 uppercase tracking-widest hover:text-red-500 transition-colors"
+        className="mt-10 label-logistics !text-white/40 hover:text-red transition-colors"
       >
         Terminate Session
       </button>
@@ -612,29 +763,29 @@ const DriverPortal: React.FC = () => {
   );
 
   if (step === 'EXCEPTION') return (
-    <div className="min-h-screen bg-slate-50 font-sans flex flex-col">
-      <header className="px-6 py-6 border-b border-slate-200 flex justify-between items-center sticky top-0 z-30 bg-white/80 backdrop-blur-xl pt-12">
+    <div className="min-h-screen bg-eggshell font-sans flex flex-col transition-colors duration-300">
+      <header className="px-6 py-6 border-b border-line flex justify-between items-center sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl pt-12 transition-colors">
         <div className="flex items-center gap-4">
-          <button onClick={() => setStep('EXECUTION')} className="p-2 bg-slate-50 rounded-xl text-slate-400">
+          <button onClick={() => setStep('EXECUTION')} className="p-2 bg-slate-50 dark:bg-white/5 rounded-xl text-slate-600 dark:text-white/40 transition-colors">
             <ChevronLeft size={20} />
           </button>
-          <h1 className="text-xl font-black tracking-tighter uppercase text-slate-900">Report Issue</h1>
+          <h1 className="text-xl font-black tracking-tighter uppercase text-slate-900 dark:text-white transition-colors">Report Issue</h1>
         </div>
       </header>
-      <main className="flex-1 p-4 space-y-6 overflow-y-auto pb-32">
-        <div className="bg-red-50 border border-red-100 p-4 rounded-2xl flex gap-3">
+      <main className="flex-1 p-4 space-y-6 overflow-y-auto pb-32 no-scrollbar">
+        <div className="bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 p-4 rounded-2xl flex gap-3 transition-colors">
           <AlertTriangle className="text-red-500 shrink-0" size={20} />
-          <p className="text-[10px] font-bold text-red-700 uppercase leading-relaxed">Reporting an exception will pause this delivery. Provide clear details for dispatch.</p>
+          <p className="label-mono !text-red-700 dark:!text-red-400 leading-relaxed">Reporting an exception will pause this delivery. Provide clear details for dispatch.</p>
         </div>
 
         <div className="space-y-4">
-           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Issue Category</p>
+           <p className="label-mono ml-1 transition-colors">Issue Category</p>
            <div className="grid grid-cols-2 gap-3">
               {['REJECTED', 'UNREACHABLE', 'DAMAGED', 'SHORTAGE', 'BREAKDOWN', 'OTHER'].map(type => (
                 <button 
                   key={type}
                   onClick={() => setExceptionType(type)}
-                  className={`p-4 rounded-2xl border text-[10px] font-black uppercase tracking-tight transition-all ${exceptionType === type ? 'bg-red-500 text-white border-red-500 shadow-lg' : 'bg-white border-slate-200 text-slate-400'}`}
+                  className={`p-4 rounded-2xl border text-[10px] font-black uppercase tracking-tight transition-all ${exceptionType === type ? 'bg-red-500 text-white border-red-500 shadow-lg' : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/5 text-slate-600 dark:text-white/40'}`}
                 >
                   {type}
                 </button>
@@ -643,30 +794,30 @@ const DriverPortal: React.FC = () => {
         </div>
 
         <div className="space-y-4">
-           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Notes & Evidence</p>
+           <p className="label-mono ml-1 transition-colors">Notes & Evidence</p>
            <textarea 
              value={exceptionNotes}
              onChange={(e) => setExceptionNotes(e.target.value)}
              placeholder="Describe the situation..."
-             className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-xs font-medium focus:border-brand outline-none min-h-[120px]"
+             className="w-full p-4 bg-white dark:bg-white/5 border border-line rounded-2xl text-xs font-medium focus:border-brand outline-none min-h-[120px] text-slate-900 dark:text-white transition-colors"
            />
            <button 
              onClick={() => setExceptionPhoto(`https://picsum.photos/seed/exc-${Date.now()}/400/300`)}
-             className="w-full py-4 border border-dashed border-slate-300 rounded-2xl flex items-center justify-center gap-3 text-slate-400 hover:text-brand transition-colors"
+             className="w-full py-4 border border-dashed border-line rounded-2xl flex items-center justify-center gap-3 text-slate-600 dark:text-white/40 hover:text-brand transition-colors"
            >
               {exceptionPhoto ? <img src={exceptionPhoto} className="h-6 w-8 object-cover rounded" /> : <CameraIcon size={20} />}
-              <span className="text-[10px] font-black uppercase tracking-widest">{exceptionPhoto ? 'Photo Captured' : 'Attach Photo Evidence'}</span>
+              <span className="label-mono">{exceptionPhoto ? 'Photo Captured' : 'Attach Photo Evidence'}</span>
            </button>
         </div>
 
         <div className="space-y-4">
-           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Flag Affected Items (Optional)</p>
+           <p className="label-mono ml-1 transition-colors">Flag Affected Items (Optional)</p>
            <div className="space-y-2">
               {currentDn?.items.map((item, idx) => (
                 <button 
                   key={idx}
                   onClick={() => setSelectedExceptionItems(prev => ({ ...prev, [idx]: !prev[idx] }))}
-                  className={`w-full p-3 rounded-xl border text-[10px] font-black uppercase flex items-center justify-between transition-all ${selectedExceptionItems[idx] ? 'bg-red-50 border-red-200 text-red-600' : 'bg-white border-slate-200 text-slate-400'}`}
+                  className={`w-full p-3 rounded-xl border text-[10px] font-black uppercase flex items-center justify-between transition-all ${selectedExceptionItems[idx] ? 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400' : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/5 text-slate-600 dark:text-white/40'}`}
                 >
                   <span>{item.qty} {item.unit} {item.name}</span>
                   {selectedExceptionItems[idx] && <AlertCircle size={14} />}
@@ -678,7 +829,7 @@ const DriverPortal: React.FC = () => {
         <button 
           onClick={handleReportException}
           disabled={!exceptionType || isSubmitting}
-          className="w-full py-5 bg-red-600 text-white rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+          className="btn-tactical w-full py-6 bg-red-600 text-white shadow-2xl disabled:opacity-50"
         >
           {isSubmitting ? <RefreshCw className="animate-spin" size={20} /> : <><AlertCircle size={20} /> Log Exception</>}
         </button>
@@ -687,62 +838,62 @@ const DriverPortal: React.FC = () => {
   );
 
   if (step === 'RECONCILIATION') return (
-    <div className="min-h-screen bg-slate-50 font-sans flex flex-col">
-      <header className="px-6 py-6 border-b border-slate-200 flex justify-between items-center sticky top-0 z-30 bg-white/80 backdrop-blur-xl pt-12">
+    <div className="min-h-screen bg-navy font-sans flex flex-col transition-colors duration-300">
+      <header className="px-6 py-6 border-b border-white/5 flex justify-between items-center sticky top-0 z-30 bg-charcoal/80 backdrop-blur-xl pt-12 transition-colors">
         <div className="flex items-center gap-4">
-          <button onClick={() => setStep('LIST')} className="p-2 bg-slate-50 rounded-xl text-slate-400">
+          <button onClick={() => setStep('LIST')} className="p-2 bg-navy rounded-xl text-white/40 transition-colors">
             <ChevronLeft size={20} />
           </button>
-          <h1 className="text-xl font-black tracking-tighter uppercase text-slate-900">Post-Trip Audit</h1>
+          <h1 className="text-xl font-black tracking-tighter uppercase text-white transition-colors">Post-Trip Audit</h1>
         </div>
       </header>
-      <main className="flex-1 p-4 space-y-6 overflow-y-auto pb-32">
-        <div className="bg-brand/5 border border-brand/10 p-4 rounded-2xl flex gap-3">
+      <main className="flex-1 p-4 space-y-6 overflow-y-auto pb-32 no-scrollbar">
+        <div className="bg-brand/10 border border-brand/20 p-4 rounded-2xl flex gap-3 transition-colors">
           <ClipboardCheck className="text-brand shrink-0" size={20} />
-          <p className="text-[10px] font-bold text-brand uppercase leading-relaxed">Final reconciliation of cash and returns. Accuracy is mandatory for shift closure.</p>
+          <p className="label-logistics !text-brand leading-relaxed">Final reconciliation of cash and returns. Accuracy is mandatory for shift closure.</p>
         </div>
 
         <div className="space-y-6">
-           <div className="p-6 bg-white border border-slate-200 rounded-[2rem] shadow-sm">
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">COD Cash Collected (USD)</p>
+           <div className="bg-charcoal p-6 rounded-2xl border border-white/5 shadow-2xl">
+              <p className="label-logistics mb-4 transition-colors">COD Cash Collected (USD)</p>
               <input 
                 type="number" 
                 value={isNaN(reconData.codCollected) ? '' : reconData.codCollected}
                 onChange={(e) => setReconData(prev => ({ ...prev, codCollected: parseFloat(e.target.value) || 0 }))}
-                className="w-full text-4xl font-black text-slate-900 outline-none tracking-tighter"
+                className="w-full text-4xl font-black text-white outline-none tracking-tighter bg-transparent transition-colors"
                 placeholder="0.00"
               />
            </div>
 
-           <div className="p-6 bg-white border border-slate-200 rounded-[2rem] shadow-sm">
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">Returned Items Count</p>
+           <div className="bg-charcoal p-6 rounded-2xl border border-white/5 shadow-2xl">
+              <p className="label-logistics mb-4 transition-colors">Returned Items Count</p>
               <div className="flex items-center justify-between">
-                 <button onClick={() => setReconData(prev => ({ ...prev, returnedItemsCount: Math.max(0, prev.returnedItemsCount - 1) }))} className="h-12 w-12 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400">-</button>
-                 <span className="text-4xl font-black text-slate-900">{reconData.returnedItemsCount}</span>
-                 <button onClick={() => setReconData(prev => ({ ...prev, returnedItemsCount: prev.returnedItemsCount + 1 }))} className="h-12 w-12 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400">+</button>
+                 <button onClick={() => setReconData(prev => ({ ...prev, returnedItemsCount: Math.max(0, prev.returnedItemsCount - 1) }))} className="h-12 w-12 bg-navy rounded-xl flex items-center justify-center text-white/60 transition-colors">-</button>
+                 <span className="text-4xl font-black text-white transition-colors">{reconData.returnedItemsCount}</span>
+                 <button onClick={() => setReconData(prev => ({ ...prev, returnedItemsCount: prev.returnedItemsCount + 1 }))} className="h-12 w-12 bg-navy rounded-xl flex items-center justify-center text-white/60 transition-colors">+</button>
               </div>
            </div>
         </div>
 
-        <div className="p-6 bg-slate-900 text-white rounded-[2rem] space-y-4">
+        <div className="bg-charcoal p-6 rounded-2xl border border-white/5 shadow-2xl space-y-4 transition-colors">
            <div className="flex justify-between items-center">
-              <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Successful Drops</span>
+              <span className="label-logistics text-white/80">Successful Drops</span>
               <span className="text-sm font-black">12</span>
            </div>
            <div className="flex justify-between items-center">
-              <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Exceptions Logged</span>
-              <span className="text-sm font-black text-red-400">1</span>
+              <span className="label-logistics text-white/80">Exceptions Logged</span>
+              <span className="text-sm font-black text-red">1</span>
            </div>
            <div className="pt-4 border-t border-white/10 flex justify-between items-center">
-              <span className="text-[10px] font-black uppercase tracking-widest">Total Reconciled</span>
-              <span className="text-xl font-black text-emerald-400">${reconData.codCollected.toLocaleString()}</span>
+              <span className="label-logistics">Total Reconciled</span>
+              <span className="text-xl font-black text-emerald">${reconData.codCollected.toLocaleString()}</span>
            </div>
         </div>
 
         <button 
           onClick={handleReconcile}
           disabled={isSubmitting}
-          className="w-full py-5 bg-brand text-white rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3"
+          className="btn-primary w-full h-16"
         >
           {isSubmitting ? <RefreshCw className="animate-spin" size={20} /> : <><FileCheck size={20} /> Finalize Reconciliation</>}
         </button>
@@ -751,60 +902,65 @@ const DriverPortal: React.FC = () => {
   );
 
   if (step === 'SUCCESS') return (
-    <div className="h-screen flex flex-col items-center justify-center p-12 text-center bg-white animate-in fade-in duration-700">
-      <div className="h-24 w-24 bg-emerald-500 text-white rounded-full flex items-center justify-center mb-8 shadow-2xl scale-110">
+    <div className="h-screen flex flex-col items-center justify-center p-12 text-center bg-navy animate-in fade-in duration-700 transition-colors duration-300">
+      <div className="h-24 w-24 bg-emerald text-white rounded-full flex items-center justify-center mb-8 shadow-2xl scale-110 shadow-emerald/20">
         <ShieldCheck size={48} strokeWidth={3} />
       </div>
-      <h2 className="text-3xl font-black mb-2 tracking-tighter uppercase text-slate-900">Run Complete</h2>
-      <p className="text-slate-400 font-bold mb-12 uppercase text-[10px] tracking-[0.25em]">Audit Synchronized.</p>
+      <h2 className="text-3xl font-black mb-2 tracking-tighter uppercase text-white transition-colors">Run Complete</h2>
+      <p className="text-white/60 font-bold mb-12 uppercase text-[10px] tracking-[0.25em] transition-colors">Audit Synchronized.</p>
       <button 
         onClick={() => { 
-          setStep('LIST'); 
+          if (isFinalShiftSuccess) {
+            handleClockOut();
+            setIsFinalShiftSuccess(false);
+          } else {
+            setStep('LIST'); 
+          }
           setCurrentDn(null); 
           setPickedItems({}); 
           setOdoStart(''); 
           setOdoEnd(''); 
           setSelectedExceptionItems({});
         }} 
-        className="w-full max-w-xs bg-brand text-white py-5 rounded-2xl font-black uppercase text-xs tracking-widest active:scale-95 shadow-lg"
+        className="w-full max-w-xs bg-brand text-white py-5 rounded-2xl font-black uppercase text-xs tracking-widest active:scale-95 shadow-lg shadow-brand/20"
       >
-        Dismiss Terminal
+        {isFinalShiftSuccess ? 'End Shift & Exit' : 'Dismiss Terminal'}
       </button>
     </div>
   );
 
   if (step === 'NOTIFICATIONS') return (
-    <div className="min-h-screen bg-slate-50 font-sans flex flex-col">
-      <header className="px-6 py-6 border-b border-slate-200 flex justify-between items-center sticky top-0 z-30 bg-white/80 backdrop-blur-xl pt-12">
+    <div className="min-h-screen bg-navy font-sans flex flex-col transition-colors duration-300">
+      <header className="px-6 py-6 border-b border-white/5 flex justify-between items-center sticky top-0 z-30 bg-charcoal/80 backdrop-blur-xl pt-12 transition-colors">
         <div className="flex items-center gap-4">
-          <button onClick={() => setStep('LIST')} className="p-2 bg-slate-50 rounded-xl text-slate-400">
+          <button onClick={() => setStep('LIST')} className="p-2 bg-navy border border-white/5 rounded-xl text-white/40 transition-colors">
             <ChevronLeft size={20} />
           </button>
-          <h1 className="text-xl font-black tracking-tighter uppercase text-slate-900">Alerts</h1>
+          <h1 className="text-xl font-black tracking-tighter uppercase text-white transition-colors">Alerts</h1>
         </div>
       </header>
-      <main className="flex-1 p-4 space-y-3 overflow-y-auto pb-32">
+      <main className="flex-1 p-4 space-y-3 overflow-y-auto pb-32 no-scrollbar">
         {useAppStore.getState().notifications.length === 0 ? (
-          <div className="py-40 text-center px-10 opacity-20">
-            <AlertCircle size={60} strokeWidth={1} className="mx-auto mb-4" />
-            <p className="text-[10px] font-black uppercase tracking-widest">No Active Alerts</p>
+          <div className="py-40 text-center px-10 opacity-40">
+            <AlertCircle size={60} strokeWidth={1} className="mx-auto mb-4 text-white" />
+            <p className="label-logistics">No Active Alerts</p>
           </div>
         ) : (
           useAppStore.getState().notifications.map(n => (
-            <div key={n.id} className={`p-4 rounded-2xl border bg-white shadow-sm flex gap-4 ${!n.read ? 'border-l-4 border-l-brand' : 'border-slate-100'}`}>
-              <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${n.type === 'error' ? 'bg-red-50 text-red-500' : n.type === 'success' ? 'bg-emerald-50 text-emerald-500' : 'bg-blue-50 text-blue-500'}`}>
+            <div key={n.id} className={`bg-charcoal p-4 rounded-2xl border border-white/5 flex gap-4 transition-colors ${!n.read ? 'border-l-4 border-l-brand' : ''}`}>
+              <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${n.type === 'error' ? 'bg-red/10 text-red' : n.type === 'success' ? 'bg-emerald/10 text-emerald' : 'bg-brand/10 text-brand'}`}>
                 {n.type === 'error' ? <AlertCircle size={20} /> : n.type === 'success' ? <Check size={20} /> : <Info size={20} />}
               </div>
               <div className="flex-1">
-                <p className="text-[10px] font-black text-slate-900 uppercase tracking-tight mb-1">{n.message}</p>
-                <p className="text-[8px] font-bold text-slate-400 uppercase">{new Date(n.timestamp).toLocaleTimeString()}</p>
+                <p className="text-[10px] font-black uppercase tracking-tight text-slate-900 dark:text-white mb-0.5">{n.message}</p>
+                <p className="text-[8px] font-bold text-slate-500 dark:text-white/40 uppercase transition-colors">{new Date(n.timestamp).toLocaleTimeString()}</p>
               </div>
             </div>
           ))
         )}
       </main>
-      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-slate-100 px-8 pb-10 pt-4 z-40 flex justify-between items-center">
-         <button onClick={() => setStep('LIST')} className="flex flex-col items-center gap-1.5 text-slate-300">
+      <div className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-100 dark:border-white/5 px-8 pb-10 pt-4 z-40 flex justify-between items-center transition-colors">
+         <button onClick={() => setStep('LIST')} className="flex flex-col items-center gap-1.5 text-slate-300 dark:text-white/50 hover:text-brand transition-colors">
             <Truck size={20} />
             <span className="text-[8px] font-black uppercase tracking-widest">Manifest</span>
          </button>
@@ -812,7 +968,7 @@ const DriverPortal: React.FC = () => {
             <AlertCircle size={20} strokeWidth={3} />
             <span className="text-[8px] font-black uppercase tracking-widest">Alerts</span>
          </button>
-         <button onClick={() => setShowMenu(true)} className="flex flex-col items-center gap-1.5 text-slate-300">
+         <button onClick={() => setShowMenu(true)} className="flex flex-col items-center gap-1.5 text-slate-300 dark:text-white/50 hover:text-brand transition-colors">
             <Menu size={20} />
             <span className="text-[8px] font-black uppercase tracking-widest">Menu</span>
          </button>
@@ -821,53 +977,53 @@ const DriverPortal: React.FC = () => {
   );
 
   if (step === 'INSPECTION') return (
-    <div className="min-h-screen bg-slate-50 font-sans flex flex-col">
-      <header className="px-6 py-6 border-b border-slate-200 flex justify-between items-center sticky top-0 z-30 bg-white/80 backdrop-blur-xl pt-12">
+    <div className="min-h-screen bg-navy font-sans flex flex-col transition-colors duration-300">
+      <header className="px-6 py-6 border-b border-white/5 flex justify-between items-center sticky top-0 z-30 bg-charcoal/80 backdrop-blur-xl pt-12 transition-colors">
         <div className="flex items-center gap-4">
-          <button onClick={() => setStep('LIST')} className="p-2 bg-slate-50 rounded-xl text-slate-400">
+          <button onClick={() => setStep('LIST')} className="p-2 bg-navy rounded-xl text-white/40 transition-colors">
             <ChevronLeft size={20} />
           </button>
-          <h1 className="text-xl font-black tracking-tighter uppercase text-slate-900">Safety Check</h1>
+          <h1 className="text-xl font-black tracking-tighter uppercase text-white transition-colors">Safety Check</h1>
         </div>
       </header>
-      <main className="flex-1 p-4 space-y-6 overflow-y-auto pb-32">
-        <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl flex gap-3">
-          <AlertCircle className="text-amber-500 shrink-0" size={20} />
-          <p className="text-[10px] font-bold text-amber-700 uppercase leading-relaxed">Mandatory daily inspection. Mark each item and provide photo evidence for any failures.</p>
+      <main className="flex-1 p-4 space-y-6 overflow-y-auto pb-32 no-scrollbar">
+        <div className="bg-amber/10 border border-amber/20 p-4 rounded-2xl flex gap-3 transition-colors">
+          <AlertCircle className="text-amber shrink-0" size={20} />
+          <p className="text-[10px] font-bold text-amber uppercase leading-relaxed">Mandatory daily inspection. Mark each item and provide photo evidence for any failures.</p>
         </div>
 
         <div className="space-y-3">
           {inspectionItems.map(item => {
             const data = inspectionData[item.id];
             return (
-              <div key={item.id} className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
+              <div key={item.id} className="bg-charcoal border border-white/5 rounded-3xl overflow-hidden shadow-2xl transition-colors">
                 <div className="p-4 flex items-center justify-between">
-                  <span className="text-xs font-black uppercase tracking-tight text-slate-900">{item.label}</span>
+                  <span className="text-xs font-black uppercase tracking-tight text-white transition-colors">{item.label}</span>
                   <div className="flex gap-2">
                     <button 
                       onClick={() => handleInspectionStatus(item.id, 'PASS')}
-                      className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${data?.status === 'PASS' ? 'bg-emerald-500 text-white shadow-lg' : 'bg-slate-50 text-slate-400'}`}
+                      className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${data?.status === 'PASS' ? 'bg-emerald text-white shadow-lg shadow-emerald/20' : 'bg-navy text-white/40'}`}
                     >
                       Pass
                     </button>
                     <button 
                       onClick={() => handleInspectionStatus(item.id, 'FAIL')}
-                      className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${data?.status === 'FAIL' ? 'bg-red-500 text-white shadow-lg' : 'bg-slate-50 text-slate-400'}`}
+                      className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${data?.status === 'FAIL' ? 'bg-red text-white shadow-lg shadow-red/20' : 'bg-navy text-white/40'}`}
                     >
                       Fail
                     </button>
                   </div>
                 </div>
                 {data?.status === 'FAIL' && (
-                  <div className="px-4 pb-4 pt-2 border-t border-slate-50 bg-slate-50/50">
+                  <div className="px-4 pb-4 pt-2 border-t border-white/5 bg-navy/50">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         {data.photo ? (
-                          <div className="h-12 w-16 rounded-lg overflow-hidden border border-slate-200">
+                          <div className="h-12 w-16 rounded-lg overflow-hidden border border-white/10">
                             <img src={data.photo} className="h-full w-full object-cover" alt="Evidence" />
                           </div>
                         ) : (
-                          <div className="h-12 w-16 rounded-lg bg-slate-100 border border-dashed border-slate-300 flex items-center justify-center text-slate-300">
+                          <div className="h-12 w-16 rounded-lg bg-navy border border-dashed border-white/10 flex items-center justify-center text-white/40">
                             <CameraOff size={20} />
                           </div>
                         )}
@@ -875,7 +1031,7 @@ const DriverPortal: React.FC = () => {
                           <CameraIcon size={14} /> {data.photo ? 'Retake' : 'Capture Photo'}
                         </button>
                       </div>
-                      {data.photo && <Check className="text-emerald-500" size={20} />}
+                      {data.photo && <Check className="text-emerald" size={20} />}
                     </div>
                   </div>
                 )}
@@ -887,13 +1043,13 @@ const DriverPortal: React.FC = () => {
         <button 
           onClick={submitInspection}
           disabled={isSubmitting}
-          className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+          className="btn-primary w-full h-16 flex items-center justify-center gap-3 disabled:opacity-50"
         >
           {isSubmitting ? <RefreshCw className="animate-spin" size={20} /> : <><ShieldCheck size={20} /> Finalize Safety Report</>}
         </button>
       </main>
-      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-slate-100 px-8 pb-10 pt-4 z-40 flex justify-between items-center">
-         <button onClick={() => setStep('LIST')} className="flex flex-col items-center gap-1.5 text-slate-300">
+      <div className="fixed bottom-0 left-0 right-0 bg-navy/95 backdrop-blur-xl border-t border-white/5 px-8 pb-10 pt-4 z-40 flex justify-between items-center transition-colors">
+         <button onClick={() => setStep('LIST')} className="flex flex-col items-center gap-1.5 text-white/40 hover:text-brand transition-colors">
             <Truck size={20} />
             <span className="text-[8px] font-black uppercase tracking-widest">Manifest</span>
          </button>
@@ -901,7 +1057,7 @@ const DriverPortal: React.FC = () => {
             <ShieldCheck size={20} strokeWidth={3} />
             <span className="text-[8px] font-black uppercase tracking-widest">Safety</span>
          </button>
-         <button onClick={() => setShowMenu(true)} className="flex flex-col items-center gap-1.5 text-slate-300">
+         <button onClick={() => setShowMenu(true)} className="flex flex-col items-center gap-1.5 text-white/40 hover:text-brand transition-colors">
             <Menu size={20} />
             <span className="text-[8px] font-black uppercase tracking-widest">Menu</span>
          </button>
@@ -910,78 +1066,94 @@ const DriverPortal: React.FC = () => {
   );
 
   if (step === 'LIST') return (
-    <div className="min-h-screen bg-slate-50 font-sans flex flex-col">
-      <header className="px-6 py-6 border-b border-slate-200 flex justify-between items-center sticky top-0 z-30 bg-white/80 backdrop-blur-xl pt-12">
-        <div>
-          <p className="text-[8px] font-black text-brand-accent uppercase tracking-widest mb-1">Field Terminal</p>
-          <h1 className="text-xl font-black tracking-tighter uppercase text-slate-900">Mission Control</h1>
+    <div className="min-h-screen bg-navy font-sans flex flex-col transition-colors duration-300">
+      {isOffline && (
+        <div className="bg-amber text-white px-6 py-1.5 text-[9px] font-black uppercase tracking-[0.2em] text-center sticky top-0 z-[100] animate-pulse">
+          Offline Mode Active • Data will sync on reconnection
         </div>
-        <div className="flex gap-2">
-          {isOffline && (
-            <div className="flex items-center gap-1 px-3 bg-amber-50 rounded-xl border border-amber-100">
-              <Wifi size={12} className="text-amber-500" />
-              <span className="text-[8px] font-black text-amber-600 uppercase">Offline</span>
-            </div>
-          )}
+      )}
+      <header className="px-6 py-4 border-b border-white/5 flex justify-between items-center sticky top-0 z-30 bg-navy/80 backdrop-blur-xl pt-10 transition-colors">
+        <div>
+          <p className="label-logistics !text-brand !text-[8px] !mb-0">Field Terminal</p>
+          <h1 className="heading-primary">Mission Control</h1>
+        </div>
+        <div className="flex gap-1.5 items-center">
+          <button 
+            onClick={() => setIsVoiceActive(!isVoiceActive)}
+            className={`h-10 w-10 rounded-xl flex items-center justify-center active:scale-90 shadow-sm transition-all ${isVoiceActive ? 'bg-brand text-white border-brand shadow-lg shadow-brand/20' : 'bg-charcoal text-white/40 border-white/5'}`}
+          >
+            <Activity size={18} className={isVoiceActive ? 'animate-pulse' : ''} />
+          </button>
           <button 
             onClick={handleSOS}
-            className="h-12 px-4 rounded-xl bg-red-500 text-white font-black uppercase text-[10px] tracking-widest shadow-lg shadow-red-200 active:scale-95 flex items-center gap-2"
+            className="h-10 px-3 rounded-xl bg-red text-white font-black uppercase text-[9px] tracking-widest shadow-lg shadow-red/20 active:scale-95 flex items-center gap-1.5"
           >
-            <Zap size={16} fill="currentColor" /> SOS
+            <Zap size={14} fill="currentColor" /> SOS
           </button>
-          <div className="flex flex-col items-end justify-center mr-2">
-            <div className="flex items-center gap-1">
-              <ShieldCheck size={12} className="text-emerald-500" />
-              <span className="text-[10px] font-black text-slate-900">{safetyScore}%</span>
-            </div>
-            <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">Safety Aura</p>
-          </div>
-          <button onClick={() => setStep('NOTIFICATIONS')} className="h-12 w-12 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 flex items-center justify-center active:scale-90 shadow-sm relative">
-            <AlertCircle size={20} />
+          <button onClick={() => setStep('NOTIFICATIONS')} className="h-10 w-10 rounded-xl bg-charcoal text-white/40 border border-white/5 flex items-center justify-center active:scale-90 shadow-sm relative transition-colors">
+            <AlertCircle size={18} />
             {useAppStore.getState().notifications.some(n => !n.read) && (
-              <span className="absolute top-3 right-3 h-2 w-2 bg-red-500 rounded-full border-2 border-white" />
+              <span className="absolute top-2.5 right-2.5 h-1.5 w-1.5 bg-red rounded-full border-2 border-navy" />
             )}
           </button>
-          <button onClick={() => setShowMenu(true)} className="h-12 w-12 rounded-xl bg-slate-50 text-slate-400 border border-slate-100 flex items-center justify-center active:scale-90 shadow-sm">
-            <Menu size={20} />
+          <button onClick={() => setShowMenu(true)} className="h-10 w-10 rounded-xl bg-charcoal text-white/40 border border-white/5 flex items-center justify-center active:scale-90 shadow-sm transition-colors">
+            <Menu size={18} />
           </button>
         </div>
       </header>
-      <main className="flex-1 p-3 space-y-2 pb-32 overflow-y-auto">
+      <main className="flex-1 p-4 space-y-3 pb-32 overflow-y-auto no-scrollbar">
         {/* ISO 39001: Fatigue & Eco Dashboard */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
-           <div className="bg-white p-4 rounded-[2rem] border border-slate-200 shadow-sm">
+        <div className="grid grid-cols-2 gap-3 mb-2">
+           <div className="bg-charcoal p-4 rounded-2xl border border-white/5 shadow-2xl">
               <div className="flex justify-between items-center mb-2">
                  <Clock size={14} className="text-brand" />
-                 <span className="text-[10px] font-black text-slate-900">{Math.floor(driveTime / 3600)}h {Math.floor((driveTime % 3600) / 60)}m</span>
+                 <span className="body-value !text-[10px] !mb-0">{Math.floor(driveTime / 3600)}h {Math.floor((driveTime % 3600) / 60)}m</span>
               </div>
-              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2">Duty Time</p>
-              <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
+              <p className="label-logistics !text-[8px] mb-2">Duty Time</p>
+              <div className="h-1 w-full bg-navy rounded-full overflow-hidden transition-colors">
                  <div className="h-full bg-brand transition-all duration-1000" style={{ width: `${(driveTime / 32400) * 100}%` }} />
               </div>
            </div>
-           <div className="bg-white p-4 rounded-[2rem] border border-slate-200 shadow-sm">
+           <div className="bg-charcoal p-4 rounded-2xl border border-white/5 shadow-2xl">
               <div className="flex justify-between items-center mb-2">
-                 <Activity size={14} className="text-emerald-500" />
-                 <span className="text-[10px] font-black text-slate-900">{ecoScore}%</span>
+                 <Activity size={14} className="text-emerald" />
+                 <span className="body-value !text-[10px] !mb-0">{ecoScore}%</span>
               </div>
-              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2">Eco Efficiency</p>
-              <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
-                 <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${ecoScore}%` }} />
+              <p className="label-logistics !text-[8px] mb-2">Eco Efficiency</p>
+              <div className="h-1 w-full bg-navy rounded-full overflow-hidden transition-colors">
+                 <div className="h-full bg-emerald transition-all duration-1000" style={{ width: `${ecoScore}%` }} />
               </div>
            </div>
         </div>
 
-        {loading ? [1, 2, 3].map(i => <div key={i} className="h-20 rounded-2xl animate-pulse bg-white border border-slate-100" />) : 
+        <button 
+          onClick={() => {
+            setExceptionType('');
+            setExceptionNotes('');
+            setExceptionPhoto(null);
+            setSelectedExceptionItems({});
+            setStep('EXCEPTION');
+          }}
+          className="w-full p-4 bg-red/10 border border-red/20 rounded-2xl flex items-center gap-4 group active:bg-red/20 transition-all mb-2"
+        >
+          <div className="h-10 w-10 rounded-xl bg-red text-white flex items-center justify-center shadow-lg shadow-red/20"><AlertTriangle size={20} /></div>
+          <div className="text-left">
+            <h4 className="body-value !text-red !text-xs !mb-0.5">Report Exception</h4>
+            <p className="label-logistics !text-red/60 !text-[8px] !mb-0">Log vehicle or route issues</p>
+          </div>
+          <ChevronRight size={18} className="ml-auto text-red/20" />
+        </button>
+
+        {loading ? [1, 2, 3].map(i => <div key={i} className="h-20 rounded-2xl animate-pulse bg-charcoal border border-white/5" />) : 
           dns.length === 0 ? (
-            <div className="py-20 text-center px-10">
-               <div className="h-20 w-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
+            <div className="py-16 text-center px-8">
+               <div className="h-20 w-20 bg-emerald/10 text-emerald rounded-full flex items-center justify-center mx-auto mb-6 transition-colors shadow-sm">
                   <CheckCircle size={40} />
                </div>
-               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-8">All deliveries completed</p>
+               <p className="label-logistics mb-8">All deliveries completed</p>
                <button 
                  onClick={() => setStep('RECONCILIATION')}
-                 className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3"
+                 className="btn-primary w-full h-16 flex items-center justify-center gap-3"
                >
                   <ClipboardCheck size={20} /> Reconcile & End Shift
                </button>
@@ -989,58 +1161,58 @@ const DriverPortal: React.FC = () => {
           ) :
           dns.map(dn => (
             <button key={dn.id} onClick={() => { setCurrentDn(dn); setStep('EXECUTION'); setOdoStart(dn.odometerStart?.toString() || ''); setIsPanelExpanded(true); }} 
-              className="w-full p-4 rounded-2xl border border-slate-200 bg-white shadow-sm flex items-center gap-3 active:scale-[0.98] transition-all text-left relative overflow-hidden"
+              className="w-full p-4 rounded-2xl border border-white/5 bg-charcoal shadow-2xl flex items-center gap-3 active:scale-[0.99] transition-all text-left relative overflow-hidden group"
             >
-              <div className={`absolute top-0 right-0 px-2 py-0.5 text-[6px] font-black uppercase tracking-widest ${dn.type === LogisticsType.INBOUND ? 'bg-blue-500 text-white' : 'bg-emerald-500 text-white'}`}>
+              <div className={`absolute top-0 right-0 px-2 py-0.5 text-[6px] font-black uppercase tracking-widest ${dn.type === LogisticsType.INBOUND ? 'bg-brand text-white' : 'bg-emerald text-white'}`}>
                 {dn.type}
               </div>
-              <div className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 border ${dn.status === DNStatus.IN_TRANSIT ? 'bg-brand text-white border-brand' : 'bg-slate-50 text-slate-300 border-slate-100'}`}>
-                {dn.status === DNStatus.IN_TRANSIT ? <Navigation size={22} className="animate-pulse" /> : 
-                  dn.type === LogisticsType.INBOUND ? <ArrowDownLeft size={22} /> : <ArrowUpRight size={22} />
+              <div className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 border transition-all ${dn.status === DNStatus.IN_TRANSIT ? 'bg-brand text-white border-brand shadow-lg shadow-brand/20' : 'bg-navy text-white/60 border-white/5 group-hover:border-brand/30'}`}>
+                {dn.status === DNStatus.IN_TRANSIT ? <Navigation size={20} className="animate-pulse" /> : 
+                  dn.type === LogisticsType.INBOUND ? <ArrowDownLeft size={20} /> : <ArrowUpRight size={20} />
                 }
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[7px] font-black text-brand-accent uppercase tracking-widest mb-0.5">{dn.externalId}</p>
-                <h4 className="font-black text-xs tracking-tight text-slate-900 uppercase truncate mb-0.5">{dn.clientName}</h4>
-                <p className="text-[9px] font-bold uppercase truncate text-slate-400 tracking-tight">{dn.address}</p>
+                <p className="label-logistics !text-brand !text-[8px] mb-0.5">{dn.externalId}</p>
+                <h4 className="font-black text-xs tracking-tight uppercase truncate mb-0.5 transition-colors">{dn.clientName}</h4>
+                <p className="text-[9px] font-bold uppercase truncate tracking-tight transition-colors opacity-40">{dn.address}</p>
               </div>
-              <ChevronRight size={16} className="text-slate-200" />
+              <ChevronRight size={18} className="text-white/50 group-hover:text-brand group-hover:translate-x-1 transition-all" />
             </button>
           ))
         }
       </main>
 
       {/* Bottom Navigation Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-slate-100 px-6 pb-10 pt-4 z-40 flex justify-between items-center shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+      <div className="fixed bottom-0 left-0 right-0 bg-navy/95 backdrop-blur-xl border-t border-white/5 px-6 pb-10 pt-4 z-40 flex justify-between items-center shadow-2xl transition-colors">
          <button onClick={() => setStep('LIST')} className="flex flex-col items-center gap-1.5 text-brand">
             <Truck size={20} strokeWidth={3} />
             <span className="text-[8px] font-black uppercase tracking-widest">Manifest</span>
          </button>
-         <button onClick={() => setStep('INSPECTION')} className="flex flex-col items-center gap-1.5 text-slate-300 hover:text-slate-600 transition-colors">
+         <button onClick={() => setStep('INSPECTION')} className="flex flex-col items-center gap-1.5 text-white/40 hover:text-brand transition-colors">
             <ShieldCheck size={20} />
             <span className="text-[8px] font-black uppercase tracking-widest">Safety</span>
          </button>
-         <button onClick={() => setStep('NOTIFICATIONS')} className="flex flex-col items-center gap-1.5 text-slate-300 hover:text-slate-600 transition-colors relative">
+         <button onClick={() => setStep('NOTIFICATIONS')} className="flex flex-col items-center gap-1.5 text-white/40 hover:text-brand transition-colors relative">
             <AlertCircle size={20} />
             <span className="text-[8px] font-black uppercase tracking-widest">Alerts</span>
             {useAppStore.getState().notifications.some(n => !n.read) && (
-              <span className="absolute top-0 right-1 h-2 w-2 bg-red-500 rounded-full border-2 border-white" />
+              <span className="absolute top-0 right-1 h-2 w-2 bg-red rounded-full border-2 border-navy" />
             )}
          </button>
-         <button onClick={() => navigate('/driver/hub')} className="flex flex-col items-center gap-1.5 text-slate-300 hover:text-slate-600 transition-colors">
+         <button onClick={() => navigate('/driver/hub')} className="flex flex-col items-center gap-1.5 text-white/40 hover:text-brand transition-colors">
             <Activity size={20} />
             <span className="text-[8px] font-black uppercase tracking-widest">Hub</span>
          </button>
-         <button onClick={() => setShowMenu(true)} className="flex flex-col items-center gap-1.5 text-slate-300 hover:text-slate-600 transition-colors">
+         <button onClick={() => setShowMenu(true)} className="flex flex-col items-center gap-1.5 text-white/40 hover:text-brand transition-colors">
             <Menu size={20} />
             <span className="text-[8px] font-black uppercase tracking-widest">Menu</span>
          </button>
       </div>
 
       <div className="fixed bottom-2 left-0 right-0 flex justify-center pointer-events-none z-[45]">
-         <div className="px-3 py-1 bg-slate-900/10 backdrop-blur-sm rounded-full border border-slate-900/5 flex items-center gap-2">
-            <ShieldCheck size={8} className="text-emerald-500" />
-            <span className="text-[6px] font-black text-slate-400 uppercase tracking-[0.2em]">ISO 39001 • ISO 9001 • ISO 28000 Compliant Architecture</span>
+         <div className="px-3 py-1 bg-white/5 backdrop-blur-sm rounded-full border border-white/5 flex items-center gap-2 transition-colors">
+            <ShieldCheck size={8} className="text-emerald" />
+            <span className="text-[6px] font-black uppercase tracking-[0.2em] opacity-20">ISO 39001 • ISO 9001 • ISO 28000 Compliant Architecture</span>
          </div>
       </div>
 
@@ -1050,7 +1222,7 @@ const DriverPortal: React.FC = () => {
            <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl p-8 animate-in slide-in-from-bottom-10 duration-500">
               <div className="flex justify-between items-center mb-8">
                  <h3 className="text-xl font-black uppercase tracking-tighter text-slate-900">Tactical Actions</h3>
-                 <button onClick={() => setQuickActionOpen(false)} className="p-2 bg-slate-100 rounded-xl text-slate-400"><X size={20}/></button>
+                 <button onClick={() => setQuickActionOpen(false)} className="p-2 bg-slate-100 rounded-xl text-slate-600 transition-colors"><X size={20}/></button>
               </div>
               <div className="grid grid-cols-2 gap-4">
                  <button 
@@ -1063,13 +1235,13 @@ const DriverPortal: React.FC = () => {
                     <span className="text-[10px] font-black uppercase tracking-widest text-red-600">Report Issue</span>
                  </button>
                  <button 
-                   onClick={() => { setQuickActionOpen(false); addNotification('Fuel logging coming soon', 'info'); }}
-                   className="p-6 bg-blue-50 border border-blue-100 rounded-3xl flex flex-col items-center gap-3 group active:scale-95 transition-all"
+                   onClick={() => { setQuickActionOpen(false); setIsChatOpen(true); }}
+                   className="p-6 bg-brand/5 border border-brand/10 rounded-3xl flex flex-col items-center gap-3 group active:scale-95 transition-all"
                  >
-                    <div className="h-12 w-12 bg-blue-500 text-white rounded-2xl flex items-center justify-center shadow-lg group-hover:rotate-12 transition-transform">
-                       <Activity size={24} />
+                    <div className="h-12 w-12 bg-brand text-white rounded-2xl flex items-center justify-center shadow-lg group-hover:rotate-12 transition-transform">
+                       <MessageSquare size={24} />
                     </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-600">Log Fuel</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-brand">Dispatch Chat</span>
                  </button>
                  <button 
                    onClick={() => { setQuickActionOpen(false); setStep('INSPECTION'); }}
@@ -1081,13 +1253,13 @@ const DriverPortal: React.FC = () => {
                     <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Safety Check</span>
                  </button>
                  <button 
-                   onClick={() => { setQuickActionOpen(false); addNotification('Connecting to Dispatch...', 'info'); }}
-                   className="p-6 bg-brand/5 border border-brand/10 rounded-3xl flex flex-col items-center gap-3 group active:scale-95 transition-all"
+                   onClick={() => { setQuickActionOpen(false); setShowAdvisoryModal(true); }}
+                   className="p-6 bg-orange-50 border border-orange-100 rounded-3xl flex flex-col items-center gap-3 group active:scale-95 transition-all"
                  >
-                    <div className="h-12 w-12 bg-brand text-white rounded-2xl flex items-center justify-center shadow-lg group-hover:rotate-12 transition-transform">
-                       <Phone size={24} />
+                    <div className="h-12 w-12 bg-orange-500 text-white rounded-2xl flex items-center justify-center shadow-lg group-hover:rotate-12 transition-transform">
+                       <CloudRain size={24} />
                     </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-brand">Quick Support</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-orange-600">Advisories</span>
                  </button>
               </div>
            </div>
@@ -1113,7 +1285,7 @@ const DriverPortal: React.FC = () => {
                  <AlertTriangle size={24} />
               </div>
               <div>
-                 <p className="text-[10px] font-black uppercase tracking-widest opacity-60 leading-none mb-1">Safety Alert</p>
+                 <p className="text-[10px] font-black uppercase tracking-widest opacity-80 leading-none mb-1">Safety Alert</p>
                  <p className="text-sm font-black uppercase tracking-tight">{safetyAlertMsg}</p>
               </div>
            </div>
@@ -1125,11 +1297,11 @@ const DriverPortal: React.FC = () => {
            <header className="flex justify-between items-center mb-12 pt-8">
               <div className="flex items-center gap-4">
                  <div className="h-14 w-14 rounded-2xl bg-white text-brand flex items-center justify-center text-xl font-black shadow-2xl">
-                    {user?.name.charAt(0)}
+                    {user?.name?.charAt(0) || '?'}
                  </div>
                  <div>
-                    <h2 className="text-xl font-black text-white uppercase tracking-tighter leading-none mb-1">{user?.name}</h2>
-                    <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Pilot ID: {user?.id.split('-')[1] || '772'}</p>
+                    <h2 className="text-xl font-black uppercase tracking-tighter leading-none mb-1">{user?.name}</h2>
+                    <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Driver ID: {user?.id.split('-')[1] || '772'}</p>
                  </div>
               </div>
               <button onClick={() => setShowMenu(false)} className="h-12 w-12 bg-white/10 rounded-xl flex items-center justify-center text-white active:scale-90 transition-all">
@@ -1138,7 +1310,7 @@ const DriverPortal: React.FC = () => {
            </header>
 
             <div className="flex-1 space-y-4 overflow-y-auto no-scrollbar pb-10">
-              <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em] mb-6">Operations Hub</p>
+              <p className="text-[9px] font-black text-white/50 uppercase tracking-[0.3em] mb-6">Operations Hub</p>
               
               <button 
                 onClick={() => { setShowMenu(false); setStep('LIST'); }}
@@ -1149,7 +1321,19 @@ const DriverPortal: React.FC = () => {
                     <h4 className="text-sm font-black text-white uppercase tracking-tight mb-1">Active Manifest</h4>
                     <p className="text-[9px] font-bold text-white/40 uppercase">View current delivery queue</p>
                  </div>
-                 <ChevronRight size={20} className="ml-auto text-white/20" />
+                 <ChevronRight size={20} className="ml-auto text-white/50" />
+              </button>
+
+              <button 
+                onClick={() => { setShowMenu(false); setStep('WALLET'); }}
+                className="w-full p-6 bg-white/5 border border-white/5 rounded-[2rem] flex items-center gap-6 group active:bg-white/10 transition-all"
+              >
+                 <div className="h-12 w-12 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-lg"><CreditCard size={24} /></div>
+                 <div className="text-left">
+                    <h4 className="text-sm font-black text-white uppercase tracking-tight mb-1">Earnings & Wallet</h4>
+                    <p className="text-[9px] font-bold text-white/40 uppercase">View balance & request advances</p>
+                 </div>
+                 <ChevronRight size={20} className="ml-auto text-white/50" />
               </button>
 
               <button 
@@ -1161,7 +1345,7 @@ const DriverPortal: React.FC = () => {
                     <h4 className="text-sm font-black text-white uppercase tracking-tight mb-1">Safety Passport</h4>
                     <p className="text-[9px] font-bold text-white/40 uppercase">ISO 39001 Compliance Profile</p>
                  </div>
-                 <ChevronRight size={20} className="ml-auto text-white/20" />
+                 <ChevronRight size={20} className="ml-auto text-white/50" />
               </button>
 
               <button 
@@ -1173,7 +1357,7 @@ const DriverPortal: React.FC = () => {
                     <h4 className="text-sm font-black text-white uppercase tracking-tight mb-1">Vehicle Inspection</h4>
                     <p className="text-[9px] font-bold text-white/40 uppercase">Daily safety checklist</p>
                  </div>
-                 <ChevronRight size={20} className="ml-auto text-white/20" />
+                 <ChevronRight size={20} className="ml-auto text-white/50" />
               </button>
 
               <button 
@@ -1185,19 +1369,19 @@ const DriverPortal: React.FC = () => {
                     <h4 className="text-sm font-black text-white uppercase tracking-tight mb-1">Notifications</h4>
                     <p className="text-[9px] font-bold text-white/40 uppercase">Urgent alerts & messages</p>
                  </div>
-                 <ChevronRight size={20} className="ml-auto text-white/20" />
+                 <ChevronRight size={20} className="ml-auto text-white/50" />
               </button>
 
               <button 
                 onClick={() => navigate('/driver/hub')}
                 className="w-full p-6 bg-white/5 border border-white/5 rounded-[2rem] flex items-center gap-6 group active:bg-white/10 transition-all"
               >
-                 <div className="h-12 w-12 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-lg"><Activity size={24} /></div>
+                 <div className="h-12 w-12 rounded-xl bg-orange-500 text-white flex items-center justify-center shadow-lg"><Activity size={24} /></div>
                  <div className="text-left">
                     <h4 className="text-sm font-black text-white uppercase tracking-tight mb-1">Driver Hub</h4>
                     <p className="text-[9px] font-bold text-white/40 uppercase">Performance & Safety Tools</p>
                  </div>
-                 <ChevronRight size={20} className="ml-auto text-white/20" />
+                 <ChevronRight size={20} className="ml-auto text-white/50" />
               </button>
 
               <button 
@@ -1209,8 +1393,32 @@ const DriverPortal: React.FC = () => {
                      <h4 className="text-sm font-black text-white uppercase tracking-tight mb-1">Fleet Map</h4>
                      <p className="text-[9px] font-bold text-white/40 uppercase">Real-time network visibility</p>
                   </div>
-                  <ChevronRight size={20} className="ml-auto text-white/20" />
+                  <ChevronRight size={20} className="ml-auto text-white/50" />
                </button>
+
+               <button 
+                onClick={() => { setShowMenu(false); setIsChatOpen(true); }}
+                className="w-full p-6 bg-white/5 border border-white/5 rounded-[2rem] flex items-center gap-6 group active:bg-white/10 transition-all"
+              >
+                 <div className="h-12 w-12 rounded-xl bg-brand text-white flex items-center justify-center shadow-lg"><MessageSquare size={24} /></div>
+                 <div className="text-left">
+                    <h4 className="text-sm font-black text-white uppercase tracking-tight mb-1">Dispatch Comms</h4>
+                    <p className="text-[9px] font-bold text-white/40 uppercase">Real-time secure chat</p>
+                 </div>
+                 <ChevronRight size={20} className="ml-auto text-white/50" />
+              </button>
+
+              <button 
+                onClick={() => { setShowMenu(false); setShowAdvisoryModal(true); }}
+                className="w-full p-6 bg-white/5 border border-white/5 rounded-[2rem] flex items-center gap-6 group active:bg-white/10 transition-all"
+              >
+                 <div className="h-12 w-12 rounded-xl bg-orange-500 text-white flex items-center justify-center shadow-lg"><CloudRain size={24} /></div>
+                 <div className="text-left">
+                    <h4 className="text-sm font-black text-white uppercase tracking-tight mb-1">Route Intelligence</h4>
+                    <p className="text-[9px] font-bold text-white/40 uppercase">Weather & Traffic alerts</p>
+                 </div>
+                 <ChevronRight size={20} className="ml-auto text-white/50" />
+              </button>
 
                <button 
                  onClick={() => navigate('/profile')}
@@ -1221,7 +1429,7 @@ const DriverPortal: React.FC = () => {
                     <h4 className="text-sm font-black text-white uppercase tracking-tight mb-1">Identity Terminal</h4>
                     <p className="text-[9px] font-bold text-white/40 uppercase">Manage profile & security</p>
                  </div>
-                 <ChevronRight size={20} className="ml-auto text-white/20" />
+                 <ChevronRight size={20} className="ml-auto text-white/50" />
               </button>
 
               <button 
@@ -1233,7 +1441,7 @@ const DriverPortal: React.FC = () => {
                     <h4 className="text-sm font-black text-white uppercase tracking-tight mb-1">Config</h4>
                     <p className="text-[9px] font-bold text-white/40 uppercase">App preferences</p>
                  </div>
-                 <ChevronRight size={20} className="ml-auto text-white/20" />
+                 <ChevronRight size={20} className="ml-auto text-white/50" />
               </button>
            </div>
 
@@ -1250,7 +1458,7 @@ const DriverPortal: React.FC = () => {
                   logout(); 
                   navigate('/login'); 
                 }}
-                className="w-full py-4 text-[10px] font-black text-white/20 uppercase tracking-[0.3em] hover:text-white transition-colors"
+                className="w-full py-4 text-[10px] font-black text-white/50 uppercase tracking-[0.3em] hover:text-white transition-colors"
               >
                  Terminate Active Session
               </button>
@@ -1260,20 +1468,90 @@ const DriverPortal: React.FC = () => {
     </div>
   );
 
-  if (step === 'SAFETY_PASSPORT') return (
-    <div className="min-h-screen bg-slate-900 font-sans flex flex-col p-6 pt-16">
-      <header className="flex justify-between items-center mb-12">
-        <button onClick={() => setStep('LIST')} className="h-12 w-12 bg-white/5 rounded-2xl flex items-center justify-center text-white">
-          <ChevronLeft size={24} />
-        </button>
-        <div className="text-right">
-          <h2 className="text-xl font-black text-white uppercase tracking-tighter">Safety Passport</h2>
-          <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">ISO 39001 Certified</p>
+  if (step === 'WALLET') return (
+    <div className="min-h-screen bg-navy font-sans flex flex-col transition-colors duration-300">
+      <header className="px-6 py-4 border-b border-white/5 flex justify-between items-center sticky top-0 z-30 bg-navy/80 backdrop-blur-xl pt-10 transition-colors">
+        <div className="flex items-center gap-4">
+          <button onClick={() => setStep('LIST')} className="h-10 w-10 bg-charcoal border border-white/10 rounded-xl flex items-center justify-center text-white/40 active:scale-90 transition-all shadow-sm">
+            <ChevronLeft size={20} />
+          </button>
+          <div>
+            <p className="label-logistics !text-brand !text-[8px]">Finance Terminal</p>
+            <h1 className="text-xl font-black tracking-tighter uppercase text-white transition-colors">Driver Wallet</h1>
+          </div>
+        </div>
+        <div className="h-10 w-10 bg-brand text-white rounded-xl flex items-center justify-center shadow-lg">
+          <CreditCard size={18} />
         </div>
       </header>
 
-      <main className="flex-1 space-y-6 overflow-y-auto no-scrollbar pb-32">
-        <div className="relative p-8 bg-gradient-to-br from-emerald-600 to-emerald-800 rounded-[2.5rem] text-white shadow-2xl overflow-hidden">
+      <main className="flex-1 p-4 space-y-6 overflow-y-auto no-scrollbar pb-32">
+        <div className="p-8 bg-charcoal rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden transition-colors border border-white/5">
+           <div className="absolute top-0 right-0 p-8 opacity-10">
+              <CreditCard size={120} />
+           </div>
+           <div className="relative z-10">
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-2 opacity-60">Available Balance</p>
+              <h3 className="text-5xl font-black tracking-tighter mb-8">KES {walletBalance.toLocaleString()}</h3>
+              <div className="flex gap-3">
+                 <button className="flex-1 py-4 bg-brand text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg active:scale-95">Withdraw</button>
+                 <button className="flex-1 py-4 bg-white/10 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest backdrop-blur-md border border-white/10 active:scale-95">Advance</button>
+              </div>
+           </div>
+        </div>
+
+        <div className="space-y-4">
+           <h3 className="text-[10px] font-black text-white/50 uppercase tracking-[0.3em] ml-2 transition-colors">Recent Earnings</h3>
+           <div className="space-y-3">
+              {earnings.map(e => (
+                <div key={e.id} className="p-4 bg-charcoal border border-white/5 rounded-2xl flex items-center justify-between transition-colors">
+                   <div className="flex items-center gap-4">
+                      <div className="h-10 w-10 bg-emerald/10 text-emerald rounded-xl flex items-center justify-center">
+                         <ArrowDownLeft size={20} />
+                      </div>
+                      <div>
+                         <p className="text-xs font-black text-white uppercase tracking-tight transition-colors">KES {e.amount.toLocaleString()}</p>
+                         <p className="text-[9px] font-bold text-white/40 uppercase transition-colors">{e.date}</p>
+                      </div>
+                   </div>
+                   <Badge variant={e.status === 'PAID' ? 'delivered' : 'exception'}>
+                      {e.status}
+                   </Badge>
+                </div>
+              ))}
+           </div>
+        </div>
+
+        <div className="p-6 bg-brand/10 border border-brand/20 rounded-3xl flex gap-4 transition-colors">
+           <Zap className="text-brand shrink-0" size={20} />
+           <div>
+              <p className="text-[10px] font-black text-brand uppercase tracking-widest mb-1">Instant Advance</p>
+              <p className="text-[11px] font-medium text-white/60 leading-relaxed transition-colors">You are eligible for an advance of up to KES 5,000 based on your safety score.</p>
+           </div>
+        </div>
+      </main>
+    </div>
+  );
+
+  if (step === 'SAFETY_PASSPORT') return (
+    <div className="min-h-screen bg-navy font-sans flex flex-col transition-colors duration-300">
+      <header className="px-6 py-4 border-b border-white/5 flex justify-between items-center sticky top-0 z-30 bg-navy/80 backdrop-blur-xl pt-10 transition-colors">
+        <div className="flex items-center gap-4">
+          <button onClick={() => setStep('LIST')} className="h-10 w-10 bg-charcoal border border-white/10 rounded-xl flex items-center justify-center text-white/40 active:scale-90 transition-all shadow-sm">
+            <ChevronLeft size={20} />
+          </button>
+          <div>
+            <p className="label-logistics !text-emerald !text-[8px]">Compliance Terminal</p>
+            <h1 className="text-xl font-black tracking-tighter uppercase text-white transition-colors">Safety Passport</h1>
+          </div>
+        </div>
+        <div className="h-10 w-10 bg-emerald text-white rounded-xl flex items-center justify-center shadow-lg">
+          <ShieldCheck size={18} />
+        </div>
+      </header>
+
+      <main className="flex-1 p-4 space-y-6 overflow-y-auto no-scrollbar pb-32">
+        <div className="relative p-8 bg-gradient-to-br from-emerald to-emerald/60 rounded-[2.5rem] text-white shadow-2xl overflow-hidden border border-white/10">
            <div className="absolute top-0 right-0 p-8 opacity-10">
               <ShieldCheck size={120} />
            </div>
@@ -1283,48 +1561,48 @@ const DriverPortal: React.FC = () => {
               <div className="flex gap-4">
                  <div className="px-4 py-2 bg-white/10 rounded-xl backdrop-blur-md border border-white/10">
                     <p className="text-[8px] font-black uppercase tracking-widest opacity-60 mb-1">Rank</p>
-                    <p className="text-xs font-black uppercase">Elite Pilot</p>
+                    <p className="text-xs font-black uppercase">Elite Driver</p>
                  </div>
                  <div className="px-4 py-2 bg-white/10 rounded-xl backdrop-blur-md border border-white/10">
                     <p className="text-[8px] font-black uppercase tracking-widest opacity-60 mb-1">ISO Status</p>
-                    <p className="text-xs font-black uppercase text-emerald-300">Compliant</p>
+                    <p className="text-xs font-black uppercase text-emerald">Compliant</p>
                  </div>
               </div>
            </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-           <div className="p-6 bg-white/5 border border-white/5 rounded-[2rem]">
-              <Activity size={24} className="text-emerald-500 mb-4" />
-              <p className="text-[10px] font-black text-white uppercase tracking-widest mb-1">Eco Efficiency</p>
-              <h4 className="text-2xl font-black text-white">{ecoScore}%</h4>
+           <div className="p-6 bg-charcoal border border-white/5 rounded-[2rem] transition-colors shadow-sm">
+              <Activity size={24} className="text-emerald mb-4" />
+              <p className="text-[10px] font-black text-white uppercase tracking-widest mb-1 transition-colors">Eco Efficiency</p>
+              <h4 className="text-2xl font-black text-white transition-colors">{ecoScore}%</h4>
            </div>
-           <div className="p-6 bg-white/5 border border-white/5 rounded-[2rem]">
-              <Clock size={24} className="text-amber-500 mb-4" />
-              <p className="text-[10px] font-black text-white uppercase tracking-widest mb-1">Rest Compliance</p>
-              <h4 className="text-2xl font-black text-white">100%</h4>
+           <div className="p-6 bg-charcoal border border-white/5 rounded-[2rem] transition-colors shadow-sm">
+              <Clock size={24} className="text-amber mb-4" />
+              <p className="text-[10px] font-black text-white uppercase tracking-widest mb-1 transition-colors">Rest Compliance</p>
+              <h4 className="text-2xl font-black text-white transition-colors">100%</h4>
            </div>
         </div>
 
         <div className="space-y-4">
-           <h3 className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] ml-2">Recent Safety Events</h3>
+           <h3 className="text-[10px] font-black text-white/50 uppercase tracking-[0.3em] ml-2 transition-colors">Recent Safety Events</h3>
            {safetyEvents.length === 0 ? (
-             <div className="p-8 bg-white/5 border border-white/5 rounded-[2rem] text-center">
-                <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">No incidents recorded</p>
+             <div className="p-8 bg-charcoal border border-white/5 rounded-[2rem] text-center transition-colors shadow-sm">
+                <p className="text-[10px] font-black text-white/40 uppercase tracking-widest transition-colors">No incidents recorded</p>
              </div>
            ) : (
              safetyEvents.map((e, i) => (
-               <div key={i} className="p-5 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-between">
+               <div key={i} className="p-4 bg-charcoal border border-white/5 rounded-2xl flex items-center justify-between transition-colors shadow-sm">
                   <div className="flex items-center gap-4">
-                     <div className="h-10 w-10 bg-red-500/10 text-red-500 rounded-xl flex items-center justify-center">
+                     <div className="h-10 w-10 bg-red/10 text-red rounded-xl flex items-center justify-center">
                         <AlertTriangle size={20} />
                      </div>
                      <div>
-                        <p className="text-xs font-black text-white uppercase tracking-tight">{e.type}</p>
-                        <p className="text-[9px] font-bold text-white/40 uppercase">{e.time}</p>
+                        <p className="text-xs font-black text-white uppercase tracking-tight transition-colors">{e.type}</p>
+                        <p className="text-[9px] font-bold text-white/40 uppercase transition-colors">{e.time}</p>
                      </div>
                   </div>
-                  <Badge variant="exception" className="bg-red-500/20 text-red-500 border-red-500/20">-1%</Badge>
+                  <Badge variant="exception">-1%</Badge>
                </div>
              ))
            )}
@@ -1334,17 +1612,17 @@ const DriverPortal: React.FC = () => {
   );
 
   if (step === 'FLEET_MAP') return (
-    <div className="fixed inset-0 bg-slate-900 z-[100] flex flex-col">
-       <div className="p-6 flex items-center justify-between bg-slate-900/80 backdrop-blur-xl border-b border-white/5">
+    <div className="fixed inset-0 bg-navy z-[100] flex flex-col transition-colors duration-300">
+       <div className="p-6 flex items-center justify-between bg-charcoal/80 backdrop-blur-xl border-b border-white/5 transition-colors">
           <div className="flex items-center gap-4">
              <button onClick={() => setStep('LIST')} className="p-2 text-white/40 hover:text-white transition-colors"><ChevronLeft size={24}/></button>
              <div>
                 <h2 className="text-sm font-black text-white uppercase tracking-tight">Fleet Network</h2>
-                <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Active Pilot Locations</p>
+                <p className="text-[9px] font-bold text-white/60 uppercase tracking-widest">Active Driver Locations</p>
              </div>
           </div>
           <div className="flex items-center gap-2">
-             <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.8)]" />
+             <div className="h-2 w-2 rounded-full bg-emerald animate-pulse shadow-[0_0_10px_rgba(0,200,81,0.8)]" />
              <span className="text-[10px] font-black text-white uppercase tracking-widest">Network Pulse Active</span>
           </div>
        </div>
@@ -1358,15 +1636,15 @@ const DriverPortal: React.FC = () => {
           />
           
           <div className="absolute bottom-10 left-6 right-6 pointer-events-none">
-             <div className="bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-6 pointer-events-auto shadow-2xl">
+             <div className="bg-charcoal/90 backdrop-blur-2xl border border-white/10 rounded-[2rem] p-6 pointer-events-auto shadow-2xl transition-colors">
                 <div className="flex items-center justify-between mb-4">
-                   <h3 className="text-[10px] font-black text-white uppercase tracking-widest">Active Pilots</h3>
-                   <Badge variant="transit">{allActiveDns.length} Online</Badge>
+                   <h3 className="text-[10px] font-black text-white uppercase tracking-widest">Active Drivers</h3>
+                   <Badge variant="dispatched">{allActiveDns.length} Online</Badge>
                 </div>
                 <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
                    {allActiveDns.map(dn => (
-                      <div key={dn.id} className="shrink-0 p-4 bg-white/5 rounded-2xl border border-white/5 flex items-center gap-3">
-                         <div className="h-8 w-8 rounded-full bg-slate-800 flex items-center justify-center text-[10px] font-black text-white">
+                      <div key={dn.id} className="shrink-0 p-4 bg-navy rounded-2xl border border-white/5 flex items-center gap-3 transition-colors">
+                         <div className="h-8 w-8 rounded-full bg-charcoal flex items-center justify-center text-[10px] font-black text-white transition-colors">
                             {dn.driverId?.substring(0, 2).toUpperCase()}
                          </div>
                          <div>
@@ -1376,22 +1654,22 @@ const DriverPortal: React.FC = () => {
                       </div>
                    ))}
                    {allActiveDns.length === 0 && (
-                      <p className="text-[10px] font-bold text-white/20 uppercase py-4">No other pilots currently active</p>
+                      <p className="text-[10px] font-bold text-white/40 uppercase py-4">No other drivers currently active</p>
                    )}
                 </div>
              </div>
           </div>
        </div>
     </div>
-  );
+   );
 
-  if (step === 'EXECUTION' && currentDn) {
+   if (step === 'EXECUTION' && currentDn) {
     const isPreStart = [DNStatus.RECEIVED, DNStatus.DISPATCHED, DNStatus.LOADED].includes(currentDn.status);
     const isEnRoute = currentDn.status === DNStatus.IN_TRANSIT;
     const isAtSite = currentDn.status === DNStatus.DELIVERED;
 
     return (
-      <div className="h-screen flex flex-col font-sans bg-slate-100 overflow-hidden relative">
+      <div className="h-screen flex flex-col font-sans bg-navy overflow-hidden relative transition-colors duration-300">
         <div className="flex-1 relative">
            <MapEngine 
             dns={liveDn ? [liveDn as any] : []} 
@@ -1402,138 +1680,158 @@ const DriverPortal: React.FC = () => {
            />
            
            <div className="absolute top-14 left-4 right-4 z-[2000] flex flex-col gap-2 pointer-events-none">
-              <div className="bg-brand text-white p-5 rounded-2xl shadow-2xl border border-white/10 backdrop-blur-xl flex-1 max-w-[280px] pointer-events-auto">
-                 <p className="text-[7px] font-black text-white/40 uppercase tracking-widest mb-1.5">
+              <div className="bg-brand text-white p-6 rounded-3xl shadow-2xl border border-white/10 backdrop-blur-xl flex-1 max-w-[300px] pointer-events-auto">
+                 <p className="label-logistics !text-white/40 mb-2">
                    {currentDn.type === LogisticsType.INBOUND ? 'Warehouse Consignee' : 'End Customer'}
                  </p>
-                 <h4 className="text-xs font-black truncate uppercase leading-none tracking-tight">{currentDn.address}</h4>
-                 <div className="flex items-center justify-between mt-1">
-                   <p className="text-[8px] font-bold text-white/60 uppercase truncate">{currentDn.clientName}</p>
+                 <h4 className="text-sm font-black truncate uppercase leading-none tracking-tight">{currentDn.address}</h4>
+                 <div className="flex items-center justify-between mt-3">
+                   <p className="text-[10px] font-bold text-white/60 uppercase truncate">{currentDn.clientName}</p>
                    <button 
                      onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(currentDn.address)}`, '_blank')}
-                     className="h-6 px-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-black uppercase text-[7px] flex items-center gap-1 transition-colors pointer-events-auto"
+                     className="h-8 px-3 bg-white/20 hover:bg-white/30 text-white rounded-xl font-black uppercase text-[8px] flex items-center gap-2 transition-colors pointer-events-auto"
                    >
-                     <Navigation size={10} /> Navigate
+                     <Navigation size={12} /> Navigate
                    </button>
                  </div>
               </div>
               {currentDn.originName && (
-                <div className="bg-white/90 text-slate-900 p-4 rounded-2xl shadow-xl border border-slate-200 backdrop-blur-xl flex-1 max-w-[280px] pointer-events-auto">
-                   <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                <div className="bg-charcoal/90 text-white p-5 rounded-3xl shadow-xl border border-white/5 backdrop-blur-xl flex-1 max-w-[300px] pointer-events-auto transition-colors">
+                   <p className="label-logistics !text-white/40 mb-2">
                      {currentDn.type === LogisticsType.INBOUND ? 'Supplier Origin' : 'Warehouse Origin'}
                    </p>
-                   <h4 className="text-[10px] font-black truncate uppercase leading-none tracking-tight">{currentDn.originName}</h4>
-                   <p className="text-[8px] font-bold text-slate-500 uppercase mt-1 truncate">{currentDn.originAddress}</p>
+                   <h4 className="text-xs font-black truncate uppercase leading-none tracking-tight transition-colors">{currentDn.originName}</h4>
+                   <p className="text-[10px] font-bold text-white/60 uppercase mt-2 truncate transition-colors">{currentDn.originAddress}</p>
                 </div>
               )}
            </div>
-           <div className="absolute top-14 right-4 z-[2000] flex flex-col gap-2 pointer-events-auto">
-              <button onClick={() => setStep('LIST')} className="h-12 w-12 bg-white rounded-xl shadow-lg flex items-center justify-center text-slate-300 active:scale-90 border border-slate-200"><X size={22} /></button>
-              <button onClick={() => setStep('EXCEPTION')} className="h-12 w-12 bg-red-50 text-red-500 rounded-xl shadow-lg flex items-center justify-center active:scale-90 border border-red-100"><AlertTriangle size={22} /></button>
-              <button onClick={() => addNotification("ISO 9001: SOP - Ensure vehicle is locked during delivery.", "info")} className="h-12 w-12 bg-blue-50 text-blue-500 rounded-xl shadow-lg flex items-center justify-center active:scale-90 border border-blue-100"><Info size={22} /></button>
+           <div className="absolute top-14 right-4 z-[2000] flex flex-col gap-3 pointer-events-auto">
+              <button onClick={() => setStep('LIST')} className="h-14 w-14 bg-charcoal rounded-2xl shadow-lg flex items-center justify-center text-white/40 active:scale-90 border border-white/5 transition-colors"><X size={24} /></button>
+              <button onClick={() => setStep('EXCEPTION')} className="h-14 w-14 bg-red/10 text-red rounded-2xl shadow-lg flex items-center justify-center active:scale-90 border border-red/20 transition-colors"><AlertTriangle size={24} /></button>
+              <button onClick={() => setIsChatOpen(true)} className="h-14 w-14 bg-brand text-white rounded-2xl shadow-lg flex items-center justify-center active:scale-90 border border-brand/20 transition-colors">
+                <MessageSquare size={24} />
+              </button>
+              <button onClick={() => setShowAdvisoryModal(true)} className="h-14 w-14 bg-amber/10 text-amber rounded-2xl shadow-lg flex items-center justify-center active:scale-90 border border-amber/20 transition-colors">
+                <CloudRain size={24} />
+              </button>
+              <button onClick={() => addNotification("ISO 9001: SOP - Ensure vehicle is locked during delivery.", "info")} className="h-14 w-14 bg-brand/10 text-brand rounded-2xl shadow-lg flex items-center justify-center active:scale-90 border border-brand/20 transition-colors"><Info size={24} /></button>
            </div>
            
            {isEnRoute && (
-             <div className="absolute bottom-[280px] right-4 z-[2000] animate-in slide-in-from-right-4">
-                <div className="bg-brand text-white px-5 py-4 rounded-2xl shadow-2xl flex flex-col items-center border border-white/10">
-                   <p className="text-[7px] font-black text-white/40 uppercase mb-1.5 tracking-widest">ETA Check</p>
-                   <p className="text-2xl font-black tracking-tighter leading-none">{distanceToTarget ? `${distanceToTarget.toFixed(1)}km` : '--'}</p>
-                </div>
-             </div>
+              <div className="absolute bottom-[280px] right-4 z-[2000] animate-in slide-in-from-right-4">
+                 <div className="bg-brand text-white px-6 py-5 rounded-3xl shadow-2xl flex flex-col items-center border border-white/10">
+                    <p className="label-logistics !text-white/40 mb-2">ETA Check</p>
+                    <p className="text-3xl font-black tracking-tighter leading-none">{distanceToTarget ? `${distanceToTarget.toFixed(1)}km` : '--'}</p>
+                 </div>
+              </div>
            )}
         </div>
 
         {/* Tactile Execution Drawer */}
-        <div className={`absolute bottom-0 left-0 right-0 bg-white border-t border-slate-200 rounded-t-[2.5rem] shadow-[0_-10px_50px_rgba(0,0,0,0.1)] z-[2500] transition-all duration-500 ease-out flex flex-col ${isPanelExpanded ? 'max-h-[65vh]' : 'max-h-[120px]'}`}>
-           <button onClick={() => setIsPanelExpanded(!isPanelExpanded)} className="w-full py-3 flex items-center justify-center text-slate-200 group">
-              <div className="h-1 w-10 bg-slate-200 rounded-full group-hover:bg-slate-300 transition-colors" />
+        <div className={`absolute bottom-0 left-0 right-0 bg-navy border-t border-white/5 rounded-t-[3rem] shadow-2xl z-[2500] transition-all duration-500 ease-out flex flex-col ${isPanelExpanded ? 'max-h-[65vh]' : 'max-h-[140px]'}`}>
+           <button onClick={() => setIsPanelExpanded(!isPanelExpanded)} className="w-full py-4 flex items-center justify-center text-white/10 group transition-colors">
+              <div className="h-1.5 w-12 bg-white/5 rounded-full group-hover:bg-white/10 transition-colors" />
            </button>
 
-           <div className={`px-6 overflow-y-auto no-scrollbar pb-8 space-y-6 transition-opacity duration-300 ${isPanelExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+           <div className={`px-8 overflow-y-auto no-scrollbar pb-10 space-y-8 transition-opacity duration-300 ${isPanelExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
               
               {/* Step 1: Pre-Departure */}
               {isPreStart && (
-                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
                    <div>
-                      <h3 className="text-lg font-black text-slate-900 uppercase tracking-tighter mb-1">
+                      <h3 className="text-2xl font-black text-white uppercase tracking-tighter mb-1 transition-colors">
                         {currentDn.type === LogisticsType.INBOUND ? 'Supplier Pickup Protocol' : 'Warehouse Dispatch Protocol'}
                       </h3>
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                      <p className="label-logistics !text-white/40">
                         {currentDn.type === LogisticsType.INBOUND ? 'Verify Supplier Goods & Log Meter' : 'Verify Customer Order & Log Meter'}
                       </p>
                    </div>
                    
                    {currentDn.notes && (
-                     <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl flex gap-3">
-                        <AlertTriangle className="text-amber-500 shrink-0" size={18} />
+                     <div className="p-5 bg-amber/10 border border-amber/20 rounded-3xl flex gap-4 transition-colors">
+                        <AlertTriangle className="text-amber shrink-0" size={20} />
                         <div>
-                           <p className="text-[9px] font-black text-amber-800 uppercase tracking-widest mb-1">Special Notes</p>
-                           <p className="text-[10px] font-bold text-amber-700">{currentDn.notes}</p>
+                           <p className="label-logistics !text-amber mb-1">Special Notes</p>
+                           <p className="text-xs font-bold text-amber/80 transition-colors">{currentDn.notes}</p>
                         </div>
                      </div>
                    )}
 
-                   <div className="space-y-3">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Cargo Verification</p>
-                      <div className="space-y-2">
+                   <div className="space-y-4">
+                      <p className="label-logistics !text-white/50 ml-1">Cargo Verification</p>
+                      <div className="space-y-3">
                         {currentDn.items.map((item, idx) => (
-                          <div key={idx} className="flex flex-col gap-2 p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                          <div key={idx} className="flex flex-col gap-3 p-4 bg-charcoal rounded-2xl border border-white/5 transition-colors">
                             <div className="flex items-center justify-between">
                               <button onClick={() => setPickedItems(prev => ({ ...prev, [idx]: !prev[idx] }))}
-                                className={`flex-1 py-2 px-3 rounded-xl border text-[10px] font-black uppercase transition-all flex items-center gap-2 ${pickedItems[idx] ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-white border-slate-200 text-slate-400'}`}
+                                className={`flex-1 py-3 px-4 rounded-xl border text-xs font-black uppercase transition-all flex items-center gap-3 ${pickedItems[idx] ? 'bg-emerald/10 border-emerald/20 text-emerald' : 'bg-navy border-white/5 text-white/40'}`}
                               >
-                                <div className={`h-3.5 w-3.5 rounded-full border-2 flex items-center justify-center ${pickedItems[idx] ? 'bg-emerald-500 border-emerald-500' : 'bg-white border-slate-200'}`}>
-                                    {pickedItems[idx] && <Check size={8} strokeWidth={4} className="text-white" />}
+                                <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${pickedItems[idx] ? 'bg-emerald border-emerald' : 'bg-navy border-white/10'}`}>
+                                    {pickedItems[idx] && <Check size={10} strokeWidth={4} className="text-white" />}
                                 </div>
                                 <span className="truncate">{item.qty} {item.unit} {item.name}</span>
                               </button>
+                              <div className="flex gap-2">
+                                <button 
+                                  onClick={() => setItemConditions(prev => ({ ...prev, [idx]: 'GOOD' }))}
+                                  className={`px-3 py-1.5 rounded-xl text-[8px] font-black uppercase transition-all ${itemConditions[idx] === 'GOOD' ? 'bg-emerald text-white shadow-lg shadow-emerald/20' : 'bg-navy border border-white/5 text-white/40'}`}
+                                >
+                                  Good
+                                </button>
+                                <button 
+                                  onClick={() => setItemConditions(prev => ({ ...prev, [idx]: 'DAMAGED' }))}
+                                  className={`px-3 py-1.5 rounded-xl text-[8px] font-black uppercase transition-all ${itemConditions[idx] === 'DAMAGED' ? 'bg-red text-white shadow-lg shadow-red/20' : 'bg-navy border border-white/5 text-white/40'}`}
+                                >
+                                  Damaged
+                                </button>
+                              </div>
                               {item.isHazardous && (
-                                <div className="ml-2 px-2 py-1 bg-red-50 text-red-600 border border-red-100 rounded-lg flex items-center gap-1 animate-pulse">
-                                  <AlertTriangle size={10} />
-                                  <span className="text-[8px] font-black uppercase">Hazmat</span>
+                                <div className="ml-3 px-3 py-1.5 bg-red/10 text-red border border-red/20 rounded-xl flex items-center gap-1.5 animate-pulse transition-colors">
+                                  <AlertTriangle size={12} />
+                                  <span className="text-[9px] font-black uppercase">Hazmat</span>
                                 </div>
                               )}
                             </div>
-                            <div className="flex items-center gap-4 px-1">
+                            <div className="flex items-center gap-6 px-1">
                               {item.sku && (
                                 <div className="flex flex-col">
-                                  <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest">SKU</span>
-                                  <span className="text-[9px] font-bold text-slate-600 uppercase">{item.sku}</span>
+                                  <span className="label-logistics !text-white/50 !text-[8px] mb-1">SKU</span>
+                                  <span className="text-xs font-bold text-white/60 transition-colors">{item.sku}</span>
                                 </div>
                               )}
                               {item.dimensions && (
                                 <div className="flex flex-col">
-                                  <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Dimensions</span>
-                                  <span className="text-[9px] font-bold text-slate-600 uppercase">
+                                  <span className="label-logistics !text-white/50 !text-[8px] mb-1">Dimensions</span>
+                                  <span className="text-xs font-bold text-white/60 uppercase transition-colors">
                                     {item.dimensions.length}x{item.dimensions.width}x{item.dimensions.height} {item.dimensions.unit}
                                   </span>
                                 </div>
                               )}
                               {item.isHazardous && item.hazardClass && (
                                 <div className="flex flex-col">
-                                  <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Class</span>
-                                  <span className="text-[9px] font-bold text-red-600 uppercase">{item.hazardClass}</span>
+                                  <span className="label-logistics !text-white/50 !text-[8px] mb-1">Class</span>
+                                  <span className="text-xs font-bold text-red uppercase transition-colors">{item.hazardClass}</span>
                                 </div>
                               )}
                             </div>
 
                             {item.exceptionType && (
-                              <div className="mt-1 p-2 bg-amber-50 border border-amber-100 rounded-xl flex flex-col gap-1">
+                              <div className="mt-2 p-3 bg-amber/10 border border-amber/20 rounded-xl flex flex-col gap-2 transition-colors">
                                 <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-1.5">
-                                    <AlertCircle size={10} className="text-amber-600" />
-                                    <span className="text-[8px] font-black text-amber-700 uppercase tracking-widest">Exception: {item.exceptionType}</span>
+                                  <div className="flex items-center gap-2">
+                                    <AlertCircle size={12} className="text-amber" />
+                                    <span className="label-logistics !text-amber">Exception: {item.exceptionType}</span>
                                   </div>
-                                  <span className={`text-[7px] font-black px-1.5 py-0.5 rounded uppercase ${
-                                    item.exceptionStatus === 'RESOLVED' ? 'bg-emerald-100 text-emerald-700' :
-                                    item.exceptionStatus === 'REJECTED' ? 'bg-red-100 text-red-700' :
-                                    'bg-amber-200 text-amber-800'
+                                  <span className={`text-[8px] font-black px-2 py-1 rounded uppercase ${
+                                    item.exceptionStatus === 'RESOLVED' ? 'bg-emerald/20 text-emerald' :
+                                    item.exceptionStatus === 'REJECTED' ? 'bg-red/20 text-red' :
+                                    'bg-amber/20 text-amber'
                                   }`}>
                                     {item.exceptionStatus || 'PENDING'}
                                   </span>
                                 </div>
                                 {item.exceptionNotes && (
-                                  <p className="text-[9px] font-medium text-amber-800 italic">"{item.exceptionNotes}"</p>
+                                  <p className="text-xs font-medium text-amber/80 italic transition-colors">"{item.exceptionNotes}"</p>
                                 )}
                               </div>
                             )}
@@ -1542,109 +1840,109 @@ const DriverPortal: React.FC = () => {
                       </div>
                    </div>
 
-                   <div className="space-y-3">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Security & Compliance</p>
+                   <div className="space-y-4">
+                      <p className="label-logistics !text-white/50 ml-1">Security & Compliance</p>
                       <button 
                         onClick={() => setSealVerified(!sealVerified)}
-                        className={`w-full p-4 rounded-2xl border-2 transition-all flex items-center justify-between ${sealVerified ? 'bg-emerald-50 border-emerald-500 text-emerald-700' : 'bg-white border-slate-100 text-slate-400'}`}
+                        className={`w-full p-5 rounded-3xl border-2 transition-all flex items-center justify-between ${sealVerified ? 'bg-emerald/10 border-emerald text-emerald' : 'bg-charcoal border-white/5 text-white/40'}`}
                       >
-                         <div className="flex items-center gap-3">
-                            <ShieldCheck size={20} />
-                            <span className="text-[11px] font-black uppercase tracking-tight">ISO 28000: Seal Verified</span>
+                         <div className="flex items-center gap-4">
+                            <ShieldCheck size={24} />
+                            <span className="text-sm font-black uppercase tracking-tight">ISO 28000: Seal Verified</span>
                          </div>
-                         {sealVerified && <CheckCircle size={20} />}
+                         {sealVerified && <CheckCircle size={24} />}
                       </button>
                    </div>
 
-                   <div className="space-y-3">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Loading Confirmation</p>
+                   <div className="space-y-4">
+                      <p className="label-logistics !text-white/50 ml-1">Loading Confirmation</p>
                       <button 
                         onClick={() => setLoadingConfirmed(!loadingConfirmed)}
-                        className={`w-full p-4 rounded-2xl border flex items-center gap-4 transition-all ${loadingConfirmed ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-white border-slate-200 text-slate-400'}`}
+                        className={`w-full p-5 rounded-3xl border flex items-center gap-5 transition-all ${loadingConfirmed ? 'bg-emerald/10 border-emerald/20 text-emerald' : 'bg-charcoal border-white/5 text-white/40'}`}
                       >
-                        <div className={`h-6 w-6 rounded-lg border-2 flex items-center justify-center ${loadingConfirmed ? 'bg-emerald-500 border-emerald-500' : 'bg-white border-slate-200'}`}>
-                           {loadingConfirmed && <Check size={14} strokeWidth={4} className="text-white" />}
+                        <div className={`h-8 w-8 rounded-xl border-2 flex items-center justify-center ${loadingConfirmed ? 'bg-emerald border-emerald' : 'bg-navy border-white/10'}`}>
+                           {loadingConfirmed && <Check size={18} strokeWidth={4} className="text-white" />}
                         </div>
                         <div className="text-left">
-                           <p className="text-[10px] font-black uppercase tracking-tight">Manifest Signed & Secured</p>
-                           <p className="text-[8px] font-bold uppercase opacity-60">I confirm items are arranged by stop sequence</p>
+                           <p className="text-xs font-black uppercase tracking-tight transition-colors">Manifest Signed & Secured</p>
+                           <p className="label-logistics !text-white/40 !tracking-tight">I confirm items are arranged by stop sequence</p>
                         </div>
                       </button>
                    </div>
 
-                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 group focus-within:border-brand transition-colors">
-                      <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Odometer Reading (KM)</label>
+                   <div className="p-6 bg-charcoal rounded-3xl border border-white/5 group focus-within:border-brand transition-colors">
+                      <label className="label-logistics !text-white/40 mb-2 block transition-colors">Odometer Reading (KM)</label>
                       <input 
                         type="number" 
                         value={odoStart} 
                         onChange={(e) => setOdoStart(e.target.value)} 
                         placeholder="0.0" 
-                        className="w-full bg-transparent text-3xl font-black text-slate-900 outline-none tracking-tighter placeholder:text-slate-200" 
+                        className="w-full bg-transparent text-4xl font-black text-white outline-none tracking-tighter placeholder:text-white/10 transition-colors" 
                       />
                    </div>
 
                    <button onClick={handleStartTrip} disabled={!odoStart || isSubmitting}
-                     className="w-full py-5 bg-brand text-white rounded-xl font-black uppercase text-[10px] tracking-[0.2em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-20"
+                     className="btn-primary w-full h-16"
                    >
-                     {isSubmitting ? <RefreshCw className="animate-spin" size={20} /> : <><Play size={16} fill="currentColor" /> Begin Mission</>}
+                     {isSubmitting ? <RefreshCw className="animate-spin" size={24} /> : <><Play size={20} fill="currentColor" /> Begin Mission</>}
                    </button>
                 </div>
               )}
 
               {/* Step 2: In-Transit */}
               {isEnRoute && (
-                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
                    <div className="flex justify-between items-start">
                       <div>
-                         <h3 className="text-lg font-black text-slate-900 uppercase tracking-tighter mb-1">In-Transit Cockpit</h3>
-                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">ISO 39001: Safety Monitoring Active</p>
+                         <h3 className="text-2xl font-black text-white uppercase tracking-tighter mb-1 transition-colors">In-Transit Cockpit</h3>
+                         <p className="label-logistics !text-white/40">ISO 39001: Safety Monitoring Active</p>
                       </div>
                       <div className="flex flex-col items-end">
-                         <div className={`h-2 w-2 rounded-full animate-ping ${fatigueLevel > 70 ? 'bg-red-500' : 'bg-emerald-500'}`} />
-                         <span className="text-[7px] font-black text-slate-400 uppercase mt-1">Telemetry Live</span>
+                         <div className={`h-3 w-3 rounded-full animate-ping ${fatigueLevel > 70 ? 'bg-red' : 'bg-emerald'}`} />
+                          <span className="label-logistics !text-white/40 !text-[8px] mt-2">Telemetry Live</span>
                       </div>
                    </div>
 
                    {/* ISO 39001: Fatigue & Eco Feedback */}
-                   <div className="grid grid-cols-2 gap-3">
-                      <div className={`p-4 rounded-[2rem] border transition-all ${fatigueLevel > 70 ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-100'}`}>
-                         <div className="flex justify-between items-center mb-2">
-                            <Clock size={14} className={fatigueLevel > 70 ? 'text-red-500' : 'text-slate-400'} />
-                            <span className={`text-[10px] font-black ${fatigueLevel > 70 ? 'text-red-600' : 'text-slate-900'}`}>{fatigueLevel}%</span>
+                   <div className="grid grid-cols-2 gap-4">
+                      <div className={`p-6 rounded-[2.5rem] border transition-all ${fatigueLevel > 70 ? 'bg-red/10 border-red/20' : 'bg-charcoal border-white/5'}`}>
+                         <div className="flex justify-between items-center mb-3">
+                            <Clock size={16} className={fatigueLevel > 70 ? 'text-red' : 'text-white/40'} />
+                            <span className={`text-xs font-black transition-colors ${fatigueLevel > 70 ? 'text-red' : 'text-white'}`}>{fatigueLevel}%</span>
                          </div>
-                         <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Fatigue Index</p>
+                         <p className="label-logistics !text-white/40 !text-[8px]">Fatigue Index</p>
                       </div>
-                      <div className="p-4 bg-slate-50 border border-slate-100 rounded-[2rem]">
-                         <div className="flex justify-between items-center mb-2">
-                            <Activity size={14} className="text-emerald-500" />
-                            <span className="text-[10px] font-black text-slate-900">{ecoScore}%</span>
+                      <div className="p-6 bg-charcoal border border-white/5 rounded-[2.5rem] transition-colors">
+                         <div className="flex justify-between items-center mb-3">
+                            <Activity size={16} className="text-emerald" />
+                            <span className="text-xs font-black text-white transition-colors">{ecoScore}%</span>
                          </div>
-                         <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Eco Bonus</p>
+                         <p className="label-logistics !text-white/40 !text-[8px]">Eco Bonus</p>
                       </div>
                    </div>
 
                    {fatigueLevel > 80 && (
-                     <div className="p-4 bg-red-600 text-white rounded-2xl flex gap-3 animate-pulse">
-                        <AlertTriangle size={20} className="shrink-0" />
-                        <p className="text-[10px] font-black uppercase tracking-tight">ISO 39001: Mandatory Rest Required. Pull over safely.</p>
+                     <div className="p-5 bg-red text-white rounded-3xl flex gap-4 animate-pulse">
+                        <AlertTriangle size={24} className="shrink-0" />
+                        <p className="text-xs font-black uppercase tracking-tight">ISO 39001: Mandatory Rest Required. Pull over safely.</p>
                      </div>
                    )}
 
-                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 group focus-within:border-brand transition-colors">
-                      <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Arrival Odometer (KM)</label>
+                   <div className="p-6 bg-charcoal rounded-3xl border border-white/5 group focus-within:border-brand transition-colors">
+                      <label className="label-logistics !text-white/40 mb-2 block transition-colors">Arrival Odometer (KM)</label>
                       <input 
                         type="number" 
                         value={odoEnd} 
                         onChange={(e) => setOdoEnd(e.target.value)} 
                         placeholder="0.0" 
-                        className="w-full bg-transparent text-3xl font-black text-slate-900 outline-none tracking-tighter placeholder:text-slate-200" 
+                        className="w-full bg-transparent text-4xl font-black text-white outline-none tracking-tighter placeholder:text-white/10 transition-colors" 
                       />
                    </div>
 
                    <button onClick={handleArrival} disabled={!odoEnd || isSubmitting}
-                     className="w-full py-5 bg-brand text-white rounded-xl font-black uppercase text-[10px] tracking-[0.2em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-20"
+                     className="btn-primary w-full h-16"
                    >
-                     {isSubmitting ? <RefreshCw className="animate-spin" size={20} /> : <><Target size={16} /> Mark Arrival</>}
+                     {isSubmitting ? <RefreshCw className="animate-spin" size={24} /> : <><Target size={20} /> Mark Arrival</>}
                    </button>
                 </div>
               )}
@@ -1653,89 +1951,89 @@ const DriverPortal: React.FC = () => {
               {isAtSite && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
                    <div>
-                      <h3 className="text-lg font-black text-slate-900 uppercase tracking-tighter mb-1">
+                       <h3 className="text-2xl font-black text-white uppercase tracking-tighter mb-1 transition-colors">
                         {currentDn.type === LogisticsType.INBOUND ? 'Warehouse Receiving Protocol' : 'Customer Delivery Protocol'}
                       </h3>
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Mandatory Evidence Capture</p>
+                       <p className="label-logistics !text-white/40">Mandatory Evidence Capture</p>
                    </div>
 
                    {currentDn.isPerishable && (
-                     <div className="p-6 bg-indigo-50 border border-indigo-100 rounded-[2rem] space-y-4">
+                      <div className="p-6 bg-brand/10 border border-brand/20 rounded-[2.5rem] space-y-4 transition-colors">
                         <div className="flex items-center gap-3 mb-2">
-                           <Thermometer className="text-indigo-600" size={20} />
-                           <p className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">Cold Chain Verification</p>
+                            <Thermometer className="text-brand" size={20} />
+                            <p className="label-logistics !text-white">Cold Chain Verification</p>
                         </div>
                         <div className="flex items-center justify-between gap-4">
                            <div className="flex-1">
-                              <label className="text-[8px] font-black text-indigo-400 uppercase tracking-widest mb-1 block">Current Temp (°C)</label>
+                              <label className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-1 block transition-colors">Current Temp (°C)</label>
                               <input 
                                 type="number" 
                                 value={tempLog}
                                 onChange={(e) => setTempLog(e.target.value)}
                                 placeholder="0.0"
-                                className="w-full bg-transparent text-3xl font-black text-indigo-900 outline-none tracking-tighter placeholder:text-indigo-200"
+                                className="w-full bg-transparent text-3xl font-black text-white outline-none tracking-tighter placeholder:text-white/10 transition-colors"
                               />
                            </div>
                            <button 
                              onClick={() => setIsTempVerified(!isTempVerified)}
-                             className={`h-14 px-6 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${isTempVerified ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white text-indigo-400 border border-indigo-200'}`}
+                             className={`h-14 px-6 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${isTempVerified ? 'bg-brand text-white shadow-lg shadow-brand/20' : 'bg-navy text-white/40 border border-white/10'}`}
                            >
                               {isTempVerified ? 'Verified' : 'Verify'}
                            </button>
                         </div>
                         {currentDn.tempRequirement && (
-                          <p className="text-[9px] font-bold text-indigo-600/60 uppercase tracking-tight">
-                            Target Range: {currentDn.tempRequirement.min}°C to {currentDn.tempRequirement.max}°C
+                          <p className="text-[9px] font-bold text-white/40 uppercase tracking-tight transition-colors">
+                            Target Range: {typeof currentDn.tempRequirement === 'string' ? currentDn.tempRequirement : `${currentDn.tempRequirement.min}°C to ${currentDn.tempRequirement.max}°C`}
                           </p>
                         )}
-                     </div>
+                      </div>
                    )}
 
                    <div className="grid grid-cols-2 gap-3">
                       <button 
                         onClick={() => setPodPhoto(`https://picsum.photos/seed/pod-${Date.now()}/400/300`)}
-                        className={`aspect-square border border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 group active:scale-95 transition-all overflow-hidden relative ${podPhoto ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'}`}
+                        className={`aspect-square border border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 group active:scale-95 transition-all overflow-hidden relative ${podPhoto ? 'bg-emerald/10 border-emerald/20' : 'bg-charcoal border-white/10'}`}
                       >
                         {podPhoto ? (
                           <>
-                            <img src={podPhoto} className="absolute inset-0 w-full h-full object-cover opacity-40" alt="POD" />
-                            <CheckCircle size={32} className="text-emerald-500 relative z-10" />
-                            <span className="text-[8px] font-black text-emerald-700 uppercase tracking-widest relative z-10">Photo Captured</span>
+                            <img src={podPhoto} className="absolute inset-0 w-full h-full object-cover opacity-40" alt="POD" referrerPolicy="no-referrer" />
+                            <CheckCircle size={32} className="text-emerald relative z-10" />
+                            <span className="text-[8px] font-black text-emerald uppercase tracking-widest relative z-10 transition-colors">Photo Captured</span>
                           </>
                         ) : (
                           <>
-                            <div className="h-10 w-10 bg-white rounded-lg shadow-sm flex items-center justify-center text-slate-400 group-hover:text-brand transition-colors"><CameraIcon size={20} /></div>
-                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Capture POD</span>
+                            <div className="h-10 w-10 bg-navy rounded-lg shadow-sm flex items-center justify-center text-white/50 group-hover:text-brand transition-colors"><CameraIcon size={20} /></div>
+                            <span className="text-[8px] font-black text-white/50 uppercase tracking-widest transition-colors">Capture POD</span>
                           </>
                         )}
                       </button>
                       <button 
                         onClick={() => setShowSignaturePad(true)}
-                        className={`aspect-square border border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 group active:scale-95 transition-all overflow-hidden relative ${podSignature ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'}`}
+                        className={`aspect-square border border-dashed rounded-2xl flex flex-col items-center justify-center gap-2 group active:scale-95 transition-all overflow-hidden relative ${podSignature ? 'bg-emerald/10 border-emerald/20' : 'bg-charcoal border-white/10'}`}
                       >
                         {podSignature ? (
                           <>
-                            <img src={podSignature} className="absolute inset-0 w-full h-full object-contain p-4 opacity-40" alt="Signature" />
-                            <CheckCircle size={32} className="text-emerald-500 relative z-10" />
-                            <span className="text-[8px] font-black text-emerald-700 uppercase tracking-widest relative z-10">Signed Off</span>
+                            <img src={podSignature} className="absolute inset-0 w-full h-full object-contain p-4 opacity-40" alt="Signature" referrerPolicy="no-referrer" />
+                            <CheckCircle size={32} className="text-emerald relative z-10" />
+                            <span className="text-[8px] font-black text-emerald uppercase tracking-widest relative z-10 transition-colors">Signed Off</span>
                           </>
                         ) : (
                           <>
-                            <div className="h-10 w-10 bg-white rounded-lg shadow-sm flex items-center justify-center text-slate-400 group-hover:text-brand transition-colors"><FileText size={20} /></div>
-                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Sign-off</span>
+                            <div className="h-10 w-10 bg-navy rounded-lg shadow-sm flex items-center justify-center text-white/50 group-hover:text-brand transition-colors"><FileText size={20} /></div>
+                            <span className="text-[8px] font-black text-white/50 uppercase tracking-widest transition-colors">Sign-off</span>
                           </>
                         )}
                       </button>
                    </div>
 
                    {showSignaturePad && (
-                     <div className="fixed inset-0 z-[6000] bg-slate-900/90 backdrop-blur-xl flex flex-col p-6 animate-in fade-in duration-300">
+                     <div className="fixed inset-0 z-[6000] bg-navy/90 backdrop-blur-xl flex flex-col p-6 animate-in fade-in duration-300">
                         <div className="flex justify-between items-center mb-8">
                            <h3 className="text-xl font-black text-white uppercase tracking-tighter">Customer Signature</h3>
                            <button onClick={() => setShowSignaturePad(false)} className="text-white/40 hover:text-white"><X size={24} /></button>
                         </div>
-                        <div className="flex-1 bg-white rounded-3xl relative overflow-hidden flex items-center justify-center border-4 border-white/10">
-                           <p className="text-slate-200 font-black uppercase tracking-[0.5em] rotate-[-15deg] select-none">Sign Here</p>
+                        <div className="flex-1 bg-white rounded-3xl relative overflow-hidden flex items-center justify-center border-4 border-white/10 transition-colors">
+                           <p className="text-navy/5 font-black uppercase tracking-[0.5em] rotate-[-15deg] select-none transition-colors">Sign Here</p>
                            {/* In a real app, this would be a canvas signature pad */}
                            <div className="absolute inset-0 cursor-crosshair" onClick={() => {
                              setPodSignature('https://upload.wikimedia.org/wikipedia/commons/7/7d/Signature_of_John_Hancock.png');
@@ -1744,14 +2042,14 @@ const DriverPortal: React.FC = () => {
                            }} />
                         </div>
                         <div className="mt-8 flex gap-4">
-                           <button onClick={() => setShowSignaturePad(false)} className="flex-1 py-5 bg-white/10 text-white rounded-2xl font-black uppercase text-xs tracking-widest">Cancel</button>
+                           <button onClick={() => setShowSignaturePad(false)} className="flex-1 py-5 bg-white/10 text-white rounded-2xl font-black uppercase text-xs tracking-widest transition-colors">Cancel</button>
                            <button className="flex-1 py-5 bg-brand text-white rounded-2xl font-black uppercase text-xs tracking-widest">Confirm</button>
                         </div>
                      </div>
                    )}
 
                     <div className="space-y-3">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Financial Clearance</p>
+                      <p className="text-[9px] font-black text-white/50 uppercase tracking-widest ml-1 transition-colors">Financial Clearance</p>
                       <div className="grid grid-cols-2 gap-3">
                         <button 
                           onClick={() => {
@@ -1759,34 +2057,34 @@ const DriverPortal: React.FC = () => {
                             setCustomerPhone(currentDn.phone || '');
                             setIsPaymentModalOpen(true);
                           }}
-                          className={`p-4 rounded-2xl border flex flex-col items-center gap-2 transition-all ${currentDn.paymentStatus === 'PAID' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-white border-slate-200 text-slate-600'}`}
+                          className={`p-4 rounded-2xl border flex flex-col items-center gap-2 transition-all ${currentDn.paymentStatus === 'PAID' ? 'bg-emerald/10 border-emerald/20 text-emerald' : 'bg-charcoal border-white/10 text-white/60'}`}
                         >
                           <CreditCard size={20} />
-                          <span className="text-[9px] font-black uppercase tracking-tight">
+                          <span className="text-[9px] font-black uppercase tracking-tight transition-colors">
                             {currentDn.paymentStatus === 'PAID' ? 'Paid via M-Pesa' : 'M-Pesa Payment'}
                           </span>
                         </button>
                         <button 
                           onClick={handleGenerateEtims}
                           disabled={isGeneratingEtims || !!eTimsInvoice}
-                          className={`p-4 rounded-2xl border flex flex-col items-center gap-2 transition-all ${eTimsInvoice ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-slate-200 text-slate-600'}`}
+                          className={`p-4 rounded-2xl border flex flex-col items-center gap-2 transition-all ${eTimsInvoice ? 'bg-brand/10 border-brand/20 text-brand' : 'bg-charcoal border-white/10 text-white/60'}`}
                         >
                           {isGeneratingEtims ? <RefreshCw size={20} className="animate-spin" /> : <Receipt size={20} />}
-                          <span className="text-[9px] font-black uppercase tracking-tight">
+                          <span className="text-[9px] font-black uppercase tracking-tight transition-colors">
                             {eTimsInvoice ? 'eTIMS Generated' : 'KRA eTIMS'}
                           </span>
                         </button>
                       </div>
                       {eTimsInvoice && (
-                        <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl">
-                          <p className="text-[7px] font-black text-blue-400 uppercase tracking-widest mb-1">eTIMS Invoice Number</p>
-                          <p className="text-[10px] font-bold text-blue-700">{eTimsInvoice.invoiceNumber}</p>
+                        <div className="p-3 bg-brand/10 border border-brand/20 rounded-xl transition-colors">
+                          <p className="text-[7px] font-black text-brand/40 uppercase tracking-widest mb-1 transition-colors">eTIMS Invoice Number</p>
+                          <p className="text-[10px] font-bold text-brand transition-colors">{eTimsInvoice.invoiceNumber}</p>
                         </div>
                       )}
                     </div>
 
                    <button onClick={handleComplete} disabled={isSubmitting || (currentDn.isPerishable && !isTempVerified)}
-                     className="w-full py-5 bg-emerald-600 text-white rounded-xl font-black uppercase text-[10px] tracking-[0.2em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-20"
+                     className="w-full py-5 bg-emerald text-white rounded-xl font-black uppercase text-[10px] tracking-[0.2em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-20"
                    >
                      {isSubmitting ? <RefreshCw className="animate-spin" size={20} /> : <><ShieldCheck size={16} /> Finalize Directive</>}
                    </button>
@@ -1798,15 +2096,15 @@ const DriverPortal: React.FC = () => {
            {!isPanelExpanded && (
              <div className="px-6 pb-8 flex items-center justify-between animate-in fade-in duration-300">
                 <div className="flex items-center gap-4">
-                   <div className={`h-10 w-10 rounded-xl flex items-center justify-center shadow-sm ${isEnRoute ? 'bg-brand text-white animate-pulse' : 'bg-slate-100 text-slate-400'}`}>
+                   <div className={`h-10 w-10 rounded-xl flex items-center justify-center shadow-sm transition-colors ${isEnRoute ? 'bg-brand text-white animate-pulse' : 'bg-charcoal text-white/20'}`}>
                       {isPreStart ? <Package size={20} /> : isEnRoute ? <Navigation size={20} /> : <ShieldCheck size={20} />}
                    </div>
                    <div>
-                      <p className="text-[7px] font-black text-slate-400 uppercase tracking-[0.2em] mb-0.5">Mission Status</p>
-                      <p className="text-xs font-black uppercase text-slate-900 tracking-tight">{isPreStart ? 'Hub Clearance' : isEnRoute ? 'En-Route' : 'Handover'}</p>
+                      <p className="text-[7px] font-black text-white/20 uppercase tracking-[0.2em] mb-0.5 transition-colors">Mission Status</p>
+                      <p className="text-xs font-black uppercase text-white tracking-tight transition-colors">{isPreStart ? 'Hub Clearance' : isEnRoute ? 'En-Route' : 'Handover'}</p>
                    </div>
                 </div>
-                <button onClick={() => setIsPanelExpanded(true)} className="h-10 px-5 bg-slate-900 text-white border border-slate-800 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all">Controls</button>
+                <button onClick={() => setIsPanelExpanded(true)} className="h-10 px-5 bg-white text-navy border border-white/10 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all">Controls</button>
              </div>
            )}
         </div>
@@ -1825,6 +2123,125 @@ const DriverPortal: React.FC = () => {
               setCurrentDn(prev => prev ? { ...prev, paymentStatus: 'PAID' } : null);
             }}
           />
+        )}
+
+        {/* Chat Modal */}
+        {isChatOpen && (
+          <div className="fixed inset-0 z-[7000] bg-slate-900/60 backdrop-blur-sm flex flex-col p-4 animate-in fade-in duration-300">
+            <div className="flex-1 bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden max-w-md mx-auto w-full transition-colors">
+              <header className="p-6 border-b border-white/10 flex justify-between items-center bg-brand text-white">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 bg-white/20 rounded-xl flex items-center justify-center">
+                    <MessageSquare size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black uppercase tracking-tight">{chatRecipient === 'DISPATCH' ? 'Dispatch Comms' : 'Warehouse Manager'}</h3>
+                    <p className="text-[8px] font-bold uppercase opacity-60">Secure Channel Active</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => setChatRecipient(chatRecipient === 'DISPATCH' ? 'WAREHOUSE' : 'DISPATCH')}
+                    className="px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-[8px] font-black uppercase transition-colors"
+                  >
+                    Switch to {chatRecipient === 'DISPATCH' ? 'Warehouse' : 'Dispatch'}
+                  </button>
+                  <button onClick={() => setIsChatOpen(false)} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
+                    <X size={20} />
+                  </button>
+                </div>
+              </header>
+              
+              <div className="flex-1 p-6 overflow-y-auto space-y-4 no-scrollbar bg-eggshell dark:bg-slate-900 transition-colors">
+                {chatMessages.map((msg, i) => (
+                  <div key={i} className={`flex flex-col ${msg.sender === 'DRIVER' ? 'items-end' : 'items-start'}`}>
+                    <div className={`max-w-[80%] p-4 rounded-2xl text-xs font-medium ${msg.sender === 'DRIVER' ? 'bg-brand text-white rounded-tr-none' : 'bg-white dark:bg-slate-800 text-ink dark:text-white rounded-tl-none shadow-sm transition-colors'}`}>
+                      {msg.text}
+                    </div>
+                    <span className="text-[8px] font-bold text-slate-600 dark:text-white/20 uppercase mt-1 px-1 transition-colors">{msg.sender} • {msg.time}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="p-4 border-t border-line dark:border-white/10 bg-white dark:bg-slate-800 flex gap-2 transition-colors">
+                <input 
+                  type="text" 
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                  placeholder="Type a message..."
+                  className="flex-1 bg-slate-50 dark:bg-white/5 border border-line dark:border-white/10 rounded-xl px-4 py-3 text-xs font-medium outline-none focus:border-brand text-ink dark:text-white transition-colors"
+                />
+                <button 
+                  onClick={handleSendMessage}
+                  className="h-12 w-12 bg-brand text-white rounded-xl flex items-center justify-center shadow-lg active:scale-90 transition-all"
+                >
+                  <Navigation size={20} className="rotate-90" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Advisory Modal */}
+        {showAdvisoryModal && (
+          <div className="fixed inset-0 z-[7000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-300">
+            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl p-8 max-w-md w-full animate-in zoom-in-95 duration-300 transition-colors">
+              <div className="flex justify-between items-center mb-8">
+                <h3 className="text-xl font-black uppercase tracking-tighter text-ink dark:text-white transition-colors">Route Intelligence</h3>
+                <button onClick={() => setShowAdvisoryModal(false)} className="p-2 bg-slate-100 dark:bg-white/5 rounded-xl text-slate-600 dark:text-white/40 transition-colors"><X size={20}/></button>
+              </div>
+
+              <div className="space-y-4">
+                {weatherAdvisory && (
+                  <div className="p-6 bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 rounded-3xl space-y-3 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <CloudRain className="text-blue-500" size={24} />
+                      <h4 className="text-sm font-black uppercase text-blue-900 dark:text-blue-400 transition-colors">Weather Advisory</h4>
+                    </div>
+                    <p className="text-xs font-medium text-blue-800 dark:text-blue-300 leading-relaxed transition-colors">{weatherAdvisory.message}</p>
+                    <Badge variant="transit" className="bg-blue-500/20 text-blue-600 border-blue-500/20">Severity: {weatherAdvisory.severity}</Badge>
+                  </div>
+                )}
+
+                {trafficAdvisory && (
+                  <div className="p-6 bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20 rounded-3xl space-y-3 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <TrafficCone className="text-orange-500" size={24} />
+                      <h4 className="text-sm font-black uppercase text-orange-900 dark:text-orange-400 transition-colors">Traffic Alert</h4>
+                    </div>
+                    <p className="text-xs font-medium text-orange-800 dark:text-orange-300 leading-relaxed transition-colors">{trafficAdvisory.message}</p>
+                    <div className="flex gap-2">
+                      <Badge variant="exception" className="bg-orange-500/20 text-orange-600 border-orange-500/20">Delay: {trafficAdvisory.delay}</Badge>
+                      <button 
+                        onClick={() => {
+                          addNotification("Rerouting calculated. Following optimal path.", "success");
+                          setShowAdvisoryModal(false);
+                        }}
+                        className="text-[9px] font-black text-brand uppercase underline underline-offset-4 ml-auto"
+                      >
+                        Calculate Reroute
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {!weatherAdvisory && !trafficAdvisory && (
+                  <div className="py-12 text-center opacity-40">
+                    <MapIcon size={48} className="mx-auto mb-4 text-ink dark:text-white transition-colors" />
+                    <p className="label-mono !text-ink dark:!text-white transition-colors">No Active Advisories</p>
+                  </div>
+                )}
+              </div>
+
+              <button 
+                onClick={() => setShowAdvisoryModal(false)}
+                className="btn-tactical w-full py-5 bg-ink dark:bg-white text-white dark:text-ink mt-8 transition-colors"
+              >
+                Dismiss Intel
+              </button>
+            </div>
+          </div>
         )}
       </div>
     );

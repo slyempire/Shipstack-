@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ChevronUp } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const ScrollToTop: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);

@@ -1,40 +1,95 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   
-  --color-brand: var(--brand-primary, #0F2A44);
-  --color-brand-accent: color-mix(in srgb, var(--brand-primary, #0F2A44), white 20%);
+  --color-brand: var(--brand-primary);
+  --color-brand-accent: var(--brand-accent);
+  --color-navy: #0B1221;
+  --color-charcoal: #151E2D;
+  --color-eggshell: #FBFBF9;
   --color-brand-teal: #1FB6A6;
+  --color-amber: #FF8C00;
+  --color-emerald: #00C851;
+  --color-red: #FF3547;
+  --color-ink: var(--text-primary);
+  --color-line: var(--border-header);
+  --color-surface: var(--bg-card);
+  --color-muted: var(--text-muted);
 }
 
 @layer base {
   :root {
-    --brand-primary: #0F2A44;
-    --brand-accent: #1F6AE1;
-    --brand-teal: #1FB6A6;
+    /* Light Mode Palette */
+    --bg-page: #F4F6FA;
+    --bg-sidebar: #FFFFFF;
+    --bg-card: #FFFFFF;
+    --bg-header: #FFFFFF;
+    --bg-input: #F8FAFC;
+    
+    --text-primary: #0D1B2A;
+    --text-secondary: #64748B;
+    --text-muted: #94A3B8;
+    
+    --border-sidebar: #E2E8F0;
+    --border-header: #E2E8F0;
+    --border-input: #CBD5E1;
+    --border-card: transparent;
+    
+    --sidebar-active-bg: #EFF6FF;
+    --sidebar-active-text: #0066FF;
+    --sidebar-text: #475569;
+    
+    --brand-primary: #0066FF;
+    --brand-accent: #0066FF;
+    --brand-hover: #0052CC;
+    
+    --status-delivered-bg: #DCFCE7;
+    --status-delivered-text: #16A34A;
+    --status-transit-bg: #FEF3C7;
+    --status-transit-text: #D97706;
+    --status-dispatched-bg: #DBEAFE;
+    --status-dispatched-text: #1D4ED8;
+    --status-exception-bg: #FEE2E2;
+    --status-exception-text: #DC2626;
+
+    --shadow-card: 0 2px 8px rgba(0,0,0,0.08);
+    --shadow-brand: 0 8px 24px rgba(0,102,255,0.35);
+
+    /* Typography Variables */
+    --font-size-label: 11px;
+    --font-size-heading: 18px;
+    --font-size-body: 14px;
+    --font-size-mono: 12px;
+    --font-size-badge: 10px;
+    --font-size-nav: 12px;
+    --font-size-metric: 28px;
+
     --app-height: 100%;
   }
 
   html {
     font-family: var(--font-sans);
-    background-color: #F8FAFC;
+    background-color: var(--bg-page);
+    color: var(--text-primary);
     scroll-behavior: smooth;
     font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 
   @media (max-width: 640px) {
     html { font-size: 14px; }
   }
 
-  @media (min-width: 1440px) {
-    html { font-size: 18px; }
-  }
-
   body {
-    @apply min-h-screen text-slate-900 m-0 p-0 overflow-x-hidden;
+    background-color: var(--bg-page);
+    color: var(--text-primary);
+    @apply min-h-screen m-0 p-0 overflow-x-hidden;
   }
 
   #root {
@@ -42,47 +97,132 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-display;
+    @apply font-display font-bold tracking-tight;
+  }
+
+  /* Accessibility: Focus styles */
+  :focus-visible {
+    @apply outline-2 outline-brand outline-offset-2;
+  }
+
+  /* Accessibility: Screen reader only */
+  .sr-only {
+    @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0;
   }
 }
 
 @layer components {
   .glass {
-    @apply bg-white/70 backdrop-blur-xl border border-white/30;
+    background-color: var(--bg-card);
+    @apply backdrop-blur-xl border border-white/10 shadow-xl;
   }
 
-  .mobile-h1 {
-    font-size: clamp(2.5rem, 8vw, 6rem);
-    @apply font-black leading-[0.9] tracking-tighter;
+  .card-logistics {
+    background-color: var(--bg-card);
+    border-left: 4px solid var(--brand-primary);
+    box-shadow: var(--shadow-card);
+    @apply rounded-xl p-6 transition-all hover:translate-y-[-2px];
   }
 
-  .mobile-h2 {
-    font-size: clamp(1.5rem, 4vw, 3rem);
-    @apply font-black leading-none tracking-tight;
+  .card-logistics-success { border-left-color: var(--status-delivered-text); }
+  .card-logistics-warning { border-left-color: var(--status-transit-text); }
+  .card-logistics-critical { border-left-color: var(--status-exception-text); }
+  
+  .card-tactical {
+    @apply bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 rounded-[2rem] p-8 shadow-xl transition-all;
   }
 
-  .mobile-p {
-    font-size: clamp(1rem, 2vw, 1.25rem);
-    @apply leading-relaxed;
+  .btn-primary {
+    background-color: var(--brand-primary);
+    box-shadow: var(--shadow-brand);
+    @apply h-12 px-8 text-white rounded-xl font-bold uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50;
   }
 
-  .touch-btn {
-    @apply min-h-[4rem] flex items-center justify-center px-8;
+  .btn-destructive {
+    @apply h-12 px-8 bg-red text-white rounded-xl font-bold uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shadow-lg shadow-red/20;
+  }
+
+  .btn-outline {
+    @apply h-12 px-8 border-2 border-white/20 text-white rounded-xl font-bold uppercase tracking-widest transition-all hover:bg-white/5 active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50;
+  }
+
+  .btn-tactical {
+    @apply h-14 px-8 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50;
+  }
+
+  .input-dark {
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-input);
+    color: var(--text-primary);
+    @apply w-full rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand transition-all;
+  }
+
+  .label-logistics {
+    font-size: var(--font-size-label);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    @apply block mb-2;
+  }
+
+  .label-mono {
+    @apply font-mono text-[10px] font-black uppercase tracking-widest text-slate-400;
+  }
+
+  .heading-primary {
+    font-size: var(--font-size-heading);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--text-primary);
+  }
+
+  .body-value {
+    font-size: var(--font-size-body);
+    font-weight: 500;
+  }
+
+  .badge-pill {
+    font-size: var(--font-size-badge);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    @apply px-3 py-1 rounded-full uppercase flex items-center gap-1.5;
+  }
+
+  .nav-item-text {
+    font-size: var(--font-size-nav);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+  }
+
+  .metric-value {
+    font-size: var(--font-size-metric);
+    font-weight: 800;
+    color: var(--text-primary);
+  }
+
+  .data-grid-row {
+    border-bottom: 1px solid var(--border-header);
+    @apply hover:bg-black/5 dark:hover:bg-white/5 transition-colors;
+  }
+
+  .mono-id {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-mono);
+    letter-spacing: 0.05em;
+    color: var(--brand-primary);
+  }
+
+  .truncate-name {
+    @apply truncate max-w-[250px] inline-block align-bottom;
+  }
+
+  .container-responsive {
+    @apply max-w-7xl mx-auto px-6 w-full;
   }
 }
 
 /* Custom Scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(15, 42, 68, 0.1); border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(15, 42, 68, 0.2); }
-
-@keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-20px); }
-  100% { transform: translateY(0px); }
-}
-
-.animate-float {
-  animation: float 6s ease-in-out infinite;
-}
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--navy); }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }

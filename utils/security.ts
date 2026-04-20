@@ -2,7 +2,17 @@ import DOMPurify from 'dompurify';
 import CryptoJS from 'crypto-js';
 
 // In a real production app, this would be an environment variable
-const SECURITY_SECRET = import.meta.env.VITE_SECURITY_SECRET || 'shipstack-default-secret-key-2026';
+// SECURITY: This MUST be set as an environment variable. No fallback allowed.
+// Fails loudly at startup if VITE_SECURITY_SECRET is not configured.
+const _rawSecret = import.meta.env.VITE_SECURITY_SECRET;
+if (!_rawSecret || _rawSecret.length < 32) {
+  throw new Error(
+    '[Shipstack Security] VITE_SECURITY_SECRET is not set or is too short (min 32 chars). ' +
+    'Set this environment variable before starting the application. ' +
+    'Generate a secure secret with: openssl rand -hex 32'
+  );
+}
+const SECURITY_SECRET: string = _rawSecret;
 
 /**
  * Sanitizes a string to prevent XSS attacks.
@@ -23,6 +33,13 @@ export const sanitize = (input: string): string => {
  * @returns A new object with sanitized string properties.
  */
 export const sanitizeObject = <T extends object>(obj: T): T => {
+  if (Array.isArray(obj)) {
+    return obj.map(item => 
+      (typeof item === 'object' && item !== null) 
+        ? sanitizeObject(item) 
+        : (typeof item === 'string' ? sanitize(item) : item)
+    ) as any;
+  }
   const sanitized = { ...obj } as any;
   for (const key in sanitized) {
     if (typeof sanitized[key] === 'string') {

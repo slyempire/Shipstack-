@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Truck, 
   Package, 
@@ -15,14 +15,16 @@ import {
   ChevronRight,
   ChevronLeft,
   Check,
+  CheckCircle2,
   Building,
   Globe,
   Settings,
-  Rocket
+  Rocket,
+  Zap
 } from 'lucide-react';
 import { useAuthStore, useTenantStore } from '../../store';
 import { AVAILABLE_MODULES, INDUSTRY_TEMPLATES } from '../../constants';
-import { ModuleId, IndustryType } from '../../types';
+import { ModuleId, IndustryType, UserRole, DNStatus, Priority, LogisticsType } from '../../types';
 import { api } from '../../api';
 
 const icons: Record<string, any> = {
@@ -38,10 +40,24 @@ const OnboardingView: React.FC = () => {
   const [isSuccess, setIsSuccess] = useState(false);
 
   // Form State
+  const [selectedRole, setSelectedRole] = useState<UserRole>(user?.role || 'ADMIN');
   const [companyName, setCompanyName] = useState(currentTenant?.name || '');
   const [industry, setIndustry] = useState<IndustryType>(currentTenant?.industry || 'GENERAL');
   const [selectedModules, setSelectedModules] = useState<ModuleId[]>(currentTenant?.enabledModules || ['dispatch']);
   const [currency, setCurrency] = useState(currentTenant?.settings?.currency || 'KES');
+
+  // Business Logic State
+  const [autoDispatch, setAutoDispatch] = useState(currentTenant?.settings?.businessLogic?.autoDispatch || false);
+  const [podRequirements, setPodRequirements] = useState<('SIGNATURE' | 'PHOTO' | 'OTP')[]>(currentTenant?.settings?.businessLogic?.podRequirements || ['SIGNATURE']);
+  const [lowStockThreshold, setLowStockThreshold] = useState(currentTenant?.settings?.businessLogic?.lowStockThreshold || 10);
+  const [defaultTaxRate, setDefaultTaxRate] = useState(currentTenant?.settings?.businessLogic?.defaultTaxRate || 16);
+
+  // First Shipment State
+  const [firstShipment, setFirstShipment] = useState({
+    clientName: '',
+    address: '',
+    items: [{ description: '', quantity: 1, weight: 0 }]
+  });
 
   const handleIndustrySelect = (type: IndustryType) => {
     setIndustry(type);
@@ -69,24 +85,65 @@ const OnboardingView: React.FC = () => {
         settings: {
           ...currentTenant!.settings,
           currency,
-          onboardingCompleted: true
+          onboardingCompleted: true,
+          businessLogic: {
+            autoDispatch,
+            podRequirements,
+            lowStockThreshold,
+            defaultTaxRate
+          }
         }
       };
 
       await api.updateTenant(currentTenant!.id, updatedTenant);
       setTenant(updatedTenant);
+
+      // Create first shipment if provided
+      if (firstShipment.clientName && firstShipment.address) {
+        await api.createDeliveryNote({
+          externalId: `FIRST-${Date.now().toString().slice(-4)}`,
+          clientName: firstShipment.clientName,
+          address: firstShipment.address,
+          status: DNStatus.RECEIVED,
+          type: LogisticsType.OUTBOUND,
+          items: firstShipment.items.map((item, idx) => ({
+            id: `first-item-${idx}`,
+            name: item.description || 'Sample Item',
+            qty: item.quantity,
+            unit: 'PCS'
+          })),
+          weightKg: firstShipment.items.reduce((acc, item) => acc + item.weight, 0),
+          priority: 'MEDIUM' as Priority,
+          createdAt: new Date().toISOString()
+        }, currentTenant!.id);
+      }
       
       if (user) {
-        await api.updateUser(user.id, { isOnboarded: true });
-        updateUser({ isOnboarded: true });
+        console.log('OnboardingView: Completing onboarding for user', user.id);
+        const updatedUser = { ...user, role: selectedRole, isOnboarded: true };
+        await api.updateUser(user.id, updatedUser);
+        updateUser({ role: selectedRole, isOnboarded: true });
       }
       
       setIsSuccess(true);
+      console.log('OnboardingView: Success state set, navigating in 2.5s');
       
       // Navigate to dashboard after a short delay to show success state
       setTimeout(() => {
-        navigate('/admin', { replace: true });
-      }, 2000);
+        const currentUser = useAuthStore.getState().user;
+        console.log('OnboardingView: Navigating to dashboard', { role: currentUser?.role, isOnboarded: currentUser?.isOnboarded });
+        
+        // Explicitly check role to ensure correct redirect
+        if (currentUser?.role === 'DRIVER') {
+          navigate('/driver', { replace: true });
+        } else if (currentUser?.role === 'FACILITY') {
+          navigate('/facility', { replace: true });
+        } else if (currentUser?.role === 'CLIENT') {
+          navigate('/client', { replace: true });
+        } else {
+          navigate('/admin', { replace: true });
+        }
+      }, 2500);
     } catch (error) {
       console.error('Onboarding failed:', error);
     } finally {
@@ -134,8 +191,74 @@ const OnboardingView: React.FC = () => {
             className="space-y-8"
           >
             <div className="text-center space-y-2">
-              <h2 className="mobile-h2">Welcome to Shipstack</h2>
-              <p className="text-slate-500">Let's set up your logistics infrastructure in minutes.</p>
+              <h2 className="mobile-h2">What best describes you?</h2>
+              <p className="text-slate-500">We'll personalize your experience based on your role.</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
+              {[
+                { id: 'CLIENT', label: 'Shipper', desc: 'I send goods & track deliveries', icon: Package },
+                { id: 'ADMIN', label: 'Logistics Company', desc: 'I manage fleet & operations', icon: Truck },
+                { id: 'DRIVER', label: 'Driver', desc: 'I deliver goods using the app', icon: Smartphone },
+                { id: 'WAREHOUSE', label: 'Warehouse Manager', desc: 'I manage inventory & facilities', icon: Building2 },
+              ].map((role) => (
+                <button
+                  key={role.id}
+                  onClick={() => setSelectedRole(role.id as UserRole)}
+                  className={`p-6 rounded-[2rem] text-left transition-all border-2 relative group ${
+                    selectedRole === role.id 
+                      ? 'bg-brand border-brand shadow-xl' 
+                      : 'bg-white border-slate-100 hover:border-brand-accent/30'
+                  }`}
+                >
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-colors ${
+                    selectedRole === role.id ? 'bg-white/10 text-white' : 'bg-slate-50 text-brand'
+                  }`}>
+                    <role.icon className="w-6 h-6" />
+                  </div>
+                  <h3 className={`font-bold mb-1 ${selectedRole === role.id ? 'text-white' : 'text-slate-900'}`}>
+                    {role.label}
+                  </h3>
+                  <p className={`text-[10px] font-bold uppercase tracking-tight ${selectedRole === role.id ? 'text-white/70' : 'text-slate-400'}`}>
+                    {role.desc}
+                  </p>
+                </button>
+              ))}
+            </div>
+
+            <div className="flex flex-col items-center gap-4 pt-4">
+              <div className="flex items-center gap-2 text-slate-400">
+                <div className="h-px w-12 bg-slate-200"></div>
+                <span className="text-[10px] font-black uppercase tracking-widest">Or</span>
+                <div className="h-px w-12 bg-slate-200"></div>
+              </div>
+              <button 
+                onClick={() => {
+                  setCompanyName(user?.company || 'My Logistics Co');
+                  handleIndustrySelect('GENERAL');
+                  handleComplete();
+                }}
+                className="flex items-center gap-2 px-8 py-4 bg-brand-teal/10 text-brand-teal rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-brand-teal/20 transition-all border border-brand-teal/20"
+              >
+                <Zap size={16} />
+                Quick Start with Defaults
+              </button>
+              <p className="text-[10px] text-slate-400 font-bold">Skip setup and explore the platform immediately.</p>
+            </div>
+          </motion.div>
+        );
+
+      case 2:
+        return (
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="space-y-8"
+          >
+            <div className="text-center space-y-2">
+              <h2 className="mobile-h2">Company Profile</h2>
+              <p className="text-slate-500">Tell us about your business.</p>
             </div>
 
             <div className="space-y-6 max-w-md mx-auto">
@@ -147,7 +270,7 @@ const OnboardingView: React.FC = () => {
                     type="text" 
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
-                    className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-brand-accent outline-none transition-all"
+                    className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl text-slate-900 focus:ring-2 focus:ring-brand-accent outline-none transition-all"
                     placeholder="e.g. Alpha Logistics Ltd"
                   />
                 </div>
@@ -156,14 +279,6 @@ const OnboardingView: React.FC = () => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-black uppercase tracking-widest text-slate-400">Industry Sector</label>
-                  {industry !== 'GENERAL' && (
-                    <button 
-                      onClick={handleComplete}
-                      className="text-[10px] font-black text-brand uppercase tracking-widest hover:text-brand-accent transition-colors"
-                    >
-                      Skip to Dashboard
-                    </button>
-                  )}
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {(['PHARMA', 'MEDICAL', 'FOOD', 'RETAIL', 'E-COMMERCE', 'MANUFACTURING', 'CONSTRUCTION', 'PROCESSING', 'GENERAL'] as IndustryType[]).map((ind) => (
@@ -198,7 +313,7 @@ const OnboardingView: React.FC = () => {
           </motion.div>
         );
 
-      case 2:
+      case 3:
         return (
           <motion.div 
             initial={{ opacity: 0, x: 20 }}
@@ -248,7 +363,83 @@ const OnboardingView: React.FC = () => {
           </motion.div>
         );
 
-      case 3:
+      case 4:
+        return (
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="space-y-8"
+          >
+            <div className="text-center space-y-2">
+              <h2 className="mobile-h2">Business Logic & Rules</h2>
+              <p className="text-slate-500">Define how your operations should be automated and verified.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+              <div className="p-6 bg-white border border-slate-100 rounded-[2rem] space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-black uppercase tracking-tight">Auto-Dispatch</h4>
+                    <p className="text-[10px] text-slate-500 font-bold">Automatically assign trips to available drivers.</p>
+                  </div>
+                  <button 
+                    onClick={() => setAutoDispatch(!autoDispatch)}
+                    className={`w-12 h-6 rounded-full transition-all relative ${autoDispatch ? 'bg-brand' : 'bg-slate-200'}`}
+                  >
+                    <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${autoDispatch ? 'left-7' : 'left-1'}`} />
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Proof of Delivery Requirements</label>
+                  <div className="flex flex-wrap gap-2">
+                    {(['SIGNATURE', 'PHOTO', 'OTP'] as const).map(req => (
+                      <button
+                        key={req}
+                        onClick={() => setPodRequirements(prev => 
+                          prev.includes(req) ? prev.filter(r => r !== req) : [...prev, req]
+                        )}
+                        className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all border ${
+                          podRequirements.includes(req) 
+                            ? 'bg-brand text-white border-brand' 
+                            : 'bg-slate-50 text-slate-500 border-slate-100'
+                        }`}
+                      >
+                        {req}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 bg-white border border-slate-100 rounded-[2rem] space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Low Stock Threshold</label>
+                  <input 
+                    type="number"
+                    value={lowStockThreshold}
+                    onChange={e => setLowStockThreshold(parseInt(e.target.value))}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold outline-none focus:border-brand"
+                  />
+                  <p className="text-[10px] text-slate-400 font-bold">Alert when inventory drops below this level.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Default Tax Rate (%)</label>
+                  <input 
+                    type="number"
+                    value={defaultTaxRate}
+                    onChange={e => setDefaultTaxRate(parseFloat(e.target.value))}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold outline-none focus:border-brand"
+                  />
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        );
+
+      case 5:
         return (
           <motion.div 
             initial={{ opacity: 0, x: 20 }}
@@ -306,6 +497,123 @@ const OnboardingView: React.FC = () => {
           </motion.div>
         );
 
+      case 6:
+        if (selectedRole === 'DRIVER') {
+          return (
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-8 text-center"
+            >
+              <div className="w-24 h-24 bg-brand/10 text-brand rounded-[2.5rem] flex items-center justify-center mx-auto">
+                <Smartphone size={48} />
+              </div>
+              <div className="space-y-2">
+                <h2 className="mobile-h2">Driver Activation</h2>
+                <p className="text-slate-500">You're almost ready to start delivering. Download the mobile app to begin receiving manifests.</p>
+              </div>
+              <div className="max-w-md mx-auto p-8 bg-white border border-slate-100 rounded-[2.5rem] shadow-sm">
+                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl mb-4">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle2 className="text-emerald-500" size={20} />
+                    <span className="text-xs font-bold text-slate-900">Account Verified</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                    <span className="text-xs font-bold text-slate-900">Pending Vehicle Assignment</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          );
+        }
+        return (
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="space-y-8"
+          >
+            <div className="text-center space-y-2">
+              <h2 className="mobile-h2">Your First Shipment</h2>
+              <p className="text-slate-500">Let's book your first delivery to see the platform in action.</p>
+            </div>
+
+            <div className="max-w-xl mx-auto bg-white border border-slate-100 rounded-[2.5rem] p-8 shadow-sm space-y-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Customer Name</label>
+                  <input 
+                    type="text" 
+                    value={firstShipment.clientName}
+                    onChange={e => setFirstShipment({...firstShipment, clientName: e.target.value})}
+                    className="w-full px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold outline-none focus:border-brand"
+                    placeholder="e.g. Nairobi Retail Hub"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Delivery Address</label>
+                  <input 
+                    type="text" 
+                    value={firstShipment.address}
+                    onChange={e => setFirstShipment({...firstShipment, address: e.target.value})}
+                    className="w-full px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold outline-none focus:border-brand"
+                    placeholder="e.g. Mombasa Road, Gate 4"
+                  />
+                </div>
+
+                <div className="pt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Shipment Content</label>
+                  </div>
+                  <div className="grid grid-cols-12 gap-3">
+                    <div className="col-span-8">
+                      <input 
+                        type="text" 
+                        value={firstShipment.items[0].description}
+                        onChange={e => {
+                          const newItems = [...firstShipment.items];
+                          newItems[0].description = e.target.value;
+                          setFirstShipment({...firstShipment, items: newItems});
+                        }}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold outline-none focus:border-brand"
+                        placeholder="Item description"
+                      />
+                    </div>
+                    <div className="col-span-4">
+                      <input 
+                        type="number" 
+                        value={firstShipment.items[0].quantity}
+                        onChange={e => {
+                          const newItems = [...firstShipment.items];
+                          newItems[0].quantity = parseInt(e.target.value);
+                          setFirstShipment({...firstShipment, items: newItems});
+                        }}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold outline-none focus:border-brand"
+                        placeholder="Qty"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 bg-orange-50 border border-orange-100 rounded-2xl flex items-start gap-3">
+                <div className="p-2 bg-orange-500 text-white rounded-lg">
+                  <Zap size={16} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest">Pro Tip</p>
+                  <p className="text-[11px] text-orange-800 font-medium">You can skip this and create shipments later from the dashboard.</p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        );
+
       default:
         return null;
     }
@@ -323,10 +631,10 @@ const OnboardingView: React.FC = () => {
         </div>
         <div className="flex items-center gap-4">
           <div className="hidden sm:flex items-center gap-2 mr-4">
-             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Step {step} of 3</span>
+             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Step {step} of 6</span>
           </div>
           <div className="flex items-center gap-2">
-            {[1, 2, 3].map(i => (
+            {[1, 2, 3, 4, 5, 6].map(i => (
               <div 
                 key={i} 
                 className={`h-2 rounded-full transition-all duration-500 ${
@@ -362,15 +670,15 @@ const OnboardingView: React.FC = () => {
             </button>
 
             <button
-              onClick={step === 3 ? handleComplete : nextStep}
-              disabled={loading || (step === 1 && !companyName)}
+              onClick={step === 6 ? handleComplete : nextStep}
+              disabled={loading || (step === 2 && !companyName)}
               className="touch-btn bg-brand text-white rounded-[2rem] min-w-[200px] font-black uppercase tracking-widest shadow-xl hover:bg-brand-accent transition-all flex items-center gap-3 disabled:opacity-50 h-14 justify-center"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  {step === 3 ? 'Launch Platform' : 'Continue'}
+                  {step === 6 ? 'Launch Platform' : 'Continue'}
                   <ChevronRight className="w-5 h-5" />
                 </>
               )}

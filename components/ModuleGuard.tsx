@@ -1,138 +1,105 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { motion } from 'motion/react';
-import { Lock, Rocket, ChevronRight, CheckCircle2, AlertCircle } from 'lucide-react';
+
+import React from 'react';
+import { motion } from 'framer-motion';
 import { useTenant } from '../hooks/useTenant';
-import { useAuthStore } from '../store';
 import { ModuleId } from '../types';
-import { AVAILABLE_MODULES } from '../constants';
-import { api } from '../api';
+import { PaywallView } from './ModuleGuard/PaywallView';
+import { ModuleLockedView } from './ModuleGuard/ModuleLockedView';
 
 interface ModuleGuardProps {
   moduleId: ModuleId;
   children: React.ReactNode;
 }
 
-const ModuleLockedView: React.FC<{ moduleId: ModuleId }> = ({ moduleId }) => {
-  const moduleDef = AVAILABLE_MODULES.find(m => m.id === moduleId);
-  const { user } = useAuthStore();
-  const { tenant } = useTenant();
-  const [isRequesting, setIsRequesting] = useState(false);
-  const [requestStatus, setRequestStatus] = useState<'IDLE' | 'SUCCESS' | 'ERROR'>('IDLE');
-
-  const handleRequestAccess = async () => {
-    if (!user) return;
-    setIsRequesting(true);
-    try {
-      await api.createPermissionRequest({
-        userId: user.id,
-        userName: user.name,
-        userEmail: user.email,
-        moduleId: moduleId,
-        reason: `Requesting access to ${moduleDef?.name || moduleId} module.`
-      });
-      setRequestStatus('SUCCESS');
-    } catch (error) {
-      console.error('Failed to request access:', error);
-      setRequestStatus('ERROR');
-    } finally {
-      setIsRequesting(false);
-    }
-  };
-
-  const isTenantDisabled = !tenant?.enabledModules?.includes(moduleId);
-
-  return (
-    <div className="min-h-[60vh] flex items-center justify-center p-6">
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-md w-full text-center space-y-8"
-      >
-        <div className="relative inline-block">
-          <div className="h-24 w-24 bg-slate-100 rounded-[2.5rem] flex items-center justify-center text-slate-400">
-            <Lock size={40} />
-          </div>
-          <div className="absolute -right-2 -bottom-2 h-10 w-10 bg-brand-accent text-white rounded-2xl flex items-center justify-center shadow-lg">
-            <Rocket size={20} />
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <h2 className="text-2xl font-black uppercase tracking-tighter text-slate-900">
-            {moduleDef?.name || 'Module'} Locked
-          </h2>
-          <p className="text-slate-500 font-medium">
-            {isTenantDisabled 
-              ? "This feature is currently disabled for your organization. Enable it in your settings to unlock its full potential."
-              : "You don't have permission to access this module. Request access from your administrator."}
-          </p>
-        </div>
-
-        <div className="p-6 bg-slate-50 rounded-3xl border border-slate-200 text-left space-y-4">
-          <div className="flex items-start gap-4">
-            <div className="h-8 w-8 bg-white rounded-xl flex items-center justify-center text-brand shadow-sm flex-shrink-0">
-              <Rocket size={16} />
-            </div>
-            <div>
-              <h4 className="text-xs font-black uppercase tracking-widest text-slate-900">Why enable this?</h4>
-              <p className="text-[11px] font-bold text-slate-500 mt-1">
-                {moduleDef?.description}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          {isTenantDisabled ? (
-            user?.role === 'ADMIN' && (
-              <Link 
-                to="/settings"
-                className="w-full py-4 bg-brand text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl hover:shadow-brand/20 transition-all flex items-center justify-center gap-2"
-              >
-                Go to Settings <ChevronRight size={16} />
-              </Link>
-            )
-          ) : (
-            requestStatus === 'SUCCESS' ? (
-              <div className="w-full py-4 bg-emerald-50 text-emerald-600 rounded-2xl text-xs font-black uppercase tracking-widest border border-emerald-200 flex items-center justify-center gap-2">
-                <CheckCircle2 size={16} /> Request Sent Successfully
-              </div>
-            ) : (
-              <button 
-                onClick={handleRequestAccess}
-                disabled={isRequesting}
-                className="w-full py-4 bg-brand text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl hover:shadow-brand/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {isRequesting ? 'Sending Request...' : 'Request Access'} <ChevronRight size={16} />
-              </button>
-            )
-          )}
-          
-          {requestStatus === 'ERROR' && (
-            <p className="text-[10px] font-bold text-rose-500 flex items-center justify-center gap-1">
-              <AlertCircle size={12} /> Failed to send request. Please try again.
-            </p>
-          )}
-
-          <Link 
-            to="/admin"
-            className="w-full py-4 bg-white text-slate-600 border border-slate-200 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 transition-all"
-          >
-            Back to Dashboard
-          </Link>
-        </div>
-      </motion.div>
-    </div>
-  );
-};
-
+/**
+ * ModuleGuard component protects routes based on tenant plan and module enablement.
+ * It handles:
+ * 1. Plan-based access (Paywall)
+ * 2. Tenant-based enablement (Module Locked)
+ * 3. Role-based access (handled via ProtectedRoute, but reinforced here)
+ */
 export const ModuleGuard: React.FC<ModuleGuardProps> = ({ moduleId, children }) => {
-  const { isModuleEnabled } = useTenant();
+  try {
+    const { isModuleEnabled, tenant } = useTenant();
 
-  if (!isModuleEnabled(moduleId)) {
-    return <ModuleLockedView moduleId={moduleId} />;
+    // 1. Basic validation
+    if (!moduleId) {
+      return <>{children}</>;
+    }
+
+    // 2. Loading state protection
+    if (!tenant) {
+      return (
+        <div className="min-h-[40vh] flex items-center justify-center">
+          <motion.div 
+            animate={{ rotate: 360 }}
+            transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+            className="h-8 w-8 border-4 border-brand border-t-transparent rounded-full"
+          />
+        </div>
+      );
+    }
+
+    // 3. Plan-based access check
+    const isPremiumModule = (id: ModuleId): 'PRO' | 'ENTERPRISE' | undefined => {
+      const premiumModules: Partial<Record<ModuleId, 'PRO' | 'ENTERPRISE'>> = {
+        'fleet': 'PRO',
+        'finance': 'PRO',
+        'analytics': 'PRO',
+        'integrations': 'ENTERPRISE'
+      };
+      return premiumModules[id];
+    };
+
+    const requiredPlan = isPremiumModule(moduleId);
+    const currentPlan = tenant.plan || 'BASIC';
+
+    if (requiredPlan) {
+      const planHierarchy: Record<string, number> = { 'BASIC': 0, 'PRO': 1, 'ENTERPRISE': 2 };
+      const currentLevel = planHierarchy[currentPlan] ?? 0;
+      const requiredLevel = planHierarchy[requiredPlan] ?? 0;
+      
+      if (currentLevel < requiredLevel) {
+        return <PaywallView moduleId={moduleId} requiredPlan={requiredPlan} />;
+      }
+    }
+
+    // 4. Module enablement check
+    if (!isModuleEnabled(moduleId)) {
+      return <ModuleLockedView moduleId={moduleId} />;
+    }
+
+    // 5. All checks passed
+    return <>{children}</>;
+
+  } catch (error: any) {
+    // Definitive crash protection
+    console.error('Critical Error in ModuleGuard:', error);
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-white rounded-[2rem] p-8 shadow-xl border border-red-100 text-center">
+          <div className="h-16 w-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+          </div>
+          <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight mb-2">Security Module Error</h2>
+          <p className="text-sm text-slate-500 mb-6">
+            There was a problem verifying your access permissions. This might be due to a temporary connection issue.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="w-full py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-slate-800 transition-all"
+          >
+            Reload Application
+          </button>
+          {process.env.NODE_ENV === 'development' && (
+            <pre className="mt-4 p-4 bg-slate-50 rounded-xl text-[10px] text-left overflow-auto max-h-40 text-slate-400 font-mono">
+              {error?.message}
+              {'\n'}
+              {error?.stack}
+            </pre>
+          )}
+        </div>
+      </div>
+    );
   }
-
-  return <>{children}</>;
 };

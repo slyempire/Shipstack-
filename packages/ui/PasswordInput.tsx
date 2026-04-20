@@ -22,7 +22,7 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({ label, showStrengt
   
   const strengthColor = useMemo(() => {
     if (score <= 1) return 'bg-red-500';
-    if (score <= 3) return 'bg-amber-500';
+    if (score <= 3) return 'bg-orange-500';
     return 'bg-emerald-500';
   }, [score]);
 

@@ -1,54 +1,97 @@
 
-export type UserRole = 'ADMIN' | 'DISPATCHER' | 'FINANCE' | 'FACILITY' | 'DRIVER' | 'CLIENT' | 'WAREHOUSE';
+// --- AUTH & RBAC ---
+export type SystemRole = 
+  | 'super_admin' 
+  | 'tenant_admin' 
+  | 'operations_manager' 
+  | 'dispatcher' 
+  | 'finance_manager' 
+  | 'fleet_manager' 
+  | 'recruiter' 
+  | 'analyst' 
+  | 'driver' 
+  | 'client' 
+  | 'facility_operator' 
+  | 'marketplace_publisher' 
+  | 'support_agent';
 
-export type Priority = 'LOW' | 'MEDIUM' | 'HIGH';
+export type UserRole = SystemRole | 'ADMIN' | 'DISPATCHER' | 'FINANCE' | 'FACILITY' | 'DRIVER' | 'CLIENT' | 'WAREHOUSE';
 
-export type IndustryType = 
-  | 'MEDICAL' 
-  | 'PHARMA'
-  | 'MANUFACTURING' 
-  | 'FOOD' 
-  | 'RETAIL'
-  | 'CONSTRUCTION'
-  | 'E-COMMERCE'
-  | 'PROCESSING' 
-  | 'GENERAL';
+export type Permission = 
+  | 'dashboard:view' | 'dashboard:export'
+  | 'trips:view' | 'trips:create' | 'trips:edit' | 'trips:delete' | 'trips:assign'
+  | 'dispatch:view' | 'dispatch:manage' | 'dispatch:assign'
+  | 'fleet:view' | 'fleet:manage' | 'fleet:all'
+  | 'maintenance:view' | 'maintenance:manage'
+  | 'finance:view' | 'finance:manage' 
+  | 'invoicing:view' | 'invoicing:all' | 'billing:view' | 'billing:all'
+  | 'rates:view' | 'rates:all' | 'subscription:view' | 'subscription:manage'
+  | 'users:view' | 'users:invite' | 'users:edit' | 'users:delete' | 'users:manage'
+  | 'roles:view' | 'roles:create' | 'roles:edit'
+  | 'warehouse:view' | 'warehouse:manage' | 'warehouse:all'
+  | 'orders:view' | 'orders:create' | 'orders:edit' | 'orders:delete'
+  | 'analytics:view' | 'analytics:export' | 'analytics:all'
+  | 'data_ingress:view' | 'data_ingress:manage'
+  | 'audit:view' | 'audit:export' | 'security:view'
+  | 'marketplace:view' | 'marketplace:install' | 'marketplace:uninstall' 
+  | 'marketplace:publish' | 'marketplace:review'
+  | 'crm:view' | 'crm:manage'
+  | 'exceptions:view' | 'exceptions:resolve'
+  | 'recruitment:all' | 'tracking:view';
 
-export type ModuleId = 
-  | 'dispatch' 
-  | 'warehouse' 
-  | 'orders' 
-  | 'fleet' 
-  | 'finance' 
-  | 'driver-portal' 
-  | 'facility-portal' 
-  | 'client-portal'
-  | 'analytics'
-  | 'integrations';
-
-export interface ModuleDefinition {
-  id: ModuleId;
-  name: string;
+export interface RoleDefinition {
+  role: SystemRole;
+  label: string;
   description: string;
-  icon: string;
-  category: 'CORE' | 'ADD-ON' | 'PORTAL';
-  dependencies?: ModuleId[];
+  permissions: Permission[];
+  inherits?: SystemRole[];
+  isCustom?: boolean;
+  tenantId?: string;
+  allowedRoles?: UserRole[];
 }
+
+export interface PermissionRequest {
+  id: string;
+  userId: string;
+  userName?: string;
+  userEmail?: string;
+  moduleId?: ModuleId;
+  requestedPermission: Permission;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  requestedAt: string;
+  processedAt?: string;
+  createdAt?: string;
+  reason?: string;
+  processedBy?: string;
+}
+
+// --- TENANT & SUBSCRIPTION ---
+export type IndustryType = 
+  | 'MEDICAL' | 'PHARMA' | 'MANUFACTURING' | 'FOOD' | 'RETAIL' | 'CONSTRUCTION' 
+  | 'E-COMMERCE' | 'PROCESSING' | 'AGRICULTURE' | 'HEALTHCARE' | 'GENERAL';
 
 export interface Tenant {
   id: string;
   name: string;
+  slug: string;
   subdomain?: string;
   logo?: string;
-  plan: 'BASIC' | 'PRO' | 'ENTERPRISE';
-  status: 'ACTIVE' | 'SUSPENDED' | 'TRIAL';
+  plan: 'STARTER' | 'GROWTH' | 'SCALE' | 'ENTERPRISE';
+  tier?: 'Free' | 'Starter' | 'Professional' | 'Enterprise';
+  status: 'ACTIVE' | 'SUSPENDED' | 'TRIAL' | 'active' | 'trial';
   industry: IndustryType;
   settings: {
     currency: string;
     timezone: string;
-    primaryColor?: string;
+    primaryColor: string;
     allowSelfRegistration?: boolean;
     onboardingCompleted?: boolean;
+    businessLogic?: {
+      autoDispatch?: boolean;
+      podRequirements?: ('SIGNATURE' | 'PHOTO' | 'OTP')[];
+      lowStockThreshold?: number;
+      defaultTaxRate?: number;
+    };
   };
   enabledModules: ModuleId[]; 
   securitySettings: {
@@ -56,288 +99,75 @@ export interface Tenant {
     twoFactorAuth: boolean;
     requireNTSAVerification: boolean;
   };
+  createdAt: string;
 }
 
 export interface Subscription {
   id: string;
   tenantId: string;
-  plan: 'BASIC' | 'PRO' | 'ENTERPRISE';
+  plan: 'STARTER' | 'GROWTH' | 'SCALE' | 'ENTERPRISE';
   startDate: string;
   endDate?: string;
   status: 'ACTIVE' | 'PAST_DUE' | 'CANCELED';
 }
 
-// --- Geography & Telemetry ---
-export type LatLngTuple = [number, number];
+// --- MODULES ---
+export type ModuleId = 
+  | 'dashboard' | 'dispatch' | 'warehouse' | 'orders' | 'fleet' | 'finance' 
+  | 'driver-portal' | 'facility-portal' | 'client-portal' | 'analytics' | 'integrations'
+  | 'core-dashboard' | 'core-dispatch' | 'core-fleet' | 'core-trips' | 'core-invoicing'
+  | 'vertical-healthcare' | 'vertical-agriculture' | 'vertical-ecommerce' | 'vertical-retail' 
+  | 'vertical-coldchain' | 'vertical-construction' | 'addon-cortex-ai' | 'addon-advanced-analytics'
+  | 'addon-route-optimizer' | 'addon-customer-portal' | 'addon-driver-app-pro' 
+  | 'integration-frappe-erp' | 'integration-quickbooks' | 'integration-shopify' 
+  | 'integration-mpesa' | 'integration-stripe' | 'compliance-gdpr-toolkit' | 'compliance-iso-28000';
 
-export interface TelemetryPoint {
-  tripId: string;
-  lat: number;
-  lng: number;
-  timestamp: string;
-  accuracy?: number;
-  speed?: number;
-  heading?: number;
-}
+export type ModuleStatus = 'active' | 'inactive' | 'trial' | 'suspended' | 'deprecated' | 'pending_review' | 'ACTIVE' | 'SUSPENDED' | 'TRIAL';
+export type ModuleCategory = 'core' | 'industry_vertical' | 'integration' | 'addon' | 'ai_feature' | 'compliance' | 'CORE' | 'ADD-ON' | 'PORTAL';
+export type ModuleTier = 'free' | 'starter' | 'professional' | 'enterprise' | 'custom';
 
-// --- Integration Base Types ---
-export type ConnectorProvider = 'SAP' | 'ORACLE' | 'ODOO' | 'SAGE' | 'DYNAMICS' | 'CUSTOM';
-export type IntegrationStatus = 'CONNECTED' | 'DISCONNECTED' | 'SYNCING' | 'ERROR';
-
-export interface ERPConnector {
-  id: string;
-  provider: ConnectorProvider;
+export interface ModuleDefinition {
+  id: ModuleId;
   name: string;
-  status: IntegrationStatus;
-  lastSync?: string;
-  environment: 'SANDBOX' | 'PRODUCTION';
-  config: {
-    endpoint: string;
-    authType: 'OAUTH2' | 'API_KEY' | 'BASIC';
-    clientId?: string;
-    tenantId?: string;
-    apiVersion?: string;
-  };
-}
-
-// --- Custom API Credentials ---
-export interface APIKey {
-  id: string;
-  name: string;
-  key: string;
-  secret?: string; // Only returned on creation
+  slug: string;
+  description: string;
+  longDescription?: string;
+  category: ModuleCategory;
+  tier: ModuleTier;
+  version: string;
+  versions: Array<{ version: string; releaseDate: string; changelog: string }>;
+  icon: any;
+  tags: string[];
+  publisher: { id: string; name: string; verified: boolean; logo?: string };
+  pricing: { model: string; amount?: number; currency?: string; billingPeriod?: string; trialDays?: number };
+  dependencies: any[]; 
+  conflicts: string[];
+  permissionScope: { requiredPermissions: Permission[]; grantedPermissions: Permission[] };
+  routes: string[];
+  isCore?: boolean;
+  isFeatured?: boolean;
+  status: ModuleStatus;
   createdAt: string;
-  lastUsedAt?: string;
-  expiresAt?: string;
-  status: 'ACTIVE' | 'REVOKED' | 'EXPIRED';
-  scopes: string[];
-  description?: string;
+  updatedAt: string;
+  hooks: any;
+  rating?: number;
+  installCount?: number;
+  screenshots?: string[];
 }
 
-// --- Webhooks ---
-export type WebhookEvent = 
-  | 'delivery_note.created' 
-  | 'trip.started' 
-  | 'trip.delivered' 
-  | 'pod.available' 
-  | 'exception.raised';
-
-export interface WebhookSubscription {
+export interface TenantModule {
   id: string;
-  url: string;
-  events: WebhookEvent[];
-  isActive: boolean;
-  secret: string;
-  lastDeliveryStatus?: 'SUCCESS' | 'FAILURE';
-  lastDeliveryAt?: string;
+  tenantId: string;
+  moduleId: ModuleId;
+  status: ModuleStatus;
+  installedVersion: string;
+  config?: Record<string, unknown>;
+  installedAt: string;
+  installedBy?: string;
+  lastUpdatedAt?: string;
 }
 
-// --- Spreadsheet Imports ---
-export interface ImportBatch {
-  id: string;
-  filename: string;
-  status: 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'PARTIAL';
-  totalRows: number;
-  successCount: number;
-  errorCount: number;
-  createdBy: string;
-  timestamp: string;
-  errorLogUrl?: string;
-}
-
-export interface ImportPreviewRow {
-  index: number;
-  data: Record<string, any>;
-  errors: Record<string, string>;
-  isValid: boolean;
-}
-
-// --- Logs & Health ---
-export interface IntegrationLog {
-  id: string;
-  timestamp: string;
-  source: string;
-  level: 'INFO' | 'WARN' | 'ERROR';
-  message: string;
-  payload?: any;
-  response?: any;
-  correlationId: string;
-}
-
-export interface HealthMetrics {
-  ingestSuccessRate: number; // Percentage
-  webhookDeliveryRate: number;
-  activeConnectors: number;
-  totalErrors24h: number;
-}
-
-// --- Analytics & Operations ---
-export interface OperationalMetrics {
-  dispatchTimeAvg: number;
-  completionRate: number;
-  exceptionRate: number;
-  telemetryLag: number;
-}
-
-export interface ImportLog {
-  id: string;
-  filename: string;
-  status: 'COMPLETED' | 'FAILED' | 'PARTIAL';
-  recordsProcessed: number;
-  successCount: number;
-  errorCount: number;
-  timestamp: string;
-  type: 'STOCK' | 'ORDER' | 'DRIVER' | 'VEHICLE';
-  errors?: Array<{ row: number; message: string }>;
-}
-
-// --- Governance & Documents ---
-export enum DocumentType {
-  MANIFEST = 'MANIFEST',
-  LOADING_AUTHORITY = 'LOADING_AUTHORITY',
-  DELIVERY_NOTE = 'DELIVERY_NOTE',
-  POD = 'POD'
-}
-
-export enum DocumentStatus {
-  ISSUED = 'ISSUED',
-  SIGNED = 'SIGNED',
-  VOID = 'VOID'
-}
-
-export interface LogisticsDocument {
-  id: string;
-  type: DocumentType;
-  status: DocumentStatus;
-  issuedAt: string;
-  verificationCode: string;
-  signedBy?: string;
-}
-
-// --- Exceptions ---
-export enum ExceptionType {
-  LATE = 'LATE',
-  DAMAGED = 'DAMAGED',
-  SHORTAGE = 'SHORTAGE'
-}
-
-export enum ExceptionStatus {
-  OPEN = 'OPEN',
-  IN_PROGRESS = 'IN_PROGRESS',
-  RESOLVED = 'RESOLVED'
-}
-
-// --- Core Models ---
-export interface DeliveryItem {
-  name: string;
-  qty: number;
-  unit: string;
-  sku?: string;
-  batchNumber?: string;
-  expiryDate?: string;
-  dimensions?: {
-    length: number;
-    width: number;
-    height: number;
-    unit: 'cm' | 'm' | 'in';
-  };
-  isHazardous?: boolean;
-  hazardClass?: string;
-  exceptionType?: 'DAMAGED' | 'MISSING' | 'WRONG_ITEM' | 'EXPIRED' | 'OTHER';
-  exceptionStatus?: 'PENDING' | 'RESOLVED' | 'REJECTED';
-  exceptionNotes?: string;
-}
-
-export interface Zone {
-  id: string;
-  name: string;
-  description?: string;
-  color?: string; // For map visualization
-  boundary?: {
-    type: 'Polygon';
-    coordinates: LatLngTuple[][];
-  };
-}
-
-export enum VehicleType {
-  BODA_BODA = 'Boda Boda (Motorcycle)',
-  TUK_TUK = 'Tuk Tuk (Three-wheeler)',
-  SMALL_VAN = 'Small Van (Probox/AD Van)',
-  LARGE_VAN = 'Large Van (Hiace/Sprinter)',
-  LIGHT_TRUCK = 'Light Truck (3-5 Tons)',
-  MEDIUM_TRUCK = 'Medium Truck (7-10 Tons)',
-  HEAVY_TRUCK = 'Heavy Truck (Prime Mover)',
-  BICYCLE = 'Bicycle'
-}
-
-export interface UserPreferences {
-  theme: 'LIGHT' | 'DARK' | 'SYSTEM';
-  notifications: { email: boolean; push: boolean; sms: boolean };
-  highContrast: boolean;
-  autoSync: boolean;
-}
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: UserRole;
-  avatar?: string;
-  company?: string;
-  tenantId?: string;
-  facilityId?: string;
-  isOnboarded?: boolean;
-  onboardingStep?: number;
-  preferences?: UserPreferences;
-  phone?: string;
-  idNumber?: string; // Kenyan National ID
-  kraPin?: string; // KRA PIN
-  licenseNumber?: string;
-  onDuty?: boolean;
-  transporterId?: string;
-  password?: string;
-  enabledModules?: ModuleId[]; // User-specific module overrides
-  // Due Diligence
-  verificationStatus: 'PENDING' | 'VERIFIED' | 'REJECTED';
-  verificationNotes?: string;
-  documents?: Array<{ type: string; url: string; expiry?: string }>;
-}
-
-export interface Facility {
-  id: string;
-  name: string;
-  type: 'WAREHOUSE' | 'DISTRIBUTION_CENTER' | 'PHARMACY' | 'HOSPITAL';
-  lat: number;
-  lng: number;
-  address?: string;
-}
-
-export interface Vehicle {
-  id: string;
-  plate: string;
-  type: VehicleType;
-  capacityKg: number;
-  status: 'ACTIVE' | 'MAINTENANCE' | 'INACTIVE';
-  ownerId?: string;
-  // Kenyan Security & Traceability Data
-  logbookNumber?: string;
-  chassisNumber?: string;
-  engineNumber?: string;
-  ntsaInspectionExpiry?: string;
-  speedGovernorId?: string;
-  insurancePolicyNumber?: string;
-  insuranceExpiry?: string;
-  trackerId?: string;
-  ownerPin?: string;
-  yearOfManufacture?: number;
-  color?: string;
-  // Due Diligence & Compliance
-  verificationStatus: 'PENDING' | 'VERIFIED' | 'REJECTED';
-  lastInspectionDate?: string;
-  nextInspectionDate?: string;
-  complianceScore?: number; // 0-100
-}
-
+// --- LOGISTICS & OPERATIONS ---
 export enum DNStatus {
   RECEIVED = 'RECEIVED',
   VALIDATED = 'VALIDATED',
@@ -351,87 +181,91 @@ export enum DNStatus {
   EXCEPTION = 'EXCEPTION'
 }
 
+export type Priority = 'LOW' | 'MEDIUM' | 'HIGH';
+
 export enum LogisticsType {
   INBOUND = 'INBOUND',
   OUTBOUND = 'OUTBOUND'
 }
 
-// --- Safety & Compliance ---
-export type SafetyEventType = 'HARSH_BRAKING' | 'HARSH_ACCELERATION' | 'OVERSPEEDING' | 'FATIGUE_ALERT' | 'SOS' | 'GEOFENCE_VIOLATION';
+export enum ExceptionType {
+  DAMAGE = 'DAMAGE',
+  SHORTAGE = 'SHORTAGE',
+  REFUSAL = 'REFUSAL',
+  WRONG_ITEM = 'WRONG_ITEM',
+  TECHNICAL = 'TECHNICAL',
+  LATE = 'LATE',
+  WEATHER = 'WEATHER'
+}
 
-export interface SafetyEvent {
+export enum ExceptionStatus {
+  REPORTED = 'REPORTED',
+  INVESTIGATING = 'INVESTIGATING',
+  RESOLVED = 'RESOLVED',
+  REJECTED = 'REJECTED'
+}
+
+export interface DeliveryItem {
   id: string;
-  tripId?: string;
-  driverId: string;
-  type: SafetyEventType;
-  timestamp: string;
-  lat: number;
-  lng: number;
-  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  metadata?: any;
+  name: string;
+  qty: number;
+  unit: string;
+  sku?: string;
+  batchNumber?: string;
+  expiryDate?: string;
+  isHazardous?: boolean;
+  hazardClass?: string;
+  dimensions?: { l?: number; w?: number; h?: number; weight_kg?: number; length?: number; width?: number; height?: number; unit?: string };
+  exceptionType?: ExceptionType;
+  exceptionStatus?: ExceptionStatus;
+  exceptionNotes?: string;
 }
 
 export interface DeliveryNote {
   id: string;
   externalId: string;
+  tenantId?: string;
   type: LogisticsType;
   clientName: string;
   address: string;
-  originName?: string;
-  originAddress?: string;
-  zoneId?: string;
   items: DeliveryItem[];
-  weightKg?: number;
   status: DNStatus;
   priority: Priority;
-  industry?: IndustryType;
   createdAt: string;
-  plannedDeliveryDate?: string;
-  plannedPickupTime?: string;
-  // Industry Specifics
-  tempRequirement?: { min: number; max: number; current?: number }; // Medical/Food
-  isPerishable?: boolean;
-  expiryDate?: string;
-  batchNumber?: string;
-  // African Context
-  mpesaTillNumber?: string;
-  bodaFriendly?: boolean;
-  phone?: string;
-  driverId?: string;
-  vehicleId?: string;
-  facilityId?: string;
-  rate?: number;
-  notes?: string;
-  exceptionReason?: string;
-  exceptionType?: ExceptionType;
-  exceptionStatus?: ExceptionStatus;
-  podImageUrl?: string;
-  signatureUrl?: string;
-  lastLat?: number;
-  lastLng?: number;
   lat?: number;
   lng?: number;
-  odometerStart?: number;
-  odometerEnd?: number;
-  lastTelemetryAt?: string;
-  routeGeometry?: {
-    coordinates: LatLngTuple[];
-  };
-  logs: Array<{
-    id: string;
-    action: string;
-    notes: string;
-    user: string;
-    timestamp: string;
-  }>;
-  documents: LogisticsDocument[];
+  driverId?: string;
+  vehicleId?: string;
+  podImageUrl?: string;
+  signatureUrl?: string;
+  industry?: IndustryType;
+  // Missing properties from lint
   isDeviated?: boolean;
-  paymentStatus?: 'UNPAID' | 'PAID' | 'PENDING';
+  lastLat?: number;
+  lastLng?: number;
+  routeGeometry?: any;
+  logs?: Array<{ id?: string; timestamp: string; action: string; user?: string; notes?: string }>;
+  zoneId?: string;
+  documents?: any[];
+  rate?: number;
+  weightKg?: number;
+  originName?: string;
+  originAddress?: string;
+  notes?: string;
+  isPerishable?: boolean;
+  tempRequirement?: string | { min: number; max: number; current?: number };
+  paymentStatus?: 'PENDING' | 'COLLECTED' | 'REMITTED' | 'PAID' | 'UNPAID';
+  facilityId?: string;
+  plannedPickupTime?: string;
+  plannedDeliveryDate?: string;
+  lastTelemetryAt?: string;
+  exceptionType?: ExceptionType;
+  exceptionStatus?: ExceptionStatus;
+  exceptionReason?: string;
+  phone?: string;
+  odometerStart?: number;
   invoiceUrl?: string;
-  // Safety Metrics
   safetyScore?: number;
-  fatigueLevel?: number;
-  driveTimeTotal?: number;
 }
 
 export interface Trip {
@@ -441,146 +275,347 @@ export interface Trip {
   dnIds: string[];
   driverId: string;
   vehicleId: string;
-  startTime?: string;
-  endTime?: string;
-  odometerStart?: number;
-  odometerEnd?: number;
   status: 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'RECONCILED';
   priority: Priority;
+  startTime?: string;
+  endTime?: string;
+  // Missing properties
+  commissionStatus?: 'PENDING' | 'APPROVED' | 'PAID' | 'DISBURSED';
+  commissionAmount?: number;
   codCollected?: number;
-  returnedItemsCount?: number;
   allowanceAmount?: number;
-  allowanceStatus?: 'PENDING' | 'DISBURSED' | 'FAILED';
+  allowanceStatus?: 'PENDING' | 'APPROVED' | 'PAID' | 'DISBURSED';
   routeRiskLevel?: 'LOW' | 'MEDIUM' | 'HIGH';
-  routeGeometry?: {
-    coordinates: LatLngTuple[];
-  };
+  routeGeometry?: any;
 }
 
-// --- Driver Portal Specifics ---
-export interface VehicleInspection {
-  id: string;
-  driverId: string;
-  vehicleId: string;
-  timestamp: string;
-  items: {
-    tires: 'PASS' | 'FAIL';
-    brakes: 'PASS' | 'FAIL';
-    fluids: 'PASS' | 'FAIL';
-    lights: 'PASS' | 'FAIL';
-  };
-  photos?: Record<string, string>; // item key -> base64/url
-  notes?: string;
-  status: 'PASS' | 'FAIL';
-}
-
-export interface Notification {
-  id: string;
-  userId: string;
-  title: string;
-  message: string;
-  type: 'ASSIGNMENT' | 'URGENT' | 'INSPECTION_FAILURE' | 'SYSTEM';
-  isRead: boolean;
-  timestamp: string;
-  link?: string;
-}
-
-// --- Fleet Maintenance ---
-export interface MaintenanceLog {
-  id: string;
-  vehicleId: string;
-  type: 'ROUTINE' | 'REPAIR' | 'INSPECTION' | 'EMERGENCY';
-  description: string;
-  cost: number;
-  date: string;
-  odometerReading: number;
-  performedBy: string;
-  nextServiceDate?: string;
-  status: 'COMPLETED' | 'PENDING' | 'CANCELLED';
-}
-
-// --- Order Management ---
 export interface Order {
   id: string;
   externalId: string;
-  customerId: string;
   customerName: string;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CONVERTED';
-  items: DeliveryItem[];
+  customerId?: string;
   totalAmount: number;
-  currency: string;
+  status: 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'CONVERTED';
   createdAt: string;
-  updatedAt: string;
-  paymentStatus: 'UNPAID' | 'PAID' | 'PARTIAL';
-  notes?: string;
-  fraudScore?: number; // 0-100
-}
-
-// --- Reports & BI ---
-export interface AnalyticsReport {
-  id: string;
-  title: string;
-  type: 'PERFORMANCE' | 'FINANCIAL' | 'OPERATIONAL' | 'COMPLIANCE';
-  data: any;
-  generatedAt: string;
-  period: { start: string; end: string };
-}
-
-export interface PermissionRequest {
-  id: string;
-  userId: string;
-  userName: string;
-  userEmail: string;
-  moduleId: ModuleId;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
-  reason?: string;
-  createdAt: string;
-  processedAt?: string;
-  processedBy?: string;
-  adminNotes?: string;
-}
-
-// --- Warehouse Management ---
-export interface InventoryItem {
-  id: string;
-  sku: string;
-  name: string;
-  description?: string;
-  category: string;
-  qty: number;
-  unit: string;
-  minThreshold: number;
-  warehouseId: string;
-  binLocation?: string;
-  batchNumber?: string;
-  expiryDate?: string;
-  tempRequirement?: { min: number; max: number };
-  status: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' | 'EXPIRED';
+  updatedAt?: string;
+  paymentStatus?: 'PENDING' | 'PAID' | 'VOID' | 'UNPAID';
+  fraudScore?: number;
+  items?: any[];
+  tenantId?: string;
+  currency?: string;
 }
 
 export interface WarehouseMovement {
   id: string;
-  itemId: string;
-  type: 'INBOUND' | 'OUTBOUND' | 'ADJUSTMENT' | 'TRANSFER';
-  qty: number;
+  type: 'IN' | 'OUT' | 'ADJUSTMENT' | 'TRANSFER' | 'INBOUND' | 'OUTBOUND';
+  items: Array<{ sku: string; qty: number }>;
+  timestamp: string;
+  tenantId?: string;
+  itemId?: string;
+  qty?: number;
   fromLocation?: string;
   toLocation?: string;
-  referenceId?: string; // Order ID or DN ID
-  user: string;
-  timestamp: string;
   notes?: string;
 }
 
 export interface BinLocation {
   id: string;
-  warehouseId: string;
-  zone: string;
-  aisle: string;
-  shelf: string;
-  bin: string;
-  capacity: number;
-  currentFill: number;
-  isOccupied: boolean;
-  type: 'PICKING' | 'BULK' | 'BUFFER' | 'COLD_STORAGE' | 'HAZMAT';
+  code: string;
+  zone?: string;
+  capacity?: number;
+  warehouseId?: string;
+  aisle?: string;
+  shelf?: string;
+  bin?: string;
+  type?: string;
   items?: string[];
+  currentFill?: number;
+  isOccupied?: boolean;
+  tenantId?: string;
+}
+
+export interface InventoryItem {
+  id: string;
+  sku: string;
+  qty: number;
+  warehouseId: string;
+  tenantId?: string;
+  name?: string;
+  expiryDate?: string;
+  batchNumber?: string;
+  category?: string;
+  binLocation?: string;
+  unit?: string;
+  minThreshold?: number;
+  tempRequirement?: string | { min: number; max: number; current?: number };
+  status?: string;
+}
+
+export interface Zone {
+  id: string;
+  name: string;
+  description?: string;
+  color?: string;
+}
+
+// --- FLEET ---
+export enum VehicleType {
+  BODA_BODA = 'Boda Boda (Motorcycle)',
+  TUK_TUK = 'Tuk Tuk (Three-wheeler)',
+  SMALL_VAN = 'Small Van (Probox/AD Van)',
+  LARGE_VAN = 'Large Van (Hiace/Sprinter)',
+  LIGHT_TRUCK = 'Light Truck (3-5 Tons)',
+  MEDIUM_TRUCK = 'Medium Truck (7-10 Tons)',
+  HEAVY_TRUCK = 'Heavy Truck (Prime Mover)',
+  BICYCLE = 'Bicycle'
+}
+
+export interface Vehicle {
+  id: string;
+  plate: string;
+  type: VehicleType;
+  capacityKg: number;
+  status: 'ACTIVE' | 'MAINTENANCE' | 'INACTIVE';
+  ownerId?: string;
+  tenantId?: string;
+  verificationStatus: 'PENDING' | 'VERIFIED' | 'REJECTED';
+  // Missing properties
+  nextServiceDate?: string;
+  nextServiceOdometer?: number;
+  fuelLevel?: number;
+  ntsaInspectionExpiry?: string;
+  insuranceExpiry?: string;
+  currentOdometer?: number;
+  logbookNumber?: string;
+  chassisNumber?: string;
+  engineNumber?: string;
+  speedGovernorId?: string;
+  trackerId?: string;
+  insurancePolicyNumber?: string;
+  lastInspectionDate?: string;
+  nextInspectionDate?: string;
+  complianceScore?: number;
+  color?: string;
+  yearOfManufacture?: number;
+  ownerPin?: string;
+}
+
+export interface MaintenanceLog {
+  id: string;
+  vehicleId: string;
+  type: string;
+  cost: number;
+  date: string;
+  tenantId?: string;
+  status?: string;
+  odometerReading?: number;
+  nextServiceDate?: string;
+  nextServiceOdometer?: number;
+  description?: string;
+  performedBy?: string;
+}
+
+export interface FuelLog {
+  id: string;
+  vehicleId: string;
+  amount: number;
+  cost: number;
+  date: string;
+  driverId?: string;
+  stationName?: string;
+  odometerReading?: number;
+}
+
+export interface VehicleInspection {
+  id: string;
+  vehicleId: string;
+  driverId?: string;
+  status: 'PASS' | 'FAIL';
+  date: string;
+  timestamp?: string;
+  photos?: string[] | Record<string, string>;
+  items?: any;
+}
+
+// --- USERS ---
+export interface UserPreferences {
+  theme: 'light' | 'dark' | 'system' | 'LIGHT' | 'DARK';
+  notifications: boolean | { email: boolean; push: boolean; sms: boolean };
+  language: string;
+  autoSync?: boolean;
+  highContrast?: boolean;
+}
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  isOnboarded?: boolean;
+  tenantId?: string;
+  avatar?: string;
+  verificationStatus: 'PENDING' | 'VERIFIED' | 'REJECTED';
+  // Other potential props used in CRM/Driver views
+  phone?: string;
+  idNumber?: string;
+  kraPin?: string;
+  licenseNumber?: string;
+  onDuty?: boolean;
+  transporterId?: string;
+  enabledModules?: ModuleId[];
+  address?: string;
+  joinedAt?: string;
+  company?: string;
+  onboardingStep?: number;
+  password?: string;
+  facilityId?: string;
+  preferences?: UserPreferences;
+}
+
+export interface DriverApplication {
+  id: string;
+  userId?: string;
+  status: 'PENDING' | 'REVIEWING' | 'APPROVED' | 'REJECTED' | 'INTERVIEWING' | 'ONBOARDING';
+  appliedAt: string;
+  notes?: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  idNumber?: string;
+  kraPin?: string;
+  licenseNumber?: string;
+  requirements?: Record<string, boolean>;
+  experienceYears?: number;
+  vehicleType?: VehicleType;
+}
+
+// --- DATA INGRESS & INTEGRATIONS ---
+export interface ImportBatch { id: string; status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED'; rowCount: number; filename?: string; totalRows?: number; successCount?: number; errorCount?: number; createdBy?: string; timestamp?: string; }
+export interface ImportLog { 
+  id: string; 
+  timestamp: string; 
+  severity: string; 
+  message: string; 
+  type?: string;
+  errors?: string[];
+  filename?: string; 
+  status?: string; 
+  recordsProcessed?: number; 
+  successCount?: number; 
+  errorCount?: number; 
+}
+export interface ImportPreviewRow { id: string; index: number; data: any; isValid: boolean; errors: any; }
+export interface ERPConnector { id: string; type: string; status: 'CONNECTED' | 'DISCONNECTED'; name?: string; provider?: string; environment?: string; syncFrequency?: string; config?: any; entities?: string[]; lastSync?: string; mapping?: any; }
+export interface SyncLog { id: string; connectorId: string; status: 'SUCCESS' | 'FAILURE' | 'PARTIAL' | 'FAILED'; timestamp: string; entity?: string; recordsProcessed?: number; durationMs?: number; errors?: any; }
+export interface APIKey { id: string; key: string; label: string; createdAt: string; name?: string; description?: string; status?: string; scopes?: string[]; secret?: string; }
+export interface WebhookSubscription { id: string; url: string; events: string[]; status: 'ACTIVE' | 'INACTIVE'; isActive?: boolean; lastDeliveryStatus?: string; lastDeliveryAt?: string; secret?: string; }
+export interface IntegrationLog { id: string; source: string; message: string; timestamp: string; level?: string; correlationId?: string; }
+
+// --- ANALYTICS ---
+export interface HealthMetrics {
+  ingestSuccessRate: number;
+  webhookDeliveryRate: number;
+  activeConnectors: number;
+  totalErrors24h: number;
+  isSupabaseHealthy?: boolean;
+  isFrappeHealthy?: boolean;
+}
+
+export interface OperationalMetrics {
+  dispatchTimeAvg: number;
+  completionRate: number;
+  exceptionRate: number;
+  telemetryLag: number;
+}
+
+export interface AnalyticsReport {
+  id: string;
+  title: string;
+  data: any;
+  generatedAt?: string;
+}
+
+export type SafetyEventType = 'HARSH_BRAKING' | 'OVERSPEEDING' | 'DEVIATION' | 'GEOFENCE_EXIT' | 'SOS';
+
+// --- SYSTEM ---
+export interface Notification {
+  id: string;
+  tenantId: string;
+  userId?: string;
+  type: 'info' | 'success' | 'warning' | 'error' | 'system' | 'ASSIGNMENT' | 'URGENT' | 'INSPECTION_FAILURE';
+  category: 'BILLING' | 'SECURITY' | 'MODULES' | 'OPERATIONS' | 'GENERAL';
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+  isRead?: boolean;
+  persistent: boolean;
+  expiresAt?: string;
+  link?: string;
+  action?: { label: string; path: string };
+}
+
+export interface AuditLogEntry {
+  id: string;
+  tenantId: string;
+  userId: string;
+  userEmail: string;
+  action: string;
+  resource: string;
+  resourceId?: string;
+  severity: 'info' | 'warning' | 'critical';
+  timestamp: string;
+  metadata?: any;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+export interface Facility {
+  id: string;
+  name: string;
+  type: string;
+  lat: number;
+  lng: number;
+  address?: string;
+  tenantId?: string;
+}
+
+export interface TelemetryPoint {
+  tripId: string;
+  lat: number;
+  lng: number;
+  timestamp: string;
+  speed?: number;
+  heading?: number;
+  coordinates?: [number, number];
+}
+
+export type LatLngTuple = [number, number];
+
+export interface LogisticsDocument { id: string; type: LogisticsDocumentType; status: LogisticsDocumentStatus; url: string; verificationCode?: string; issuedAt?: string; signedBy?: string; }
+
+export enum LogisticsDocumentType {
+  POD = 'POD',
+  INVOICE = 'INVOICE',
+  DELIVERY_NOTE = 'DELIVERY_NOTE',
+  INSPECTION = 'INSPECTION',
+  LOADING_AUTHORITY = 'LOADING_AUTHORITY',
+  MANIFEST = 'MANIFEST'
+}
+
+export enum LogisticsDocumentStatus {
+  PENDING = 'PENDING',
+  VERIFIED = 'VERIFIED',
+  REJECTED = 'REJECTED'
+}
+
+export interface Task { id: string; title: string; status: string; priority: string; userId: string; tenantId: string; completed?: boolean; dueDate?: string; description?: string };
+
+export type RouteOptimizationResult = { id: string; optimizedOrder: string[]; savings: number; metrics?: any; confidence?: number; processingTimeMs?: number };
+
+export interface PublisherProfile {
+  id: string;
+  name: string;
+  logo?: string;
+  verified: boolean;
 }

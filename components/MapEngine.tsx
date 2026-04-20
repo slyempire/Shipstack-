@@ -48,7 +48,13 @@ const MapEngine: React.FC<MapEngineProps> = ({
   const lastStyleRef = useRef<string>(styles[activeLayer]);
 
   // Animation state for smooth vehicle movement
-  const vehiclePositions = useRef<Record<string, { current: [number, number], target: [number, number] }>>({});
+  const vehiclePositions = useRef<Record<string, { 
+    current: [number, number], 
+    target: [number, number],
+    rotation: number,
+    targetRotation: number,
+    lastUpdate: number
+  }>>({});
 
   const [trafficEnabled, setTrafficEnabled] = useState(showTraffic);
   const [searchQuery, setSearchQuery] = useState('');
@@ -145,22 +151,23 @@ const MapEngine: React.FC<MapEngineProps> = ({
               'step',
               ['get', 'point_count'],
               '#1F6AE1',
-              10,
+              5,
               '#F27D26',
-              30,
+              15,
               '#ef4444'
             ],
             'circle-radius': [
               'step',
               ['get', 'point_count'],
-              20,
-              10,
-              30,
-              30,
-              40
+              25,
+              5,
+              35,
+              15,
+              45
             ],
-            'circle-stroke-width': 2,
-            'circle-stroke-color': '#fff'
+            'circle-stroke-width': 4,
+            'circle-stroke-color': 'rgba(255, 255, 255, 0.5)',
+            'circle-opacity': 0.9
           }
         });
       }
@@ -174,7 +181,8 @@ const MapEngine: React.FC<MapEngineProps> = ({
           layout: {
             'text-field': '{point_count_abbreviated}',
             'text-font': ['Noto Sans Regular'],
-            'text-size': 12
+            'text-size': 14,
+            'text-allow-overlap': true
           },
           paint: {
             'text-color': '#ffffff'
@@ -182,29 +190,50 @@ const MapEngine: React.FC<MapEngineProps> = ({
         });
       }
 
+      // Load Vehicle Icon
+      const vehicleSvg = `
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L4.5 20.29L5.21 21L12 18L18.79 21L19.5 20.29L12 2Z" fill="#1F6AE1" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+        </svg>
+      `;
+      const blob = new Blob([vehicleSvg], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => {
+        if (map.listImages().indexOf('vehicle-icon') === -1) {
+          map.addImage('vehicle-icon', img);
+        }
+      };
+      img.src = url;
+
       // Unclustered Vehicle Layer
       if (!map.getLayer('vehicles-layer')) {
         map.addLayer({
           id: 'vehicles-layer',
-          type: 'circle',
+          type: 'symbol',
           source: 'vehicles',
           filter: ['!', ['has', 'point_count']],
-          paint: {
-            'circle-radius': [
+          layout: {
+            'icon-image': 'vehicle-icon',
+            'icon-size': [
               'interpolate',
               ['linear'],
               ['zoom'],
-              10, 8,
-              15, 14
+              10, 0.6,
+              15, 1.0
             ],
-            'circle-color': [
+            'icon-rotate': ['get', 'rotation'],
+            'icon-allow-overlap': true,
+            'icon-ignore-placement': true,
+            'icon-rotation-alignment': 'map'
+          },
+          paint: {
+            'icon-opacity': [
               'case',
               ['boolean', ['feature-state', 'focused'], false],
-              '#F27D26',
-              '#1F6AE1'
-            ],
-            'circle-stroke-width': 3,
-            'circle-stroke-color': '#ffffff'
+              1,
+              0.9
+            ]
           }
         });
       }
@@ -380,6 +409,14 @@ const MapEngine: React.FC<MapEngineProps> = ({
   useEffect(() => {
     let animationFrame: number;
     
+    const lerp = (start: number, end: number, t: number) => start + (end - start) * t;
+    const lerpAngle = (start: number, end: number, t: number) => {
+      let diff = (end - start) % 360;
+      if (diff > 180) diff -= 360;
+      if (diff < -180) diff += 360;
+      return start + diff * t;
+    };
+
     const animate = () => {
       const map = mapRef.current;
       if (!map || !isLoaded) return;
@@ -393,13 +430,19 @@ const MapEngine: React.FC<MapEngineProps> = ({
       dns.forEach(dn => {
         const pos = vehiclePositions.current[dn.id];
         if (pos) {
-          // Interpolate current towards target
+          // Realistic interpolation: use a smooth easing factor
+          // We use 0.08 for position and 0.1 for rotation for a "heavy" but responsive feel
           const dx = pos.target[0] - pos.current[0];
           const dy = pos.target[1] - pos.current[1];
           
-          if (Math.abs(dx) > 0.00001 || Math.abs(dy) > 0.00001) {
-            pos.current[0] += dx * 0.05;
-            pos.current[1] += dy * 0.05;
+          if (Math.abs(dx) > 0.000001 || Math.abs(dy) > 0.000001) {
+            pos.current[0] = lerp(pos.current[0], pos.target[0], 0.08);
+            pos.current[1] = lerp(pos.current[1], pos.target[1], 0.08);
+            hasChanged = true;
+          }
+
+          if (Math.abs(pos.targetRotation - pos.rotation) > 0.1) {
+            pos.rotation = lerpAngle(pos.rotation, pos.targetRotation, 0.1);
             hasChanged = true;
           }
 
@@ -407,7 +450,11 @@ const MapEngine: React.FC<MapEngineProps> = ({
             type: 'Feature',
             id: dn.id,
             geometry: { type: 'Point', coordinates: [pos.current[0], pos.current[1]] },
-            properties: { id: dn.id, focused: dn.id === focusedDnId }
+            properties: { 
+              id: dn.id, 
+              focused: dn.id === focusedDnId,
+              rotation: pos.rotation
+            }
           });
         } else {
           // Initialize position
@@ -417,17 +464,27 @@ const MapEngine: React.FC<MapEngineProps> = ({
             (typeof lastLng === 'number' && !isNaN(lastLng)) ? lastLng : 36.8172, 
             (typeof lastLat === 'number' && !isNaN(lastLat)) ? lastLat : -1.2863
           ];
-          vehiclePositions.current[dn.id] = { current: [...startPos], target: [...startPos] };
+          vehiclePositions.current[dn.id] = { 
+            current: [...startPos], 
+            target: [...startPos],
+            rotation: 0,
+            targetRotation: 0,
+            lastUpdate: Date.now()
+          };
           features.push({
             type: 'Feature',
             id: dn.id,
             geometry: { type: 'Point', coordinates: startPos },
-            properties: { id: dn.id, focused: dn.id === focusedDnId }
+            properties: { 
+              id: dn.id, 
+              focused: dn.id === focusedDnId,
+              rotation: 0
+            }
           });
         }
       });
 
-      if (hasChanged) {
+      if (hasChanged || features.length > 0) {
         source.setData({ type: 'FeatureCollection', features });
       }
 
@@ -446,11 +503,31 @@ const MapEngine: React.FC<MapEngineProps> = ({
     telemetryService.connect();
     
     telemetryService.onTelemetryUpdate((data) => {
-      const { dnId, lat, lng } = data;
-      if (vehiclePositions.current[dnId]) {
-        vehiclePositions.current[dnId].target = [lng, lat];
+      const { dnId, lat, lng, heading } = data;
+      const pos = vehiclePositions.current[dnId];
+      if (pos) {
+        // Calculate target rotation if not provided
+        if (heading !== undefined) {
+          pos.targetRotation = heading;
+        } else {
+          const dx = lng - pos.target[0];
+          const dy = lat - pos.target[1];
+          if (Math.abs(dx) > 0.000001 || Math.abs(dy) > 0.000001) {
+            // MapLibre rotation is degrees clockwise from north
+            // atan2(x, y) gives angle from Y axis (North)
+            pos.targetRotation = Math.atan2(dx, dy) * (180 / Math.PI);
+          }
+        }
+        pos.target = [lng, lat];
+        pos.lastUpdate = Date.now();
       } else {
-        vehiclePositions.current[dnId] = { current: [lng, lat], target: [lng, lat] };
+        vehiclePositions.current[dnId] = { 
+          current: [lng, lat], 
+          target: [lng, lat],
+          rotation: heading || 0,
+          targetRotation: heading || 0,
+          lastUpdate: Date.now()
+        };
       }
     });
 
@@ -857,7 +934,7 @@ const MapEngine: React.FC<MapEngineProps> = ({
       <div className="absolute bottom-10 right-6 z-[1000] flex flex-col gap-3">
         {userLocation && (
           <div className="bg-white/90 backdrop-blur-xl border border-white/20 rounded-2xl p-3 shadow-2xl flex flex-col items-center gap-1 animate-in fade-in slide-in-from-right-4">
-            <div className={`h-2 w-2 rounded-full ${userLocation.accuracy && userLocation.accuracy < 20 ? 'bg-emerald-500' : 'bg-amber-500'} animate-pulse`} />
+            <div className={`h-2 w-2 rounded-full ${userLocation.accuracy && userLocation.accuracy < 20 ? 'bg-emerald-500' : 'bg-orange-500'} animate-pulse`} />
             <span className="text-[8px] font-black text-slate-900 uppercase tracking-widest">
               {userLocation.accuracy ? `±${Math.round(userLocation.accuracy)}m` : 'GPS'}
             </span>
