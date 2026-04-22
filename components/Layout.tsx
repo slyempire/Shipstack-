@@ -152,60 +152,77 @@ const Layout: React.FC<LayoutProps> = ({ children, title, subtitle }) => {
 
   // Navigation Configuration - UPDATED with ALL requested sections
   const navigationConfig = useMemo(() => {
-    const sections = [
+    return [
       {
-        group: 'Core Engine',
+        group: 'Intelligence',
         items: [
           { name: 'Dashboard', path: '/admin', icon: LayoutDashboard },
-          { name: 'Trips', path: '/admin/trips', icon: Truck },
-          { name: 'Dispatch', path: '/admin/dispatch', icon: RouteIcon },
-          { name: 'Fleet', path: '/admin/fleet', icon: Warehouse },
-          { name: 'Live Tracking', path: '/admin/tracking', icon: MapIcon },
-        ]
-      },
-      { 
-        group: 'Fulfillment', 
-        items: [
-          { name: 'Warehouse', path: '/admin/warehouse', icon: Package },
-          { name: 'Orders', path: '/admin/orders', icon: ShoppingBag },
-          { name: 'Exceptions', path: '/admin/exceptions', icon: AlertOctagon },
-          { name: 'DN Queue', path: '/admin/queue', icon: Inbox },
+          { 
+            name: 'Analytics Hub', 
+            icon: Activity,
+            children: [
+              { name: 'Performance', path: '/admin/analytics', icon: Activity },
+              { name: 'Data Ingress', path: '/admin/ingress', icon: DatabaseZap },
+              { name: 'Security Audit', path: '/admin/security', icon: ShieldCheck },
+            ]
+          }
         ]
       },
       {
-        group: 'Commercial',
+        group: 'Logistics Control',
         items: [
-          { name: 'Invoicing', path: '/admin/billing', icon: FileText },
-          { name: 'Rate Profiles', path: '/admin/rates', icon: Scale },
-          { name: 'CRM', path: '/admin/crm', icon: Users },
+          {
+            name: 'Execution',
+            icon: Truck,
+            children: [
+              { name: 'Active Trips', path: '/admin/dispatch', icon: RouteIcon },
+              { name: 'Live Grid', path: '/admin/queue', icon: Inbox },
+              { name: 'Gps Tracking', path: '/admin/tracking', icon: MapIcon },
+            ]
+          },
+          { 
+            name: 'Supply Chain', 
+            icon: Package,
+            children: [
+              { name: 'Order Desk', path: '/admin/orders', icon: ShoppingBag },
+              { name: 'Warehouse Hub', path: '/admin/warehouse', icon: Warehouse },
+              { name: 'Exceptions', path: '/admin/exceptions', icon: AlertOctagon },
+            ]
+          },
+          { name: 'Fleet Asset', path: '/admin/fleet', icon: Truck },
         ]
       },
       {
-        group: 'People',
+        group: 'Enterprise',
         items: [
-          { name: 'Users', path: '/admin/users', icon: Users },
-          { name: 'Recruitment', path: '/admin/recruitment', icon: Users },
-        ]
-      },
-      {
-        group: 'Insights',
-        items: [
-          { name: 'Analytics', path: '/admin/analytics', icon: Activity },
-          { name: 'Data Ingress', path: '/admin/ingress', icon: DatabaseZap },
-          { name: 'Security Audit', path: '/admin/security', icon: ShieldCheck },
+          {
+            name: 'Commercial',
+            icon: DollarSign,
+            children: [
+              { name: 'Invoicing', path: '/admin/billing', icon: FileText },
+              { name: 'Rate Profiles', path: '/admin/rates', icon: Scale },
+              { name: 'Marketplace', path: '/admin/marketplace', icon: Layers },
+            ]
+          },
+          { name: 'CRM Hub', path: '/admin/crm', icon: Users },
         ]
       },
       {
         group: 'Platform',
         items: [
-          { name: 'Marketplace', path: '/admin/marketplace', icon: Layers },
-          { name: 'Subscription', path: '/admin/subscription', icon: DollarSign },
-          { name: 'Settings', path: '/settings', icon: Settings },
+          {
+            name: 'Workspace',
+            icon: Settings,
+            children: [
+              { name: 'Users', path: '/admin/users', icon: UserIcon },
+              { name: 'Recruitment', path: '/admin/recruitment', icon: Users },
+              { name: 'Subscription', path: '/admin/subscription', icon: DollarSign },
+              { name: 'Settings', path: '/settings', icon: Settings },
+            ]
+          }
         ]
       }
     ];
-
-    return sections;
   }, []);
 
   return (
@@ -241,14 +258,13 @@ const Layout: React.FC<LayoutProps> = ({ children, title, subtitle }) => {
           {/* Sectioned Navigation */}
           {navigationConfig.map((group) => (
             <div key={group.group}>
-              {!sidebarCollapsed && <p className="px-5 text-[10px] font-black uppercase tracking-[0.2em] mb-4 text-slate-500 italic">{group.group}</p>}
+              {!sidebarCollapsed && <p className="px-5 text-[10px] font-black uppercase tracking-[0.2em] mb-4 text-slate-400 italic">{group.group}</p>}
               <div className="space-y-1">
                 {group.items.map((item) => (
                   <NavItem 
-                    key={item.path} 
+                    key={item.path || item.name} 
                     item={item} 
                     collapsed={sidebarCollapsed} 
-                    contrastText={contrastText} 
                     location={location} 
                   />
                 ))}
@@ -265,23 +281,23 @@ const Layout: React.FC<LayoutProps> = ({ children, title, subtitle }) => {
       </aside>
 
       <div className="flex flex-1 flex-col min-w-0 h-full overflow-hidden">
-        <header className="flex h-20 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-8 z-[1000] shadow-sm transition-colors duration-300">
+        <header className="flex h-20 shrink-0 items-center justify-between border-b border-slate-100 bg-white shadow-sm px-8 z-[1000] transition-colors duration-300">
           <div className="flex items-center gap-8">
-            <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-gray-400 hover:text-[#2563eb] transition-colors"><Menu size={24} /></button>
+            <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-gray-400 hover:text-brand transition-colors"><Menu size={24} /></button>
               
             {/* Extended Header with Breadcrumbs */}
             <div className="flex flex-col">
               <div className="flex items-center gap-2 mb-1">
-                 <Link to="/admin" className="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-brand transition-colors">Shipstack</Link>
+                 <Link to="/admin" className="text-[10px] font-medium text-slate-400 uppercase tracking-widest hover:text-brand transition-colors">Shipstack</Link>
                  {pathnames.map((name, index) => {
                    const routeTo = `/${pathnames.slice(0, index + 1).join('/')}`;
                    const isLast = index === pathnames.length - 1;
                    return (
-                     <React.Fragment key={name}>
+                     <React.Fragment key={`${routeTo}-${index}`}>
                         <ChevronRight size={10} className="text-slate-300" />
                         <Link 
                           to={routeTo} 
-                          className={`text-[10px] font-black uppercase tracking-widest transition-colors ${isLast ? 'text-slate-900 pointer-events-none' : 'text-slate-400 hover:text-brand'}`}
+                          className={`text-[10px] font-medium uppercase tracking-widest transition-colors ${isLast ? 'text-slate-700 font-semibold pointer-events-none' : 'text-slate-400 hover:text-brand'}`}
                         >
                            {name.replace(/-/g, ' ')}
                         </Link>
@@ -289,7 +305,7 @@ const Layout: React.FC<LayoutProps> = ({ children, title, subtitle }) => {
                    );
                  })}
               </div>
-              <h1 className="text-xl font-black text-slate-900 tracking-tighter uppercase leading-none">{title}</h1>
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight leading-none">{title === 'OPERATIONS HUB' ? 'Operations Hub' : title}</h1>
             </div>
           </div>
           
@@ -298,13 +314,13 @@ const Layout: React.FC<LayoutProps> = ({ children, title, subtitle }) => {
               <div className="relative mr-2" ref={verticalRef}>
                 <button 
                   onClick={() => setVerticalMenuOpen(!verticalMenuOpen)}
-                  className="flex items-center gap-3 px-4 py-2 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white hover:shadow-lg transition-all font-black text-[10px] uppercase tracking-widest text-slate-700"
+                  className="flex items-center gap-3 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full hover:bg-emerald-100/50 transition-all text-emerald-700 text-sm font-medium"
                 >
-                  <div className={`h-6 w-6 rounded-lg flex items-center justify-center bg-white shadow-sm font-bold ${activeVertical.color}`}>
-                     <activeVertical.icon size={14} />
+                  <div className={`h-5 w-5 rounded-full flex items-center justify-center bg-white shadow-sm font-bold ${activeVertical.color}`}>
+                     <activeVertical.icon size={12} />
                   </div>
-                  <span className="hidden md:inline italic">{activeVertical.name}</span>
-                  <ChevronDown size={12} className={`text-slate-400 transition-transform ${verticalMenuOpen ? 'rotate-180' : ''}`} />
+                  <span className="hidden md:inline">{activeVertical.name}</span>
+                  <ChevronDown size={12} className={`text-emerald-400 transition-transform ${verticalMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {verticalMenuOpen && (
@@ -335,11 +351,7 @@ const Layout: React.FC<LayoutProps> = ({ children, title, subtitle }) => {
                 className="h-10 w-10 text-slate-400 hover:text-slate-900 bg-slate-50 rounded-2xl transition-all relative group flex items-center justify-center"
               >
                  <Inbox size={20} className="group-hover:scale-110 transition-transform" />
-                 {unreadCount > 0 && (
-                   <div className="absolute top-0 right-0 h-4 w-4 bg-red rounded-full border-2 border-white flex items-center justify-center shadow-lg transform -translate-y-1 translate-x-1">
-                      <span className="text-[8px] font-black text-white">{unreadCount}</span>
-                   </div>
-                 )}
+                 <div className="absolute top-2.5 right-2.5 h-2 w-2 bg-red-500 rounded-full border-2 border-white" />
               </button>
               
              <div className="h-6 w-px bg-slate-200 mx-2" />
@@ -350,10 +362,9 @@ const Layout: React.FC<LayoutProps> = ({ children, title, subtitle }) => {
                   className="flex items-center gap-3 pl-2 group transition-all"
                 >
                    <div className="text-right hidden sm:block">
-                      <p className="text-[10px] font-black leading-none mb-1 group-hover:text-brand transition-colors uppercase tracking-tight truncate max-w-[150px]">{user?.name}</p>
+                      <p className="text-sm font-semibold text-slate-800 leading-none mb-1 group-hover:text-brand transition-colors tracking-tight truncate max-w-[150px]">{user?.name || 'Admin User'}</p>
                       <div className="flex items-center justify-end gap-1.5">
-                         <ShieldCheck size={10} className="text-emerald-500" />
-                         <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest italic">{currentUserRole}</p>
+                         <p className="text-xs font-medium text-emerald-600 uppercase tracking-wide">{currentUserRole?.replace('_', ' ') || 'super admin'}</p>
                       </div>
                    </div>
                    <div className="h-11 w-11 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-900 font-black group-hover:border-brand group-hover:shadow-brand/20 transition-all overflow-hidden relative">
@@ -487,35 +498,95 @@ const Layout: React.FC<LayoutProps> = ({ children, title, subtitle }) => {
   );
 };
 
-const NavItem = ({ item, collapsed, contrastText, location, onPin, pinned }: any) => {
+const NavItem = ({ item, collapsed, location }: any) => {
   const Icon = item.icon as any;
-  const isActive = location.pathname === item.path || item.subPaths?.some((p: string) => location.pathname.startsWith(p));
+  const navigate = useNavigate();
+  const hasChildren = item.children && item.children.length > 0;
   
-  return (
-    <div className="group/nav flex items-center gap-1">
-      <Link 
-        to={item.path!} 
-        id={`nav-${item.name.toLowerCase().replace(/ /g, '-')}`}
-        className={`flex-1 flex items-center gap-4 px-5 py-3.5 rounded-[1.25rem] transition-all duration-300 text-[11px] font-black uppercase tracking-widest group relative overflow-hidden ${isActive ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'}`}
-      >
-        {isActive && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-emerald-500" />}
-        <div className={`shrink-0 transition-all duration-300 ${isActive ? 'scale-110' : 'group-hover/nav:scale-110 group-hover/nav:text-emerald-400'}`}>
-          <Icon size={18} strokeWidth={ isActive ? 2.5 : 2 } />
-        </div>
-        {!collapsed && <span className="truncate italic">{item.name}</span>}
-        
-        {item.badge && !collapsed && (
-          <span className={`ml-auto px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-tighter ${isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
-            {item.badge}
-          </span>
-        )}
+  // Section active if its path matches OR any child path matches
+  const isChildActive = useMemo(() => 
+    hasChildren && item.children.some((child: any) => location.pathname === child.path),
+    [hasChildren, item.children, location.pathname]
+  );
+  
+  const isActive = location.pathname === item.path || isChildActive;
+  const [isOpen, setIsOpen] = useState(isChildActive);
 
-        {collapsed && (
-          <div className="absolute left-full ml-6 px-4 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 translate-x-[-10px] group-hover:translate-x-0 z-50 whitespace-nowrap shadow-2xl">
-            {item.name}
+  // Auto-expand if child is active
+  useEffect(() => {
+    if (isChildActive) setIsOpen(true);
+  }, [isChildActive]);
+
+  const toggle = (e: React.MouseEvent) => {
+    if (hasChildren) {
+      e.preventDefault();
+      setIsOpen(!isOpen);
+    }
+  };
+
+  const navItemClasses = `flex-1 flex items-center gap-4 px-5 py-3.5 rounded-[1.25rem] transition-all duration-300 text-[11px] font-black uppercase tracking-widest group relative overflow-hidden ${isActive ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-200 hover:bg-slate-800 hover:text-white'}`;
+
+  const renderContent = () => (
+    <>
+      {isActive && !hasChildren && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-emerald-500" />}
+      <div className={`shrink-0 transition-all duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110 group-hover:text-emerald-400'}`}>
+        <Icon size={18} strokeWidth={ isActive ? 2.5 : 2 } />
+      </div>
+      {!collapsed && <span className="flex-1 text-left truncate italic">{item.name}</span>}
+      {!collapsed && hasChildren && (
+        <ChevronRight size={14} className={`transition-transform duration-300 ${isOpen ? 'rotate-90 text-emerald-400' : 'text-slate-600'}`} />
+      )}
+      
+      {collapsed && (
+        <div className="absolute left-full ml-6 px-4 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 translate-x-[-10px] group-hover:translate-x-0 z-50 whitespace-nowrap shadow-2xl">
+          {item.name}
+        </div>
+      )}
+    </>
+  );
+
+  return (
+    <div className="space-y-1">
+      {hasChildren ? (
+        <button onClick={toggle} className="w-full">
+          <div className={navItemClasses}>
+            {renderContent()}
           </div>
+        </button>
+      ) : (
+        <Link to={item.path!} className="block">
+          <div className={navItemClasses}>
+            {renderContent()}
+          </div>
+        </Link>
+      )}
+
+      <AnimatePresence>
+        {!collapsed && hasChildren && isOpen && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            className="overflow-hidden ml-6 pl-4 border-l border-slate-800/50 space-y-1"
+          >
+            {item.children.map((child: any) => {
+              const ChildIcon = child.icon;
+              const isChildActive = location.pathname === child.path;
+              return (
+                <Link 
+                  key={child.path}
+                  to={child.path}
+                  className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all text-[10px] font-black uppercase tracking-widest ${isChildActive ? 'text-emerald-400 bg-emerald-500/5' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'}`}
+                >
+                  <ChildIcon size={14} className={isChildActive ? 'text-emerald-400' : 'text-slate-500'} />
+                  <span className="truncate italic">{child.name}</span>
+                </Link>
+              );
+            })}
+          </motion.div>
         )}
-      </Link>
+      </AnimatePresence>
     </div>
   );
 };

@@ -72,7 +72,7 @@ const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: numbe
 
 const DriverPortal: React.FC = () => {
   const { user, logout } = useAuthStore();
-  const { addNotification, isOnline } = useAppStore();
+  const { addNotification, isOnline, notifications } = useAppStore();
   const navigate = useNavigate();
   const [dns, setDns] = useState<DeliveryNote[]>([]);
   const [currentDn, setCurrentDn] = useState<DeliveryNote | null>(null);
@@ -115,6 +115,7 @@ const DriverPortal: React.FC = () => {
   const [eTimsInvoice, setETimsInvoice] = useState<any>(null);
   const [isGeneratingEtims, setIsGeneratingEtims] = useState(false);
   const [isVoiceActive, setIsVoiceActive] = useState(false);
+  const recognitionRef = useRef<any>(null);
 
   // Wallet State
   const [walletBalance, setWalletBalance] = useState(12450);
@@ -177,9 +178,13 @@ const DriverPortal: React.FC = () => {
       interval = setInterval(() => {
         setDriveTime(prev => prev + 1);
         // Simulate fatigue increase every 10 mins
-        if (driveTime % 600 === 0 && driveTime > 0) {
-          setFatigueLevel(prev => Math.min(100, prev + 5));
-        }
+        setFatigueLevel(prev => {
+          if ((driveTime + 1) % 600 === 0 && driveTime > 0) {
+            return Math.min(100, prev + 5);
+          }
+          return prev;
+        });
+        
         // Random safety events simulation
         if (Math.random() > 0.995) {
           setSafetyScore(prev => Math.max(0, prev - 1));
@@ -192,7 +197,14 @@ const DriverPortal: React.FC = () => {
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [step, isEnRouteStatus, driveTime]);
+  }, [step, isEnRouteStatus]);
+
+  // Auto-collapse panel when modals are open
+  useEffect(() => {
+    if (isPaymentModalOpen || isChatOpen || showAdvisoryModal) {
+      setIsPanelExpanded(false);
+    }
+  }, [isPaymentModalOpen, isChatOpen, showAdvisoryModal]);
 
   const liveDn = useMemo(() => {
     if (!currentDn) return null;
@@ -251,16 +263,23 @@ const DriverPortal: React.FC = () => {
     
     window.addEventListener('devicemotion', handleMotion);
     
-    // Voice Command Setup
-    let recognition: any = null;
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
-      recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = false;
-      recognition.lang = 'en-US';
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('devicemotion', handleMotion);
+    };
+  }, []);
 
-      recognition.onresult = (event: any) => {
+  // Voice Command Setup
+  useEffect(() => {
+    if (typeof window !== 'undefined' && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+      const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
+      const rec = new SpeechRecognition();
+      rec.continuous = true;
+      rec.interimResults = false;
+      rec.lang = 'en-US';
+
+      rec.onresult = (event: any) => {
         const command = event.results[event.results.length - 1][0].transcript.toLowerCase();
         console.log('Voice Command:', command);
         
@@ -277,23 +296,54 @@ const DriverPortal: React.FC = () => {
         }
       };
 
-      recognition.onerror = (event: any) => {
+      rec.onerror = (event: any) => {
         console.error('Speech recognition error:', event.error);
         setIsVoiceActive(false);
+        if (event.error === 'not-allowed') {
+          addNotification("Microphone access denied. Please click 'Allow' in your browser.", "error");
+        } else if (event.error === 'network') {
+          addNotification("Speech recognition requires connection.", "error");
+        }
       };
-    }
 
-    if (isVoiceActive && recognition) {
-      recognition.start();
+      rec.onend = () => {
+        setIsVoiceActive(false);
+        console.log('Speech recognition ended');
+      };
+
+      recognitionRef.current = rec;
     }
 
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-      window.removeEventListener('devicemotion', handleMotion);
-      if (recognition) recognition.stop();
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
     };
-  }, [isVoiceActive]);
+  }, []); // Only setup once
+
+  const handleToggleVoice = async () => {
+    if (!recognitionRef.current) {
+      addNotification("Voice commands not supported in this browser.", "error");
+      return;
+    }
+
+    if (!isVoiceActive) {
+      try {
+        // Direct start inside gesture
+        recognitionRef.current.start();
+        setIsVoiceActive(true);
+        addNotification("Voice commands active", "success");
+      } catch (err) {
+        console.error("Failed to start voice:", err);
+        // Sometimes it's already started or pending
+        addNotification("Retrying voice setup...", "info");
+      }
+    } else {
+      recognitionRef.current.stop();
+      setIsVoiceActive(false);
+      addNotification("Voice commands deactivated", "info");
+    }
+  };
 
   const logSafetyEvent = async (type: SafetyEventType, severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL') => {
     const event = {
@@ -671,6 +721,56 @@ const DriverPortal: React.FC = () => {
     }
   };
 
+  const renderBottomNav = (activeTab: 'LIST' | 'SAFETY' | 'ALERTS' | 'HUB' | 'MORE') => (
+    <div className="fixed bottom-0 left-0 right-0 bg-navy/95 backdrop-blur-xl border-t border-white/5 px-6 pb-10 pt-4 z-40 flex justify-between items-center shadow-2xl transition-all">
+      <button 
+        onClick={() => setStep('LIST')} 
+        className={`flex flex-col items-center gap-1.5 transition-all group ${activeTab === 'LIST' ? 'text-brand' : 'text-slate-500 hover:text-white'}`}
+      >
+        <Truck className={`w-6 h-6 group-hover:scale-110 transition-transform ${activeTab === 'LIST' ? 'stroke-[3px]' : ''}`} />
+        <span className="text-[10px] font-bold uppercase tracking-tight">Trips</span>
+        {activeTab === 'LIST' && <div className="absolute -bottom-2 h-1 w-1 bg-brand rounded-full" />}
+      </button>
+      
+      <button 
+        onClick={() => setStep('SAFETY_PASSPORT')} 
+        className={`flex flex-col items-center gap-1.5 transition-all group ${activeTab === 'SAFETY' ? 'text-emerald' : 'text-slate-500 hover:text-white'}`}
+      >
+        <ShieldCheck className={`w-6 h-6 group-hover:scale-110 transition-transform ${activeTab === 'SAFETY' ? 'stroke-[3px]' : ''}`} />
+        <span className="text-[10px] font-bold uppercase tracking-tight">Safety</span>
+        {activeTab === 'SAFETY' && <div className="absolute -bottom-2 h-1 w-1 bg-emerald rounded-full" />}
+      </button>
+
+      <button 
+        onClick={() => setStep('NOTIFICATIONS')} 
+        className={`flex flex-col items-center gap-1.5 transition-all group relative ${activeTab === 'ALERTS' ? 'text-amber' : 'text-slate-500 hover:text-white'}`}
+      >
+        <AlertCircle className={`w-6 h-6 group-hover:scale-110 transition-transform ${activeTab === 'ALERTS' ? 'stroke-[3px]' : ''}`} />
+        <span className="text-[10px] font-bold uppercase tracking-tight">Alerts</span>
+        {notifications.some((n: any) => !n.read) && (
+          <span className="absolute top-0 right-1 h-3 w-3 bg-red rounded-full border-2 border-navy" />
+        )}
+        {activeTab === 'ALERTS' && <div className="absolute -bottom-2 h-1 w-1 bg-amber rounded-full" />}
+      </button>
+
+      <button 
+        onClick={() => navigate('/driver/hub')} 
+        className={`flex flex-col items-center gap-1.5 transition-all group ${activeTab === 'HUB' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}
+      >
+        <Activity className={`w-6 h-6 group-hover:scale-110 transition-transform ${activeTab === 'HUB' ? 'stroke-[3px]' : ''}`} />
+        <span className="text-[10px] font-bold uppercase tracking-tight">Hub</span>
+      </button>
+
+      <button 
+        onClick={() => setShowMenu(true)} 
+        className={`flex flex-col items-center gap-1.5 transition-all group ${activeTab === 'MORE' ? 'text-white' : 'text-slate-500 hover:text-white'}`}
+      >
+        <Menu className="w-6 h-6 group-hover:scale-110 transition-transform" />
+        <span className="text-[10px] font-bold uppercase tracking-tight">Menu</span>
+      </button>
+    </div>
+  );
+
   if (step === 'BRIEFING') return (
     <div className="min-h-screen bg-navy text-white font-sans flex flex-col p-6 transition-colors duration-300">
       <header className="flex justify-between items-center mb-8">
@@ -940,39 +1040,26 @@ const DriverPortal: React.FC = () => {
         </div>
       </header>
       <main className="flex-1 p-4 space-y-3 overflow-y-auto pb-32 no-scrollbar">
-        {useAppStore.getState().notifications.length === 0 ? (
+        {notifications.length === 0 ? (
           <div className="py-40 text-center px-10 opacity-40">
             <AlertCircle size={60} strokeWidth={1} className="mx-auto mb-4 text-white" />
             <p className="label-logistics">No Active Alerts</p>
           </div>
         ) : (
-          useAppStore.getState().notifications.map(n => (
-            <div key={n.id} className={`bg-charcoal p-4 rounded-2xl border border-white/5 flex gap-4 transition-colors ${!n.read ? 'border-l-4 border-l-brand' : ''}`}>
+          notifications.map(n => (
+            <div key={n.id} className={`bg-charcoal p-4 rounded-2xl border border-white/5 flex gap-4 transition-colors ${n.read ? '' : 'border-l-4 border-l-brand'}`}>
               <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${n.type === 'error' ? 'bg-red/10 text-red' : n.type === 'success' ? 'bg-emerald/10 text-emerald' : 'bg-brand/10 text-brand'}`}>
                 {n.type === 'error' ? <AlertCircle size={20} /> : n.type === 'success' ? <Check size={20} /> : <Info size={20} />}
               </div>
               <div className="flex-1">
-                <p className="text-[10px] font-black uppercase tracking-tight text-slate-900 dark:text-white mb-0.5">{n.message}</p>
-                <p className="text-[8px] font-bold text-slate-500 dark:text-white/40 uppercase transition-colors">{new Date(n.timestamp).toLocaleTimeString()}</p>
+                <p className="text-[10px] font-black uppercase tracking-tight text-white mb-0.5">{n.message}</p>
+                <p className="text-[8px] font-bold text-white/40 uppercase transition-colors">{new Date(n.timestamp).toLocaleTimeString()}</p>
               </div>
             </div>
           ))
         )}
-      </main>
-      <div className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-100 dark:border-white/5 px-8 pb-10 pt-4 z-40 flex justify-between items-center transition-colors">
-         <button onClick={() => setStep('LIST')} className="flex flex-col items-center gap-1.5 text-slate-300 dark:text-white/50 hover:text-brand transition-colors">
-            <Truck size={20} />
-            <span className="text-[8px] font-black uppercase tracking-widest">Manifest</span>
-         </button>
-         <button onClick={() => setStep('NOTIFICATIONS')} className="flex flex-col items-center gap-1.5 text-brand">
-            <AlertCircle size={20} strokeWidth={3} />
-            <span className="text-[8px] font-black uppercase tracking-widest">Alerts</span>
-         </button>
-         <button onClick={() => setShowMenu(true)} className="flex flex-col items-center gap-1.5 text-slate-300 dark:text-white/50 hover:text-brand transition-colors">
-            <Menu size={20} />
-            <span className="text-[8px] font-black uppercase tracking-widest">Menu</span>
-         </button>
-      </div>
+       </main>
+      {renderBottomNav('ALERTS')}
     </div>
   );
 
@@ -1046,106 +1133,146 @@ const DriverPortal: React.FC = () => {
           className="btn-primary w-full h-16 flex items-center justify-center gap-3 disabled:opacity-50"
         >
           {isSubmitting ? <RefreshCw className="animate-spin" size={20} /> : <><ShieldCheck size={20} /> Finalize Safety Report</>}
-        </button>
+         </button>
       </main>
-      <div className="fixed bottom-0 left-0 right-0 bg-navy/95 backdrop-blur-xl border-t border-white/5 px-8 pb-10 pt-4 z-40 flex justify-between items-center transition-colors">
-         <button onClick={() => setStep('LIST')} className="flex flex-col items-center gap-1.5 text-white/40 hover:text-brand transition-colors">
-            <Truck size={20} />
-            <span className="text-[8px] font-black uppercase tracking-widest">Manifest</span>
-         </button>
-         <button onClick={() => setStep('INSPECTION')} className="flex flex-col items-center gap-1.5 text-brand">
-            <ShieldCheck size={20} strokeWidth={3} />
-            <span className="text-[8px] font-black uppercase tracking-widest">Safety</span>
-         </button>
-         <button onClick={() => setShowMenu(true)} className="flex flex-col items-center gap-1.5 text-white/40 hover:text-brand transition-colors">
-            <Menu size={20} />
-            <span className="text-[8px] font-black uppercase tracking-widest">Menu</span>
-         </button>
-      </div>
+      {renderBottomNav('SAFETY')}
     </div>
   );
 
-  if (step === 'LIST') return (
-    <div className="min-h-screen bg-navy font-sans flex flex-col transition-colors duration-300">
+  if (step === 'LIST') {
+    const activeTrip = dns.find(dn => dn.status === DNStatus.IN_TRANSIT) || dns[0];
+    const currentRoute = activeTrip ? `${activeTrip.originName?.split(' ')[0] || 'Hub'} → ${activeTrip.clientName.split(' ')[0]}` : "Today's Deliveries";
+
+    return (
+    <div className="min-h-screen bg-[#0a0f1a] font-sans flex flex-col transition-colors duration-300">
       {isOffline && (
         <div className="bg-amber text-white px-6 py-1.5 text-[9px] font-black uppercase tracking-[0.2em] text-center sticky top-0 z-[100] animate-pulse">
           Offline Mode Active • Data will sync on reconnection
         </div>
       )}
-      <header className="px-6 py-4 border-b border-white/5 flex justify-between items-center sticky top-0 z-30 bg-navy/80 backdrop-blur-xl pt-10 transition-colors">
-        <div>
-          <p className="label-logistics !text-brand !text-[8px] !mb-0">Field Terminal</p>
-          <h1 className="heading-primary">Mission Control</h1>
+      <header className="px-6 py-4 border-b border-slate-700/50 flex justify-between items-center sticky top-0 z-30 bg-[#0a0f1a]/80 backdrop-blur-xl pt-10 transition-colors">
+        <div className="flex flex-col">
+          <div className="flex items-center gap-2 mb-1">
+            <p className="text-white font-semibold text-lg leading-tight">Good morning, {user?.name.split(' ')[0] || 'Driver'}</p>
+            <div className="flex items-center gap-1.5 bg-emerald-500/20 text-emerald-400 rounded-full text-[10px] font-bold px-2 py-0.5 border border-emerald-500/20">
+              <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              ON DUTY
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-white tracking-tight">{currentRoute}</h1>
+            {activeTrip && (
+              <div className="flex items-center gap-1 text-[10px] text-slate-400 bg-slate-800/50 px-2 py-0.5 rounded-lg border border-slate-700/50 ml-1">
+                <Truck size={10} />
+                <span>12.4 km to next stop</span>
+              </div>
+            )}
+          </div>
         </div>
-        <div className="flex gap-1.5 items-center">
+        <div className="flex gap-2 items-center">
           <button 
-            onClick={() => setIsVoiceActive(!isVoiceActive)}
-            className={`h-10 w-10 rounded-xl flex items-center justify-center active:scale-90 shadow-sm transition-all ${isVoiceActive ? 'bg-brand text-white border-brand shadow-lg shadow-brand/20' : 'bg-charcoal text-white/40 border-white/5'}`}
+            onClick={handleToggleVoice}
+            className={`h-11 w-11 rounded-xl flex items-center justify-center active:scale-90 shadow-sm transition-all ${isVoiceActive ? 'bg-brand text-white border-brand shadow-lg shadow-brand/20' : 'bg-slate-800 text-slate-400 border border-slate-700/50'}`}
           >
-            <Activity size={18} className={isVoiceActive ? 'animate-pulse' : ''} />
+            <Activity size={20} className={isVoiceActive ? 'animate-pulse' : ''} />
           </button>
           <button 
             onClick={handleSOS}
-            className="h-10 px-3 rounded-xl bg-red text-white font-black uppercase text-[9px] tracking-widest shadow-lg shadow-red/20 active:scale-95 flex items-center gap-1.5"
+            className="animate-pulse bg-red-500 hover:bg-red-600 text-white font-bold px-4 py-2.5 rounded-xl text-sm flex items-center gap-1.5 shadow-lg shadow-red-500/20 active:scale-95 transition-all"
           >
-            <Zap size={14} fill="currentColor" /> SOS
-          </button>
-          <button onClick={() => setStep('NOTIFICATIONS')} className="h-10 w-10 rounded-xl bg-charcoal text-white/40 border border-white/5 flex items-center justify-center active:scale-90 shadow-sm relative transition-colors">
-            <AlertCircle size={18} />
-            {useAppStore.getState().notifications.some(n => !n.read) && (
-              <span className="absolute top-2.5 right-2.5 h-1.5 w-1.5 bg-red rounded-full border-2 border-navy" />
-            )}
-          </button>
-          <button onClick={() => setShowMenu(true)} className="h-10 w-10 rounded-xl bg-charcoal text-white/40 border border-white/5 flex items-center justify-center active:scale-90 shadow-sm transition-colors">
-            <Menu size={18} />
+            <Zap size={16} fill="currentColor" /> SOS
           </button>
         </div>
       </header>
-      <main className="flex-1 p-4 space-y-3 pb-32 overflow-y-auto no-scrollbar">
-        {/* ISO 39001: Fatigue & Eco Dashboard */}
-        <div className="grid grid-cols-2 gap-3 mb-2">
-           <div className="bg-charcoal p-4 rounded-2xl border border-white/5 shadow-2xl">
-              <div className="flex justify-between items-center mb-2">
-                 <Clock size={14} className="text-brand" />
-                 <span className="body-value !text-[10px] !mb-0">{Math.floor(driveTime / 3600)}h {Math.floor((driveTime % 3600) / 60)}m</span>
+      <main className="flex-1 p-4 space-y-4 pb-32 overflow-y-auto no-scrollbar">
+        {/* Compact Stats Row */}
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+           <div className="bg-slate-800/80 px-4 py-3 rounded-2xl border border-slate-700/50 shadow-lg flex items-center gap-3 shrink-0">
+              <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                <Clock size={16} />
               </div>
-              <p className="label-logistics !text-[8px] mb-2">Duty Time</p>
-              <div className="h-1 w-full bg-navy rounded-full overflow-hidden transition-colors">
-                 <div className="h-full bg-brand transition-all duration-1000" style={{ width: `${(driveTime / 32400) * 100}%` }} />
+              <div>
+                <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Duty Time</p>
+                <h3 className="text-sm font-bold text-white tracking-tight">
+                  {Math.floor(driveTime / 3600)}h {Math.floor((driveTime % 3600) / 60)}m
+                </h3>
               </div>
            </div>
-           <div className="bg-charcoal p-4 rounded-2xl border border-white/5 shadow-2xl">
-              <div className="flex justify-between items-center mb-2">
-                 <Activity size={14} className="text-emerald" />
-                 <span className="body-value !text-[10px] !mb-0">{ecoScore}%</span>
+           
+           <div className="bg-slate-800/80 px-4 py-3 rounded-2xl border border-slate-700/50 shadow-lg flex items-center gap-3 shrink-0">
+              <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                <Activity size={16} />
               </div>
-              <p className="label-logistics !text-[8px] mb-2">Eco Efficiency</p>
-              <div className="h-1 w-full bg-navy rounded-full overflow-hidden transition-colors">
-                 <div className="h-full bg-emerald transition-all duration-1000" style={{ width: `${ecoScore}%` }} />
+              <div>
+                <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Efficiency</p>
+                <h3 className="text-sm font-bold text-white tracking-tight">{ecoScore}%</h3>
+              </div>
+           </div>
+
+           <div className="bg-slate-800/80 px-4 py-3 rounded-2xl border border-slate-700/50 shadow-lg flex items-center gap-3 shrink-0">
+              <div className="h-8 w-8 rounded-lg bg-brand/10 flex items-center justify-center text-brand">
+                <Package size={16} />
+              </div>
+              <div>
+                <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Items</p>
+                <h3 className="text-sm font-bold text-white tracking-tight">{dns.length} Units</h3>
               </div>
            </div>
         </div>
 
-        <button 
-          onClick={() => {
-            setExceptionType('');
-            setExceptionNotes('');
-            setExceptionPhoto(null);
-            setSelectedExceptionItems({});
-            setStep('EXCEPTION');
-          }}
-          className="w-full p-4 bg-red/10 border border-red/20 rounded-2xl flex items-center gap-4 group active:bg-red/20 transition-all mb-2"
-        >
-          <div className="h-10 w-10 rounded-xl bg-red text-white flex items-center justify-center shadow-lg shadow-red/20"><AlertTriangle size={20} /></div>
-          <div className="text-left">
-            <h4 className="body-value !text-red !text-xs !mb-0.5">Report Exception</h4>
-            <p className="label-logistics !text-red/60 !text-[8px] !mb-0">Log vehicle or route issues</p>
+        {/* Next Stop Highlight Card - Compact */}
+        {activeTrip && (
+          <div className="bg-emerald-500/20 border border-emerald-500/30 rounded-2xl p-4 relative overflow-hidden group transition-colors">
+            <div className="relative z-10 flex items-center justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="px-1.5 py-0.5 bg-emerald-500 text-white text-[8px] font-black rounded uppercase">Next Stop</div>
+                  <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-tight">~12 min</span>
+                </div>
+                <h4 className="text-base font-bold text-white truncate transition-colors">{activeTrip.clientName}</h4>
+                <div className="flex items-center gap-1 text-slate-400 mt-0.5">
+                  <MapPin size={12} className="shrink-0" />
+                  <p className="text-[10px] truncate transition-colors">{activeTrip.address}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(activeTrip.address)}`, '_blank')}
+                className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl p-3 shadow-lg active:scale-95 transition-all"
+              >
+                <Navigation size={20} fill="currentColor" />
+              </button>
+            </div>
           </div>
-          <ChevronRight size={18} className="ml-auto text-red/20" />
-        </button>
+        )}
 
-        {loading ? [1, 2, 3].map(i => <div key={i} className="h-20 rounded-2xl animate-pulse bg-charcoal border border-white/5" />) : 
-          dns.length === 0 ? (
+        {/* Emergency/Issue - Compact Horizontal */}
+        <div className="flex gap-2">
+          <button 
+            onClick={() => {
+              setExceptionType('');
+              setExceptionNotes('');
+              setStep('EXCEPTION');
+            }}
+            className="flex-1 bg-red-900/20 border border-red-700/30 text-red-400 rounded-xl p-3 flex items-center gap-3 transition-all active:scale-95"
+          >
+            <AlertTriangle size={16} />
+            <span className="text-[10px] font-black uppercase tracking-widest">Report Issue</span>
+          </button>
+          
+          <button 
+            onClick={() => setQuickActionOpen(true)}
+            className="flex-1 bg-slate-800 border border-slate-700 text-slate-300 rounded-xl p-3 flex items-center gap-3 transition-all active:scale-95"
+          >
+            <Zap size={16} />
+            <span className="text-[10px] font-black uppercase tracking-widest">Quick Actions</span>
+          </button>
+        </div>
+
+        <div className="pt-2">
+          <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] mb-3 ml-1">Today's Assignments</p>
+          <div className="space-y-3">
+            {loading ? [1, 2, 3].map(i => <div key={i} className="h-20 rounded-2xl animate-pulse bg-charcoal border border-white/5" />) : 
+              dns.length === 0 ? (
             <div className="py-16 text-center px-8">
                <div className="h-20 w-20 bg-emerald/10 text-emerald rounded-full flex items-center justify-center mx-auto mb-6 transition-colors shadow-sm">
                   <CheckCircle size={40} />
@@ -1159,55 +1286,54 @@ const DriverPortal: React.FC = () => {
                </button>
             </div>
           ) :
-          dns.map(dn => (
-            <button key={dn.id} onClick={() => { setCurrentDn(dn); setStep('EXECUTION'); setOdoStart(dn.odometerStart?.toString() || ''); setIsPanelExpanded(true); }} 
-              className="w-full p-4 rounded-2xl border border-white/5 bg-charcoal shadow-2xl flex items-center gap-3 active:scale-[0.99] transition-all text-left relative overflow-hidden group"
-            >
-              <div className={`absolute top-0 right-0 px-2 py-0.5 text-[6px] font-black uppercase tracking-widest ${dn.type === LogisticsType.INBOUND ? 'bg-brand text-white' : 'bg-emerald text-white'}`}>
-                {dn.type}
-              </div>
-              <div className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 border transition-all ${dn.status === DNStatus.IN_TRANSIT ? 'bg-brand text-white border-brand shadow-lg shadow-brand/20' : 'bg-navy text-white/60 border-white/5 group-hover:border-brand/30'}`}>
-                {dn.status === DNStatus.IN_TRANSIT ? <Navigation size={20} className="animate-pulse" /> : 
-                  dn.type === LogisticsType.INBOUND ? <ArrowDownLeft size={20} /> : <ArrowUpRight size={20} />
-                }
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="label-logistics !text-brand !text-[8px] mb-0.5">{dn.externalId}</p>
-                <h4 className="font-black text-xs tracking-tight uppercase truncate mb-0.5 transition-colors">{dn.clientName}</h4>
-                <p className="text-[9px] font-bold uppercase truncate tracking-tight transition-colors opacity-40">{dn.address}</p>
-              </div>
-              <ChevronRight size={18} className="text-white/50 group-hover:text-brand group-hover:translate-x-1 transition-all" />
-            </button>
-          ))
+            dns.map(dn => (
+              <button key={dn.id} onClick={() => { setCurrentDn(dn); setStep('EXECUTION'); setOdoStart(dn.odometerStart?.toString() || ''); setIsPanelExpanded(true); }} 
+                className="w-full p-4 rounded-2xl bg-slate-800/60 backdrop-blur-sm border border-slate-700/40 shadow-xl flex items-center gap-4 active:scale-[0.98] transition-all text-left relative overflow-hidden group min-h-[100px]"
+              >
+                <div className={`absolute top-0 right-0 px-3 py-1 text-[8px] font-black uppercase tracking-widest rounded-bl-xl ${dn.type === LogisticsType.INBOUND ? 'bg-brand/80' : 'bg-emerald-500/80'} text-white transition-colors`}>
+                  {dn.type === LogisticsType.INBOUND ? 'Inbound Pickup' : 'Outbound Delivery'}
+                </div>
+                
+                <div className={`h-14 w-14 rounded-2xl flex items-center justify-center shrink-0 border transition-all ${dn.status === DNStatus.IN_TRANSIT ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-slate-900 border-slate-700 text-slate-500 group-hover:border-emerald-500/30'}`}>
+                  {dn.status === DNStatus.IN_TRANSIT ? <Navigation size={26} className="animate-pulse" /> : 
+                    dn.type === LogisticsType.INBOUND ? <ArrowDownLeft size={26} /> : <ArrowUpRight size={26} />
+                  }
+                </div>
+
+                <div className="flex-1 min-w-0 space-y-1">
+                   <h4 className="text-white font-semibold text-[15px] leading-tight truncate transition-colors">{dn.clientName}</h4>
+                   <div className="flex items-center gap-1.5 text-slate-400">
+                      <MapPin size={12} className="shrink-0" />
+                      <p className="text-[11px] font-medium truncate uppercase tracking-tight transition-colors">{dn.address}</p>
+                   </div>
+                   <div className="flex items-center gap-3 pt-1">
+                      <div className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest transition-colors ${
+                        dn.status === DNStatus.IN_TRANSIT ? 'bg-blue-500/20 text-blue-400' : 
+                        dn.status === DNStatus.DELIVERED ? 'bg-emerald-500/20 text-emerald-400' : 
+                        'bg-amber-500/20 text-amber-400'
+                      }`}>
+                        {dn.status.replace('_', ' ')}
+                      </div>
+                      <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold transition-colors">
+                         <Clock size={12} />
+                         <span>ETA: 14:30</span>
+                      </div>
+                   </div>
+                </div>
+
+                <div className="flex flex-col items-end gap-2 ml-2">
+                   <div className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl p-2.5 shadow-lg shadow-emerald-500/20 transition-all active:scale-90">
+                      <Navigation size={20} fill="currentColor" />
+                   </div>
+                </div>
+              </button>
+            ))
         }
+          </div>
+        </div>
       </main>
 
-      {/* Bottom Navigation Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-navy/95 backdrop-blur-xl border-t border-white/5 px-6 pb-10 pt-4 z-40 flex justify-between items-center shadow-2xl transition-colors">
-         <button onClick={() => setStep('LIST')} className="flex flex-col items-center gap-1.5 text-brand">
-            <Truck size={20} strokeWidth={3} />
-            <span className="text-[8px] font-black uppercase tracking-widest">Manifest</span>
-         </button>
-         <button onClick={() => setStep('INSPECTION')} className="flex flex-col items-center gap-1.5 text-white/40 hover:text-brand transition-colors">
-            <ShieldCheck size={20} />
-            <span className="text-[8px] font-black uppercase tracking-widest">Safety</span>
-         </button>
-         <button onClick={() => setStep('NOTIFICATIONS')} className="flex flex-col items-center gap-1.5 text-white/40 hover:text-brand transition-colors relative">
-            <AlertCircle size={20} />
-            <span className="text-[8px] font-black uppercase tracking-widest">Alerts</span>
-            {useAppStore.getState().notifications.some(n => !n.read) && (
-              <span className="absolute top-0 right-1 h-2 w-2 bg-red rounded-full border-2 border-navy" />
-            )}
-         </button>
-         <button onClick={() => navigate('/driver/hub')} className="flex flex-col items-center gap-1.5 text-white/40 hover:text-brand transition-colors">
-            <Activity size={20} />
-            <span className="text-[8px] font-black uppercase tracking-widest">Hub</span>
-         </button>
-         <button onClick={() => setShowMenu(true)} className="flex flex-col items-center gap-1.5 text-white/40 hover:text-brand transition-colors">
-            <Menu size={20} />
-            <span className="text-[8px] font-black uppercase tracking-widest">Menu</span>
-         </button>
-      </div>
+      {renderBottomNav('LIST')}
 
       <div className="fixed bottom-2 left-0 right-0 flex justify-center pointer-events-none z-[45]">
          <div className="px-3 py-1 bg-white/5 backdrop-blur-sm rounded-full border border-white/5 flex items-center gap-2 transition-colors">
@@ -1216,70 +1342,82 @@ const DriverPortal: React.FC = () => {
          </div>
       </div>
 
-      {/* Driver Hub Menu Overlay */}
+      {/* Quick Actions Menu Overlay */}
       {quickActionOpen && (
-        <div className="fixed inset-0 z-[150] flex items-end justify-center p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-           <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl p-8 animate-in slide-in-from-bottom-10 duration-500">
+        <div className="fixed inset-0 z-[150] flex items-end justify-center p-6 bg-[#0a0f1a]/80 backdrop-blur-sm animate-in fade-in duration-300">
+           <div className="w-full max-w-md bg-slate-900 border border-slate-700/50 rounded-[2.5rem] shadow-2xl p-8 animate-in slide-in-from-bottom-10 duration-500">
               <div className="flex justify-between items-center mb-8">
-                 <h3 className="text-xl font-black uppercase tracking-tighter text-slate-900">Tactical Actions</h3>
-                 <button onClick={() => setQuickActionOpen(false)} className="p-2 bg-slate-100 rounded-xl text-slate-600 transition-colors"><X size={20}/></button>
+                 <div>
+                    <h3 className="text-xl font-bold text-white tracking-tight transition-colors">Quick Actions</h3>
+                    <p className="text-xs text-slate-500 mt-1 transition-colors">Select an action to continue</p>
+                 </div>
+                 <button onClick={() => setQuickActionOpen(false)} className="h-10 w-10 bg-slate-800 rounded-xl text-slate-400 flex items-center justify-center border border-slate-700/50 transition-colors hover:text-white active:scale-90"><X size={20}/></button>
               </div>
               <div className="grid grid-cols-2 gap-4">
                  <button 
+                   onClick={() => {
+                     const activeTrip = dns.find(dn => dn.status === DNStatus.IN_TRANSIT) || dns[0];
+                     if (activeTrip) {
+                       setCurrentDn(activeTrip);
+                       setStep('EXECUTION');
+                       setPodPhoto(null);
+                       setPodSignature(null);
+                       setQuickActionOpen(false);
+                     }
+                   }}
+                   className="p-5 bg-emerald-500/10 border border-emerald-500/20 rounded-3xl flex flex-col items-center gap-3 group active:scale-95 transition-all text-center"
+                 >
+                    <div className="h-12 w-12 bg-emerald-500 text-white rounded-2xl flex items-center justify-center shadow-lg group-hover:rotate-12 transition-transform">
+                       <CheckCircle size={24} />
+                    </div>
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-400 transition-colors">Mark Delivered</span>
+                 </button>
+                 <button 
                    onClick={() => { setQuickActionOpen(false); setStep('EXCEPTION'); }}
-                   className="p-6 bg-red-50 border border-red-100 rounded-3xl flex flex-col items-center gap-3 group active:scale-95 transition-all"
+                   className="p-5 bg-red-500/10 border border-red-500/20 rounded-3xl flex flex-col items-center gap-3 group active:scale-95 transition-all text-center"
                  >
                     <div className="h-12 w-12 bg-red-500 text-white rounded-2xl flex items-center justify-center shadow-lg group-hover:rotate-12 transition-transform">
                        <AlertTriangle size={24} />
                     </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-red-600">Report Issue</span>
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-red-500 transition-colors">Report Issue</span>
                  </button>
                  <button 
-                   onClick={() => { setQuickActionOpen(false); setIsChatOpen(true); }}
-                   className="p-6 bg-brand/5 border border-brand/10 rounded-3xl flex flex-col items-center gap-3 group active:scale-95 transition-all"
+                   onClick={() => { window.open('tel:0800123456'); setQuickActionOpen(false); }}
+                   className="p-5 bg-blue-500/10 border border-blue-500/20 rounded-3xl flex flex-col items-center gap-3 group active:scale-95 transition-all text-center"
                  >
-                    <div className="h-12 w-12 bg-brand text-white rounded-2xl flex items-center justify-center shadow-lg group-hover:rotate-12 transition-transform">
-                       <MessageSquare size={24} />
+                    <div className="h-12 w-12 bg-blue-500 text-white rounded-2xl flex items-center justify-center shadow-lg group-hover:rotate-12 transition-transform">
+                       <PhoneCall size={24} />
                     </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-brand">Dispatch Chat</span>
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-blue-400 transition-colors">Call Dispatch</span>
                  </button>
                  <button 
-                   onClick={() => { setQuickActionOpen(false); setStep('INSPECTION'); }}
-                   className="p-6 bg-emerald-50 border border-emerald-100 rounded-3xl flex flex-col items-center gap-3 group active:scale-95 transition-all"
+                   onClick={() => { setShowAdvisoryModal(true); setQuickActionOpen(false); }}
+                   className="p-5 bg-amber-500/10 border border-amber-500/20 rounded-3xl flex flex-col items-center gap-3 group active:scale-95 transition-all text-center"
                  >
-                    <div className="h-12 w-12 bg-emerald-500 text-white rounded-2xl flex items-center justify-center shadow-lg group-hover:rotate-12 transition-transform">
-                       <ShieldCheck size={24} />
-                    </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Safety Check</span>
-                 </button>
-                 <button 
-                   onClick={() => { setQuickActionOpen(false); setShowAdvisoryModal(true); }}
-                   className="p-6 bg-orange-50 border border-orange-100 rounded-3xl flex flex-col items-center gap-3 group active:scale-95 transition-all"
-                 >
-                    <div className="h-12 w-12 bg-orange-500 text-white rounded-2xl flex items-center justify-center shadow-lg group-hover:rotate-12 transition-transform">
+                    <div className="h-12 w-12 bg-amber-500 text-white rounded-2xl flex items-center justify-center shadow-lg group-hover:rotate-12 transition-transform">
                        <CloudRain size={24} />
                     </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-orange-600">Advisories</span>
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-amber-500 transition-colors">Advisories</span>
                  </button>
               </div>
            </div>
         </div>
       )}
 
-      {/* Floating Quick Action Button */}
+      {/* Floating Action Button */}
       {step === 'LIST' && !quickActionOpen && (
         <button 
           onClick={() => setQuickActionOpen(true)}
-          className="fixed bottom-28 right-6 h-14 w-14 bg-brand text-white rounded-2xl shadow-2xl flex items-center justify-center z-[100] active:scale-90 transition-all border-4 border-white animate-bounce"
+          className="fixed bottom-28 right-6 h-16 w-16 bg-emerald-500 text-white rounded-2xl shadow-2xl shadow-emerald-500/20 flex items-center justify-center z-[100] active:scale-90 transition-all border-4 border-[#0a0f1a] hover:bg-emerald-600 group"
         >
-           <Zap size={24} fill="currentColor" />
+           <Zap size={28} fill="currentColor" className="group-hover:scale-110 transition-transform" />
         </button>
       )}
 
       {/* Driver Hub Menu Overlay */}
       {/* Safety Alert Overlay */}
       {showSafetyAlert && (
-        <div className="fixed top-24 left-4 right-4 z-[100] animate-in slide-in-from-top-8 duration-300">
+        <div className="fixed top-24 left-4 right-4 z-[9000] animate-in slide-in-from-top-8 duration-300">
            <div className="bg-red-600 text-white p-4 rounded-2xl shadow-2xl flex items-center gap-4 border-2 border-white/20">
               <div className="h-10 w-10 bg-white/20 rounded-xl flex items-center justify-center animate-pulse">
                  <AlertTriangle size={24} />
@@ -1467,6 +1605,7 @@ const DriverPortal: React.FC = () => {
       )}
     </div>
   );
+}
 
   if (step === 'WALLET') return (
     <div className="min-h-screen bg-navy font-sans flex flex-col transition-colors duration-300">
@@ -1530,6 +1669,7 @@ const DriverPortal: React.FC = () => {
            </div>
         </div>
       </main>
+      {renderBottomNav('HUB')}
     </div>
   );
 
@@ -1608,6 +1748,7 @@ const DriverPortal: React.FC = () => {
            )}
         </div>
       </main>
+      {renderBottomNav('SAFETY')}
     </div>
   );
 
@@ -1669,7 +1810,10 @@ const DriverPortal: React.FC = () => {
     const isAtSite = currentDn.status === DNStatus.DELIVERED;
 
     return (
-      <div className="h-screen flex flex-col font-sans bg-navy overflow-hidden relative transition-colors duration-300">
+      <div 
+        className="h-screen flex flex-col font-sans bg-navy overflow-hidden relative transition-colors duration-300"
+        onClick={() => { if (isPanelExpanded) setIsPanelExpanded(false); }}
+      >
         <div className="flex-1 relative">
            <MapEngine 
             dns={liveDn ? [liveDn as any] : []} 
@@ -1679,7 +1823,10 @@ const DriverPortal: React.FC = () => {
             className="w-full h-full" 
            />
            
-           <div className="absolute top-14 left-4 right-4 z-[2000] flex flex-col gap-2 pointer-events-none">
+           <div 
+             className="absolute top-14 left-4 right-4 z-[2000] flex flex-col gap-2 pointer-events-none"
+             onClick={(e) => e.stopPropagation()}
+           >
               <div className="bg-brand text-white p-6 rounded-3xl shadow-2xl border border-white/10 backdrop-blur-xl flex-1 max-w-[300px] pointer-events-auto">
                  <p className="label-logistics !text-white/40 mb-2">
                    {currentDn.type === LogisticsType.INBOUND ? 'Warehouse Consignee' : 'End Customer'}
@@ -1705,7 +1852,10 @@ const DriverPortal: React.FC = () => {
                 </div>
               )}
            </div>
-           <div className="absolute top-14 right-4 z-[2000] flex flex-col gap-3 pointer-events-auto">
+           <div 
+             className="absolute top-14 right-4 z-[2000] flex flex-col gap-3 pointer-events-auto"
+             onClick={(e) => e.stopPropagation()}
+           >
               <button onClick={() => setStep('LIST')} className="h-14 w-14 bg-charcoal rounded-2xl shadow-lg flex items-center justify-center text-white/40 active:scale-90 border border-white/5 transition-colors"><X size={24} /></button>
               <button onClick={() => setStep('EXCEPTION')} className="h-14 w-14 bg-red/10 text-red rounded-2xl shadow-lg flex items-center justify-center active:scale-90 border border-red/20 transition-colors"><AlertTriangle size={24} /></button>
               <button onClick={() => setIsChatOpen(true)} className="h-14 w-14 bg-brand text-white rounded-2xl shadow-lg flex items-center justify-center active:scale-90 border border-brand/20 transition-colors">
@@ -1728,7 +1878,10 @@ const DriverPortal: React.FC = () => {
         </div>
 
         {/* Tactile Execution Drawer */}
-        <div className={`absolute bottom-0 left-0 right-0 bg-navy border-t border-white/5 rounded-t-[3rem] shadow-2xl z-[2500] transition-all duration-500 ease-out flex flex-col ${isPanelExpanded ? 'max-h-[65vh]' : 'max-h-[140px]'}`}>
+        <div 
+          className={`absolute bottom-0 left-0 right-0 bg-navy border-t border-white/5 rounded-t-[3rem] shadow-2xl z-[2500] transition-all duration-500 ease-out flex flex-col ${isPanelExpanded ? 'max-h-[65vh]' : 'max-h-[140px]'}`}
+          onClick={(e) => e.stopPropagation()}
+        >
            <button onClick={() => setIsPanelExpanded(!isPanelExpanded)} className="w-full py-4 flex items-center justify-center text-white/10 group transition-colors">
               <div className="h-1.5 w-12 bg-white/5 rounded-full group-hover:bg-white/10 transition-colors" />
            </button>
@@ -2110,25 +2263,33 @@ const DriverPortal: React.FC = () => {
         </div>
 
         {isPaymentModalOpen && currentDn && (
-          <PaymentModal
-            isOpen={isPaymentModalOpen}
-            onClose={() => setIsPaymentModalOpen(false)}
-            dnId={currentDn.id}
-            amount={paymentAmount}
-            customerPhone={customerPhone}
-            onSuccess={() => {
-              addNotification("Payment confirmed via M-Pesa.", "success");
-              // Refresh DN to show paid status
-              setDns(prev => prev.map(dn => dn.id === currentDn.id ? { ...dn, paymentStatus: 'PAID' } : dn));
-              setCurrentDn(prev => prev ? { ...prev, paymentStatus: 'PAID' } : null);
-            }}
-          />
+          <div className="z-[8000] relative">
+            <PaymentModal
+              isOpen={isPaymentModalOpen}
+              onClose={() => setIsPaymentModalOpen(false)}
+              dnId={currentDn.id}
+              amount={paymentAmount}
+              customerPhone={customerPhone}
+              onSuccess={() => {
+                addNotification("Payment confirmed via M-Pesa.", "success");
+                // Refresh DN to show paid status
+                setDns(prev => prev.map(dn => dn.id === currentDn.id ? { ...dn, paymentStatus: 'PAID' } : dn));
+                setCurrentDn(prev => prev ? { ...prev, paymentStatus: 'PAID' } : null);
+              }}
+            />
+          </div>
         )}
 
         {/* Chat Modal */}
         {isChatOpen && (
-          <div className="fixed inset-0 z-[7000] bg-slate-900/60 backdrop-blur-sm flex flex-col p-4 animate-in fade-in duration-300">
-            <div className="flex-1 bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden max-w-md mx-auto w-full transition-colors">
+          <div 
+            className="fixed inset-0 z-[8000] bg-slate-900/60 backdrop-blur-sm flex flex-col p-4 animate-in fade-in duration-300"
+            onClick={(e) => { e.stopPropagation(); setIsChatOpen(false); }}
+          >
+            <div 
+              className="flex-1 bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden max-w-md mx-auto w-full transition-colors"
+              onClick={(e) => e.stopPropagation()}
+            >
               <header className="p-6 border-b border-white/10 flex justify-between items-center bg-brand text-white">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 bg-white/20 rounded-xl flex items-center justify-center">
@@ -2185,8 +2346,14 @@ const DriverPortal: React.FC = () => {
 
         {/* Advisory Modal */}
         {showAdvisoryModal && (
-          <div className="fixed inset-0 z-[7000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-300">
-            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl p-8 max-w-md w-full animate-in zoom-in-95 duration-300 transition-colors">
+          <div 
+            className="fixed inset-0 z-[8000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-300"
+            onClick={(e) => { e.stopPropagation(); setShowAdvisoryModal(false); }}
+          >
+            <div 
+              className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl p-8 max-w-md w-full animate-in zoom-in-95 duration-300 transition-colors"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="flex justify-between items-center mb-8">
                 <h3 className="text-xl font-black uppercase tracking-tighter text-ink dark:text-white transition-colors">Route Intelligence</h3>
                 <button onClick={() => setShowAdvisoryModal(false)} className="p-2 bg-slate-100 dark:bg-white/5 rounded-xl text-slate-600 dark:text-white/40 transition-colors"><X size={20}/></button>

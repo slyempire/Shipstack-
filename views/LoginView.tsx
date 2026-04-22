@@ -32,11 +32,12 @@ const LoginView: React.FC = () => {
       login(user, token);
       addNotification(`Welcome back, ${user.name}`, 'success');
       
-      if (user.role === 'DRIVER') navigate('/driver');
-      else if (user.role === 'FACILITY') navigate('/facility');
-      else if (user.role === 'CLIENT') navigate('/client');
-      else if (user.role === 'WAREHOUSE') navigate('/admin/warehouse');
-      else if (user.role === 'FINANCE') navigate('/admin/billing');
+      const userRole = user.role.toLowerCase();
+      if (userRole === 'driver') navigate('/driver');
+      else if (userRole === 'facility' || userRole === 'facility_operator') navigate('/facility');
+      else if (userRole === 'client') navigate('/client');
+      else if (userRole === 'warehouse') navigate('/admin/warehouse');
+      else if (userRole === 'finance' || userRole === 'finance_manager') navigate('/admin/billing');
       else navigate('/admin');
     } catch (err: any) {
       addNotification(err.message || 'Authentication failed. Check credentials.', 'error');
@@ -53,11 +54,13 @@ const LoginView: React.FC = () => {
       localStorage.setItem('shipstack_demo_mode', 'true');
       login(user, token);
       addNotification(`Demo session started as ${user.role}`, 'info');
-      if (user.role === 'DRIVER') navigate('/driver');
-      else if (user.role === 'FACILITY') navigate('/facility');
-      else if (user.role === 'CLIENT') navigate('/client');
-      else if (user.role === 'WAREHOUSE') navigate('/admin/warehouse');
-      else if (user.role === 'FINANCE') navigate('/admin/billing');
+      
+      const userRole = user.role.toLowerCase();
+      if (userRole === 'driver') navigate('/driver');
+      else if (userRole === 'facility' || userRole === 'facility_operator') navigate('/facility');
+      else if (userRole === 'client') navigate('/client');
+      else if (userRole === 'warehouse') navigate('/admin/warehouse');
+      else if (userRole === 'finance' || userRole === 'finance_manager') navigate('/admin/billing');
       else navigate('/admin');
     } catch (err: any) {
       addNotification(err.message || 'Authentication failed.', 'error');
@@ -167,11 +170,13 @@ const LoginView: React.FC = () => {
                     const { user, token } = await api.loginWithGoogle();
                     login(user, token);
                     addNotification(`Welcome back, ${user.name}`, 'success');
-                    if (user.role === 'DRIVER') navigate('/driver');
-                    else if (user.role === 'FACILITY') navigate('/facility');
-                    else if (user.role === 'CLIENT') navigate('/client');
-                    else if (user.role === 'WAREHOUSE') navigate('/admin/warehouse');
-                    else if (user.role === 'FINANCE') navigate('/admin/billing');
+                    
+                    const userRole = user.role.toLowerCase();
+                    if (userRole === 'driver') navigate('/driver');
+                    else if (userRole === 'facility' || userRole === 'facility_operator') navigate('/facility');
+                    else if (userRole === 'client') navigate('/client');
+                    else if (userRole === 'warehouse') navigate('/admin/warehouse');
+                    else if (userRole === 'finance' || userRole === 'finance_manager') navigate('/admin/billing');
                     else navigate('/admin');
                   } catch (err: any) {
                     addNotification(err.message || 'Google Authentication failed.', 'error');

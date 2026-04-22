@@ -62,8 +62,13 @@ const HealthcareDashboard = React.lazy(() => import('./views/industry/Healthcare
 
 const DashboardSwitcher = () => {
   const { user } = useAuthStore();
-  if (user?.role === 'DISPATCHER') return <DispatchDashboard />;
-  if (user?.role === 'WAREHOUSE') return <ModuleGuard moduleId="warehouse"><WarehouseManagement /></ModuleGuard>;
+  const role = user?.role?.toLowerCase();
+  
+  if (role === 'dispatcher') return <DispatchDashboard />;
+  if (role === 'warehouse' || role === 'facility_operator') return <ModuleGuard moduleId="warehouse"><WarehouseManagement /></ModuleGuard>;
+  if (role === 'driver') return <DriverPortal />;
+  if (role === 'client') return <ClientPortal />;
+  
   return <AdminDashboard />;
 };
 

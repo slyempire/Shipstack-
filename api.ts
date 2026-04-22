@@ -111,13 +111,35 @@ const handleApiError = (error: any, context: string) => {
  * Role-Based Access Control Helper
  * Ensures the requester has the necessary role to access a resource.
  */
-const checkRole = (role: UserRole | undefined, allowed: UserRole[]) => {
+const checkRole = (role: string | undefined, allowed: string[]) => {
   if (!role) {
     throw new Error('Unauthorized: Authentication required.');
   }
-  if (!allowed.includes(role)) {
-    throw new Error('Forbidden: Insufficient permissions to access this resource.');
-  }
+  
+  const normalizedRole = role.trim().toLowerCase();
+  const normalizedAllowed = allowed.map(r => r.trim().toLowerCase());
+  
+  // Super Admin - God mode in mock API
+  if (normalizedRole === 'super_admin') return;
+
+  // Direct match
+  if (normalizedAllowed.includes(normalizedRole)) return;
+  
+  // Common role group mappings
+  const isAdminAllowed = normalizedAllowed.includes('admin') || normalizedAllowed.includes('tenant_admin');
+  const isFinanceAllowed = normalizedAllowed.includes('finance') || normalizedAllowed.includes('finance_manager');
+  const isDispatcherAllowed = normalizedAllowed.includes('dispatcher') || normalizedAllowed.includes('operations_manager');
+
+  // Admin Group Access
+  if (isAdminAllowed && ['admin', 'tenant_admin', 'super_admin'].includes(normalizedRole)) return;
+  
+  // Finance Group Access
+  if (isFinanceAllowed && ['finance', 'finance_manager', 'super_admin', 'tenant_admin'].includes(normalizedRole)) return;
+
+  // Ops Group Access
+  if (isDispatcherAllowed && ['dispatcher', 'operations_manager', 'super_admin', 'tenant_admin'].includes(normalizedRole)) return;
+
+  throw new Error(`Forbidden: Insufficient permissions to access this resource. (Role Detected: ${role}, Permissions Required: ${allowed.join(', ')})`);
 };
 
 /**
@@ -176,13 +198,13 @@ const setStore = <T>(key: string, data: T) => {
 };
 
 const initialUsers: User[] = [
-  { id: 'u-1', name: 'Admin User', email: 'admin@shipstack.com', role: 'ADMIN', company: 'Shipstack HQ', password: 'password', verificationStatus: 'VERIFIED', isOnboarded: true, tenantId: 'tenant-1' },
-  { id: 'd-1', name: 'Driver John', email: 'pilot@shipstack.com', role: 'DRIVER', company: 'Alpha Transporters', idNumber: '12345678', kraPin: 'A001234567Z', licenseNumber: 'DL-99221', onDuty: true, password: 'password', verificationStatus: 'VERIFIED', isOnboarded: true, tenantId: 'tenant-1' },
-  { id: 'd-2', name: 'Driver Sarah', email: 'sarah@shipstack.com', role: 'DRIVER', company: 'Beta Logistics', idNumber: '87654321', kraPin: 'B008765432X', licenseNumber: 'DL-88112', onDuty: false, password: 'password', verificationStatus: 'PENDING', isOnboarded: true, tenantId: 'tenant-1' },
-  { id: 'd-3', name: 'Driver Mike', email: 'mike@shipstack.com', role: 'DRIVER', company: 'Gamma Express', idNumber: '11223344', kraPin: 'C001122334Y', licenseNumber: 'DL-77334', onDuty: true, password: 'password', verificationStatus: 'VERIFIED', isOnboarded: true, tenantId: 'tenant-1' },
-  { id: 'f-1', name: 'Hub Manager', email: 'hub@shipstack.com', role: 'FACILITY', company: 'MEDS Central Hub', password: 'password', verificationStatus: 'VERIFIED', isOnboarded: true, tenantId: 'tenant-1' },
-  { id: 'w-1', name: 'Warehouse Lead', email: 'warehouse@shipstack.com', role: 'WAREHOUSE', company: 'MEDS Warehouse', password: 'password', verificationStatus: 'VERIFIED', isOnboarded: true, tenantId: 'tenant-1' },
-  { id: 'fin-1', name: 'Finance Lead', email: 'finance@shipstack.com', role: 'FINANCE', company: 'Shipstack HQ', password: 'password', verificationStatus: 'VERIFIED', isOnboarded: true, tenantId: 'tenant-1' }
+  { id: 'u-1', name: 'Admin User', email: 'admin@shipstack.com', role: 'super_admin', company: 'Shipstack HQ', password: 'password', verificationStatus: 'VERIFIED', isOnboarded: true, tenantId: 'tenant-1' },
+  { id: 'd-1', name: 'Driver John', email: 'pilot@shipstack.com', role: 'driver', company: 'Alpha Transporters', idNumber: '12345678', kraPin: 'A001234567Z', licenseNumber: 'DL-99221', onDuty: true, password: 'password', verificationStatus: 'VERIFIED', isOnboarded: true, tenantId: 'tenant-1' },
+  { id: 'd-2', name: 'Driver Sarah', email: 'sarah@shipstack.com', role: 'driver', company: 'Beta Logistics', idNumber: '87654321', kraPin: 'B008765432X', licenseNumber: 'DL-88112', onDuty: false, password: 'password', verificationStatus: 'PENDING', isOnboarded: true, tenantId: 'tenant-1' },
+  { id: 'd-3', name: 'Driver Mike', email: 'mike@shipstack.com', role: 'driver', company: 'Gamma Express', idNumber: '11223344', kraPin: 'C001122334Y', licenseNumber: 'DL-77334', onDuty: true, password: 'password', verificationStatus: 'VERIFIED', isOnboarded: true, tenantId: 'tenant-1' },
+  { id: 'f-1', name: 'Hub Manager', email: 'hub@shipstack.com', role: 'facility_operator', company: 'MEDS Central Hub', password: 'password', verificationStatus: 'VERIFIED', isOnboarded: true, tenantId: 'tenant-1' },
+  { id: 'w-1', name: 'Warehouse Lead', email: 'warehouse@shipstack.com', role: 'facility_operator', company: 'MEDS Warehouse', password: 'password', verificationStatus: 'VERIFIED', isOnboarded: true, tenantId: 'tenant-1' },
+  { id: 'fin-1', name: 'Finance Lead', email: 'finance@shipstack.com', role: 'finance_manager', company: 'Shipstack HQ', password: 'password', verificationStatus: 'VERIFIED', isOnboarded: true, tenantId: 'tenant-1' }
 ];
 
 const initialOrders: Order[] = [
@@ -566,7 +588,7 @@ export const api = {
         const user: User = { 
           id: authData.user.id, 
           ...sanitizedData, 
-          role: 'ADMIN', // Automatically set as ADMIN
+          role: 'tenant_admin', // Automatically set as tenant_admin
           isOnboarded: false, 
           onboardingStep: 1 
         };
@@ -613,7 +635,7 @@ export const api = {
     const user: User = { 
       id: `u-${Date.now()}`, 
       ...sanitizedData, 
-      role: 'ADMIN', // Automatically set as ADMIN
+      role: 'tenant_admin', // Automatically set as tenant_admin
       isOnboarded: false, 
       onboardingStep: 1 
     };

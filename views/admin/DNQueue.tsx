@@ -37,7 +37,10 @@ import {
   MapPin,
   MoreHorizontal,
   X,
-  ShoppingBag
+  ShoppingBag,
+  Flag,
+  Hash,
+  Shield
 } from 'lucide-react';
 
 const OperationsHub: React.FC = () => {
@@ -169,12 +172,12 @@ const OperationsHub: React.FC = () => {
   };
 
   const tabConfigs = [
-    { id: DNStatus.RECEIVED, label: 'Ingested', icon: Inbox, color: 'text-blue-500', bg: 'bg-blue-50' },
-    { id: DNStatus.VALIDATED, label: 'Verified', icon: CheckSquare, color: 'text-indigo-500', bg: 'bg-indigo-50' },
-    { id: DNStatus.READY_FOR_DISPATCH, label: 'Ready', icon: Zap, color: 'text-amber-500', bg: 'bg-amber-50' },
-    { id: DNStatus.DISPATCHED, label: 'Manifested', icon: UserPlus, color: 'text-emerald-500', bg: 'bg-emerald-50' },
-    { id: DNStatus.IN_TRANSIT, label: 'In-Transit', icon: Truck, color: 'text-purple-500', bg: 'bg-purple-50' },
-    { id: DNStatus.DELIVERED, label: 'Settled', icon: CheckCircle, color: 'text-slate-500', bg: 'bg-slate-50' },
+    { id: DNStatus.RECEIVED, label: 'Ingested', icon: Inbox, color: 'text-emerald-500', bg: 'from-emerald-50 to-white', border: 'border-l-emerald-500', trend: '+12 today' },
+    { id: DNStatus.VALIDATED, label: 'Verified', icon: CheckSquare, color: 'text-blue-500', bg: 'from-blue-50 to-white', border: 'border-l-blue-500', trend: '+5 today' },
+    { id: DNStatus.READY_FOR_DISPATCH, label: 'Ready', icon: Zap, color: 'text-amber-500', bg: 'from-amber-50 to-white', border: 'border-l-amber-500', trend: '+8 today' },
+    { id: DNStatus.DISPATCHED, label: 'Manifested', icon: UserPlus, color: 'text-violet-500', bg: 'from-violet-50 to-white', border: 'border-l-violet-500', trend: '+4 today' },
+    { id: DNStatus.IN_TRANSIT, label: 'In-Transit', icon: Truck, color: 'text-purple-500', bg: 'from-purple-50 to-white', border: 'border-l-purple-500', trend: 'Live' },
+    { id: DNStatus.DELIVERED, label: 'Settled', icon: CheckCircle, color: 'text-green-500', bg: 'from-green-50 to-white', border: 'border-l-green-500', trend: '+20 today' },
   ];
 
   const SortIndicator = ({ columnKey }: { columnKey: keyof DeliveryNote }) => {
@@ -245,71 +248,87 @@ const OperationsHub: React.FC = () => {
   return (
     <Layout title="Operations Hub">
       <div className="flex flex-col gap-6 h-full">
+        {/* Header and Subtitle */}
+        <div className="-mb-2">
+          <p className="text-sm text-slate-500">Manage and track all delivery notes across your logistics pipeline</p>
+        </div>
+
         {/* Tactical Stats Bar */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {tabConfigs.map(tab => (
             <motion.button
               key={tab.id}
-              whileHover={{ y: -2 }}
+              whileHover={{ y: -4 }}
               onClick={() => setActiveTab(tab.id)}
-              className={`p-4 rounded-2xl border transition-all text-left group ${activeTab === tab.id ? 'bg-white border-brand shadow-lg' : 'bg-white border-slate-200 hover:border-brand/50 shadow-sm'}`}
+              className={`p-6 rounded-2xl border transition-all text-left bg-gradient-to-br ${tab.bg} ${tab.border} border-l-4 ${activeTab === tab.id ? 'border-brand shadow-md ring-1 ring-brand/10' : 'border-slate-200 hover:border-brand/30 hover:shadow-md'} shadow-sm flex flex-col justify-between h-full`}
             >
-              <div className={`h-10 w-10 ${tab.bg} ${tab.color} rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
-                <tab.icon size={20} />
+              <div>
+                <div className={`h-10 w-10 bg-white ${tab.color} rounded-xl flex items-center justify-center mb-4 shadow-sm group-hover:scale-110 transition-transform`}>
+                  <tab.icon size={20} />
+                </div>
+                <p className="text-sm font-medium text-slate-500 mb-1">{tab.label}</p>
               </div>
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{tab.label}</p>
-              <div className="flex items-end justify-between">
-                <p className={`text-2xl font-black ${activeTab === tab.id ? 'text-brand' : 'text-gray-900'}`}>
-                  {dns.filter(d => d.status === tab.id).length}
-                </p>
-                {activeTab === tab.id && <div className="h-1.5 w-1.5 rounded-full bg-brand animate-pulse mb-2" />}
+              
+              <div className="flex items-end justify-between mt-2">
+                <div>
+                  <p className={`text-4xl font-bold ${activeTab === tab.id ? 'text-brand' : 'text-slate-900'}`}>
+                    {dns.filter(d => d.status === tab.id).length}
+                  </p>
+                  <p className="text-[10px] text-slate-400 font-medium mt-1 uppercase tracking-wider">{tab.trend}</p>
+                </div>
+                {activeTab === tab.id && <div className="h-2 w-2 rounded-full bg-brand animate-pulse mb-3" />}
               </div>
             </motion.button>
           ))}
         </div>
 
+        <div className="border-b border-slate-100 mb-2" />
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 min-h-0">
           {/* Main Manifest Section */}
           <div className="lg:col-span-9 flex flex-col gap-4 min-h-0">
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col min-h-0">
-              {/* Header & Filters */}
-              <div className="p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <h2 className="text-sm font-black text-gray-900 uppercase tracking-tight">Manifest Queue</h2>
-                  <div className="h-6 w-px bg-slate-200" />
-                  <div className="relative w-64">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-                    <input 
-                      type="text" 
-                      placeholder="Search reference, client..." 
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold text-gray-900 outline-none focus:ring-2 focus:ring-brand/10 transition-all"
-                    />
+            <div className="flex flex-col gap-4">
+              <h2 className="text-xl font-semibold text-slate-800">Delivery Note Queue</h2>
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col min-h-0">
+                {/* Header & Filters */}
+                <div className="p-5 border-b border-slate-100 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-6 flex-1">
+                    <div className="relative w-80">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                      <input 
+                        type="text" 
+                        placeholder="Search by reference, client, or location..." 
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-600 outline-none focus:ring-2 focus:ring-brand/10 transition-all placeholder:text-slate-400"
+                      />
+                    </div>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3 shrink-0">
                   <button 
                     onClick={() => {
                       setEditingDn({ items: [{ id: 'item-1', name: '', qty: 1, unit: 'unit' }] });
                       setShowEditModal(true);
                     }}
-                    className="bg-brand text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-md hover:bg-brand/90 transition-all"
+                    className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-95"
                   >
-                    <Plus size={14} /> New Entry
+                    <Plus size={18} /> NEW ENTRY
                   </button>
-                  <div className="h-6 w-px bg-slate-200 mx-2" />
-                  <select 
-                    value={filterPriority} 
-                    onChange={(e) => setFilterPriority(e.target.value)}
-                    className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-gray-600 outline-none"
-                  >
-                    <option value="ALL">All Priorities</option>
-                    <option value="HIGH">High</option>
-                    <option value="MEDIUM">Medium</option>
-                    <option value="LOW">Low</option>
-                  </select>
+                  <div className="h-8 w-px bg-slate-100 mx-1" />
+                  <div className="relative">
+                    <select 
+                      value={filterPriority} 
+                      onChange={(e) => setFilterPriority(e.target.value)}
+                      className="appearance-none bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-10 py-2.5 text-sm font-medium text-slate-600 outline-none focus:ring-2 focus:ring-brand/5 transition-all cursor-pointer"
+                    >
+                      <option value="ALL">All Priorities</option>
+                      <option value="HIGH">High Priority</option>
+                      <option value="MEDIUM">Medium Priority</option>
+                      <option value="LOW">Low Priority</option>
+                    </select>
+                    <Filter className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
+                  </div>
                 </div>
               </div>
 
@@ -318,35 +337,74 @@ const OperationsHub: React.FC = () => {
                 <table className="w-full text-left border-collapse">
                   <thead className="sticky top-0 bg-white z-10 border-b border-slate-100">
                     <tr>
-                      <th className="p-4 w-12">
+                      <th className="p-4 w-12 text-center">
                         <button onClick={() => setSelectedIds(selectedIds.length === processedItems.length ? [] : processedItems.map(d => d.id))}>
-                          {selectedIds.length === processedItems.length && processedItems.length > 0 ? <CheckSquare className="text-brand" size={16} /> : <Square className="text-slate-300" size={16} />}
+                          {selectedIds.length === processedItems.length && processedItems.length > 0 ? <CheckSquare className="text-brand mx-auto" size={18} /> : <Square className="text-slate-200 mx-auto" size={18} />}
                         </button>
                       </th>
-                      <th className="p-4 w-24 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Priority</th>
-                      <th className="p-4 w-32 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Reference</th>
-                      <th className="p-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Recipient & destination</th>
-                      <th className="p-4 w-32 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Status</th>
-                      <th className="p-4 w-32 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Due date</th>
+                      <th className="p-4 w-32 text-xs font-medium text-slate-400 uppercase tracking-wider">
+                        <div className="flex items-center gap-2">
+                          <Flag size={12} />
+                          Priority
+                        </div>
+                      </th>
+                      <th className="p-4 w-32 text-xs font-medium text-slate-400 uppercase tracking-wider">
+                        <div className="flex items-center gap-2">
+                          <Hash size={12} />
+                          Reference
+                        </div>
+                      </th>
+                      <th className="p-4 text-xs font-medium text-slate-400 uppercase tracking-wider">
+                        <div className="flex items-center gap-2">
+                          <MapPin size={12} />
+                          Recipient & Destination
+                        </div>
+                      </th>
+                      <th className="p-4 w-32 text-xs font-medium text-slate-400 uppercase tracking-wider text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <Shield size={12} />
+                          Status
+                        </div>
+                      </th>
+                      <th className="p-4 w-32 text-xs font-medium text-slate-400 uppercase tracking-wider">
+                        <div className="flex items-center gap-2">
+                          <Calendar size={12} />
+                          Due Date
+                        </div>
+                      </th>
                       <th className="p-4 w-12"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-50">
+                  <tbody className="divide-y divide-slate-100">
                     {loading ? (
                       <tr>
-                        <td colSpan={7} className="p-20 text-center animate-pulse">
-                          <div className="flex flex-col items-center gap-3">
-                            <div className="h-10 w-10 border-4 border-brand/20 border-t-brand rounded-full animate-spin" />
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Syncing manifest grid...</p>
+                        <td colSpan={7} className="p-32 text-center">
+                          <div className="flex flex-col items-center gap-4">
+                            <div className="h-12 w-12 border-4 border-slate-100 border-t-emerald-500 rounded-full animate-spin" />
+                            <p className="text-sm font-medium text-slate-400">Synchronizing delivery grid...</p>
                           </div>
                         </td>
                       </tr>
                     ) : processedItems.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="p-20 text-center">
-                          <div className="flex flex-col items-center gap-4">
-                            <Inbox className="text-slate-200" size={48} />
-                            <p className="text-slate-400 font-bold uppercase text-[10px]">No items found in this queue</p>
+                        <td colSpan={7} className="p-32 text-center">
+                          <div className="flex flex-col items-center gap-6 max-w-sm mx-auto">
+                            <div className="h-24 w-24 bg-slate-50 text-slate-200 rounded-full flex items-center justify-center">
+                              <Inbox size={48} />
+                            </div>
+                            <div>
+                              <p className="text-slate-800 font-semibold text-lg mb-2">No delivery notes found</p>
+                              <p className="text-slate-400 text-sm mb-6 font-medium">Create your first entry to get started with fleet tracking.</p>
+                              <button 
+                                onClick={() => {
+                                  setEditingDn({ items: [{ id: 'item-1', name: '', qty: 1, unit: 'unit' }] });
+                                  setShowEditModal(true);
+                                }}
+                                className="inline-flex items-center gap-2 px-6 py-2.5 bg-emerald-500 text-white rounded-lg font-bold text-sm shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-all active:scale-95"
+                              >
+                                <Plus size={18} /> Create First Note
+                              </button>
+                            </div>
                           </div>
                         </td>
                       </tr>
@@ -354,40 +412,48 @@ const OperationsHub: React.FC = () => {
                       processedItems.map(dn => (
                         <tr 
                           key={dn.id} 
-                          className={`group hover:bg-slate-50/50 transition-all cursor-pointer ${selectedIds.includes(dn.id) ? 'bg-brand/5' : ''}`}
+                          className={`group hover:bg-slate-50 transition-colors cursor-pointer ${selectedIds.includes(dn.id) ? 'bg-emerald-50/50' : ''}`}
                           onClick={() => navigate(`/admin/trip/${dn.id}`)}
                         >
-                          <td className="p-4" onClick={(e) => e.stopPropagation()}>
+                          <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
                             <button onClick={() => toggleSelect(dn.id)}>
-                              {selectedIds.includes(dn.id) ? <CheckSquare className="text-brand" size={16} /> : <Square className="text-slate-200 group-hover:text-slate-300" size={16} />}
+                              {selectedIds.includes(dn.id) ? <CheckSquare className="text-brand mx-auto" size={18} /> : <Square className="text-slate-200 group-hover:text-slate-300 mx-auto transition-colors" size={18} />}
                             </button>
                           </td>
                           <td className="p-4">
                             <div className="flex items-center gap-2">
-                              <div className={`h-2 w-2 rounded-full ${dn.priority === 'HIGH' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]' : dn.priority === 'MEDIUM' ? 'bg-amber-500' : 'bg-slate-400'}`} />
-                              <span className={`text-[9px] font-black uppercase tracking-widest ${dn.priority === 'HIGH' ? 'text-red-500' : dn.priority === 'MEDIUM' ? 'text-amber-500' : 'text-slate-500'}`}>
+                              <div className={`h-2 w-2 rounded-full ${dn.priority === 'HIGH' ? 'bg-red-500' : dn.priority === 'MEDIUM' ? 'bg-amber-500' : 'bg-slate-400'}`} />
+                              <span className={`text-xs font-semibold ${dn.priority === 'HIGH' ? 'text-red-600' : dn.priority === 'MEDIUM' ? 'text-amber-600' : 'text-slate-400'}`}>
                                 {dn.priority}
                               </span>
                             </div>
                           </td>
                           <td className="p-4">
-                            <p className="text-[11px] font-black text-brand uppercase tracking-tight leading-none mb-1">DN-{dn.externalId}</p>
-                            <p className="text-[9px] font-bold text-gray-400 uppercase leading-none">{dn.type}</p>
+                            <p className="text-sm font-semibold text-emerald-600 mb-0.5">DN-{dn.externalId}</p>
+                            <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">{dn.type}</p>
                           </td>
                           <td className="p-4">
-                            <p className="text-[11px] font-black text-gray-900 uppercase tracking-tight leading-tight mb-1 truncate max-w-[200px]">{dn.clientName}</p>
-                            <div className="flex items-center gap-2">
-                              <MapPin size={10} className="text-gray-400" />
-                              <p className="text-[10px] text-gray-500 font-bold truncate max-w-[250px] uppercase tracking-tight">{dn.address}</p>
+                            <p className="text-sm font-semibold text-slate-800 mb-1 truncate max-w-[200px]">{dn.clientName}</p>
+                            <div className="flex items-center gap-1.5 text-slate-500">
+                              <MapPin size={12} className="shrink-0" />
+                              <p className="text-xs truncate max-w-[250px]">{dn.address}</p>
                             </div>
                           </td>
-                          <td className="p-4">
-                            <Badge variant={dn.status.toLowerCase() as any} className="scale-90 origin-left">{dn.status}</Badge>
+                          <td className="p-4 text-center">
+                            {dn.status === 'DELIVERED' ? (
+                              <span className="inline-flex items-center px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold">Settled</span>
+                            ) : dn.status === 'IN_TRANSIT' ? (
+                              <span className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">In Transit</span>
+                            ) : dn.status === 'EXCEPTION' ? (
+                              <span className="inline-flex items-center px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">Exception</span>
+                            ) : (
+                              <Badge variant={dn.status.toLowerCase() as any} className="scale-90 font-semibold">{dn.status}</Badge>
+                            )}
                           </td>
                           <td className="p-4">
-                            <div className="flex items-center gap-2 text-[10px] font-black text-gray-500 uppercase tracking-tight">
-                              <Calendar size={12} className="text-gray-400" />
-                              {dn.plannedDeliveryDate ? new Date(dn.plannedDeliveryDate).toLocaleDateString() : 'Unscheduled'}
+                            <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
+                              <Calendar size={14} className="text-slate-400" />
+                              {dn.plannedDeliveryDate ? new Date(dn.plannedDeliveryDate).toLocaleDateString() : <span className="italic text-slate-400">Not scheduled</span>}
                             </div>
                           </td>
                           <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
@@ -409,31 +475,32 @@ const OperationsHub: React.FC = () => {
               </div>
 
               {/* Pagination */}
-              {total > limit && (
-                <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                    Showing {dns.length} of {total} items
-                  </p>
+              <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/50 rounded-b-2xl">
+                <p className="text-xs text-slate-400 font-medium">
+                  Showing <span className="text-slate-600 font-bold">{dns.length}</span> entries of <span className="text-slate-600 font-bold">{total}</span> total
+                </p>
+                {total > limit && (
                   <div className="flex items-center gap-2">
                     <button 
                       disabled={page === 1}
                       onClick={() => setPage(p => p - 1)}
-                      className="p-2 rounded-lg border border-slate-200 bg-white text-gray-400 hover:text-brand disabled:opacity-30 transition-all font-bold"
+                      className="p-2 rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-brand disabled:opacity-30 transition-all font-bold shadow-sm"
                     >
                       <ChevronLeft size={16} />
                     </button>
                     <button 
                       disabled={page >= Math.ceil(total / limit)}
                       onClick={() => setPage(p => p + 1)}
-                      className="p-2 rounded-lg border border-slate-200 bg-white text-gray-400 hover:text-brand disabled:opacity-30 transition-all font-bold"
+                      className="p-2 rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-brand disabled:opacity-30 transition-all font-bold shadow-sm"
                     >
                       <ChevronRight size={16} />
                     </button>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
+        </div>
 
           {/* Sidebar: Tactical Context */}
           <div className="lg:col-span-3 flex flex-col gap-6">

@@ -333,22 +333,33 @@ const AdminDashboard: React.FC = () => {
 
   const loadData = async () => {
     try {
-      const [data, facs, healthMetrics, vels, usrs] = await Promise.all([
+      const results = await Promise.allSettled([
         api.getDeliveryNotes(), 
         api.getFacilities(),
         api.getHealthMetrics(user?.role),
         api.getVehicles(),
         api.getUsers(tenant?.id, user?.role)
       ]);
-      setDns(Array.isArray(data) ? data : []);
-      setFacilities(Array.isArray(facs) ? facs : []);
-      setHealth(healthMetrics);
-      setVehicles(Array.isArray(vels) ? vels : []);
-      setUsers(Array.isArray(usrs) ? usrs : []);
+
+      const [dataRes, facsRes, healthRes, velsRes, usrsRes] = results;
+
+      if (dataRes.status === 'fulfilled') setDns(Array.isArray(dataRes.value) ? dataRes.value : []);
+      if (facsRes.status === 'fulfilled') setFacilities(Array.isArray(facsRes.value) ? facsRes.value : []);
+      if (healthRes.status === 'fulfilled') setHealth(healthRes.value);
+      if (velsRes.status === 'fulfilled') setVehicles(Array.isArray(velsRes.value) ? velsRes.value : []);
+      if (usrsRes.status === 'fulfilled') setUsers(Array.isArray(usrsRes.value) ? usrsRes.value : []);
+
+      // Log errors quietly
+      results.forEach((res, i) => {
+        if (res.status === 'rejected') {
+          console.warn(`Dashboard partial load failure (index ${i}):`, res.reason);
+        }
+      });
+
       setLoading(false);
     } catch (err) {
-      console.error("AdminDashboard: Failed to load data", err);
-      // We still set loading to false to allow partial dashboard rendering
+      console.error("AdminDashboard: Critical failure in loadData", err);
+      // Fallback for disaster recovery
       setLoading(false);
     }
   };

@@ -10,7 +10,7 @@ interface MarketingLayoutProps {
 
 const MarketingLayout: React.FC<MarketingLayoutProps> = ({ children }) => {
   return (
-    <div className="min-h-screen bg-navy font-sans text-ink overflow-x-hidden selection:bg-brand selection:text-white">
+    <div className="min-h-screen bg-navy font-sans text-white overflow-x-hidden selection:bg-brand selection:text-white">
       <MarketingNavbar />
       <main className="flex-grow">
         {children}

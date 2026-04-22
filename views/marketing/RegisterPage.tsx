@@ -13,7 +13,7 @@ const RegisterPage: React.FC = () => {
     email: '',
     company: '',
     password: '',
-    role: 'ADMIN' as any
+    role: 'tenant_admin' as any
   });
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuthStore();

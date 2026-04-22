@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useAuthStore, useAuditStore } from '../store';
 import { SystemRole, Permission, UserRole } from '../types';
 import { ShieldAlert, Lock, ArrowLeft } from 'lucide-react';
@@ -76,7 +76,26 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({
   const { logAction } = useAuditStore();
   
   const effectiveRoles = roles || allowedRoles;
-  const hasRole = effectiveRoles && currentUserRole ? effectiveRoles.includes(currentUserRole) : (effectiveRoles ? false : true);
+  
+  const hasRole = useMemo(() => {
+    if (!effectiveRoles || !currentUserRole) return !effectiveRoles;
+    
+    const normalizedUserRole = currentUserRole.toLowerCase();
+    const normalizedAllowed = effectiveRoles.map(r => r.toLowerCase());
+    
+    // Direct match
+    if (normalizedAllowed.includes(normalizedUserRole)) return true;
+    
+    // Super Admin is always authorized
+    if (normalizedUserRole === 'super_admin') return true;
+    
+    // Admin role mapping
+    if (normalizedAllowed.includes('admin') || normalizedAllowed.includes('tenant_admin')) {
+      if (['admin', 'tenant_admin', 'super_admin'].includes(normalizedUserRole)) return true;
+    }
+
+    return false;
+  }, [effectiveRoles, currentUserRole]);
   
   const checkPermissionSafely = (p: Permission) => {
     if (typeof hasPermission !== 'function') return true; // Default to allow if check is broken to avoid crash
