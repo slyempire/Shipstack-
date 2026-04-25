@@ -39,13 +39,13 @@ export class SyncService {
   private async processUpdate(update: PendingUpdate) {
     switch (update.type) {
       case 'DN_STATUS':
-        await api.updateDNStatus(update.targetId, update.data.status, update.data.metadata, update.data.userName);
+        await api.updateDNStatus(update.targetId, update.payload.status, update.payload.metadata, update.payload.userName);
         break;
       case 'TELEMETRY':
-        await api.saveTelemetryPing(update.data);
+        await api.saveTelemetryPing(update.payload);
         break;
       case 'EMERGENCY':
-        await api.logSafetyEvent(update.targetId, update.data.type, update.data.severity, update.data.metadata);
+        await api.logSafetyEvent(update.targetId, update.payload.type, update.payload.severity, update.payload.metadata);
         break;
       default:
         console.warn('Unknown update type:', update.type);

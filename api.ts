@@ -46,6 +46,13 @@ import {
 } from './types';
 import { telemetryService } from './services/socket';
 import { supabase, isSupabaseConfigured } from './supabase';
+import {
+  dbGetDeliveryNotes, dbGetDeliveryNote, dbCreateDeliveryNote, dbUpdateDeliveryNote, dbDeleteDeliveryNote,
+  dbGetUsers, dbGetUserById, dbGetUserByEmail, dbCreateUser, dbUpdateUser,
+  dbGetVehicles, dbUpdateVehicle, dbCreateVehicle,
+  dbGetTenant, dbUpsertTenant,
+  dbInsertAuditLog,
+} from './services/supabaseDb';
 import { sanitize, sanitizeObject, encryptData, decryptData } from './utils/security';
 import { FrappeService } from './services/frappe';
 
@@ -459,13 +466,12 @@ export const api = {
       }
     }
 
-    // Demo bypass logic
-    if (password === 'password' && (sanitizedEmail.includes('shipstack.com') || sanitizedEmail === 'admin@shipstack.com')) {
-      const users = initialUsers;
-      const user = users.find(u => u.email.toLowerCase() === sanitizedEmail.toLowerCase());
-      if (user) {
-        await logAudit('DEMO_LOGIN_BYPASS', { email: sanitizedEmail }, user.name);
-        return { user, token: 'mock-jwt-token' };
+    // Demo mode: allow login against seeded demo accounts only when Supabase is not configured
+    if (!isSupabaseConfigured) {
+      const user = initialUsers.find(u => u.email.toLowerCase() === sanitizedEmail.toLowerCase());
+      if (user && password === 'password') {
+        await logAudit('DEMO_LOGIN', { email: sanitizedEmail }, user.name);
+        return { user, token: 'demo-session-token' };
       }
     }
 
@@ -705,10 +711,21 @@ export const api = {
         setCached(cacheKey, data);
         return data;
       } catch (err) {
-        console.warn('Frappe getUsers failed, falling back to local store', err);
+        console.warn('Frappe getUsers failed, falling back to Supabase', err);
         isFrappeHealthy = false;
       }
     }
+
+    if (isSupabaseConfigured) {
+      try {
+        const data = await dbGetUsers(tenantId);
+        setCached(cacheKey, data);
+        return data;
+      } catch (err) {
+        console.warn('Supabase getUsers failed, falling back to local store', err);
+      }
+    }
+
     const allRaw = getStore('users', initialUsers);
     const allRawArray = Array.isArray(allRaw) ? allRaw : initialUsers;
     const all = Array.from(new Map(allRawArray.map(u => [u.id, u])).values());
@@ -917,11 +934,21 @@ export const api = {
         setCached(cacheKey, data);
         return data;
       } catch (err) {
-        console.warn('Frappe getDeliveryNotes failed, falling back to local store', err);
+        console.warn('Frappe getDeliveryNotes failed, falling back to Supabase', err);
         isFrappeHealthy = false;
       }
     }
-    
+
+    if (isSupabaseConfigured) {
+      try {
+        const data = await dbGetDeliveryNotes(tenantId);
+        setCached(cacheKey, data);
+        return data;
+      } catch (err) {
+        console.warn('Supabase getDeliveryNotes failed, falling back to local store', err);
+      }
+    }
+
     const allRaw = getStore('delivery_notes', initialDeliveryNotes);
     const allRawArray = Array.isArray(allRaw) ? allRaw : initialDeliveryNotes;
     const all = Array.from(new Map(allRawArray.map(dn => [dn.id, dn])).values());
@@ -971,7 +998,7 @@ export const api = {
         await logAudit('CREATE_DN', { id: newDn.id, externalId: newDn.externalId, tenantId });
         return newDn;
       } catch (err) {
-        console.warn('Frappe createDeliveryNote failed, falling back to local store', err);
+        console.warn('Frappe createDeliveryNote failed, falling back to Supabase', err);
         isFrappeHealthy = false;
       }
     }
@@ -994,6 +1021,17 @@ export const api = {
       ...sanitizedData
     } as DeliveryNote;
     
+    if (isSupabaseConfigured) {
+      try {
+        const created = await dbCreateDeliveryNote(newDn);
+        await logAudit('CREATE_DN', { id: created.id, tenantId });
+        clearCache(`dns_all_${tenantId}`);
+        return created;
+      } catch (err) {
+        console.warn('Supabase createDeliveryNote failed, falling back to local store', err);
+      }
+    }
+
     setStore('delivery_notes', [newDn, ...getStore('delivery_notes', initialDeliveryNotes)]);
     return newDn;
   },
@@ -1097,6 +1135,25 @@ export const api = {
       } catch (err) {
         console.warn('Frappe updateDNStatus failed, falling back to local store', err);
         isFrappeHealthy = false;
+      }
+    }
+
+    if (isSupabaseConfigured) {
+      try {
+        const logEntry = { id: Date.now().toString(), action: `Status updated to ${status}`, notes: metadata.notes || '', user: user || 'System', timestamp: new Date().toISOString() };
+        const existing = await dbGetDeliveryNote(id);
+        if (existing) {
+          await dbUpdateDeliveryNote(id, {
+            ...metadata,
+            status,
+            logs: [...(existing.logs || []), logEntry],
+          } as Partial<DeliveryNote>);
+          await logAudit('UPDATE_DN_STATUS', { id, status, metadata }, user);
+          clearCache(`dns_all_`);
+          return;
+        }
+      } catch (err) {
+        console.warn('Supabase updateDNStatus failed, falling back to local store', err);
       }
     }
 
@@ -1285,10 +1342,21 @@ export const api = {
         setCached(cacheKey, data);
         return data;
       } catch (err) {
-        console.warn('Frappe getVehicles failed, falling back to local store', err);
+        console.warn('Frappe getVehicles failed, falling back to Supabase', err);
         isFrappeHealthy = false;
       }
     }
+
+    if (isSupabaseConfigured) {
+      try {
+        const data = await dbGetVehicles(tenantId);
+        setCached(cacheKey, data);
+        return data;
+      } catch (err) {
+        console.warn('Supabase getVehicles failed, falling back to local store', err);
+      }
+    }
+
     const allRaw = getStore('vehicles', initialVehicles);
     const allRawArray = Array.isArray(allRaw) ? allRaw : initialVehicles;
     const all = Array.from(new Map(allRawArray.map(v => [v.id, v])).values());
@@ -1830,8 +1898,8 @@ export const api = {
   async checkSupabaseHealth(): Promise<boolean> {
     if (!isSupabaseConfigured) return false;
     try {
-      const { error } = await supabase.from('_health_check').select('id').limit(1);
-      // If error is 404 (table not found), it still means Supabase is reachable
+      const { error } = await supabase.from('health_check').select('id').limit(1);
+      // PGRST116 / 42P01 = table missing — connectivity is fine, schema just not migrated yet
       if (error && error.code !== 'PGRST116' && error.code !== '42P01') {
         console.error('Supabase Health Check Failed:', error);
         return false;
@@ -1852,8 +1920,7 @@ export const api = {
       
       if (connError) {
         if (connError.code === 'PGRST116' || connError.code === '42P01') {
-          // Table doesn't exist, this is actually "healthy" in terms of connectivity
-          return { success: true, message: 'Supabase is reachable, but health_check table is missing (normal).' };
+          return { success: true, message: 'Supabase reachable — run supabase/migrations/001_initial_schema.sql to create tables.' };
         }
         return { success: false, message: `Supabase error: ${connError.message}` };
       }

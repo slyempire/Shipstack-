@@ -6,7 +6,7 @@ import { api } from '../../api';
 import { DeliveryNote, DNStatus, LogisticsDocument, LogisticsDocumentStatus, Facility, LogisticsType, SafetyEventType } from '../../types';
 import { useGeolocation } from '../../hooks/useGeolocation';
 import { useTripTelemetry } from '../../hooks/useTripTelemetry';
-import { offlineDb } from '../../services/offlineDb';
+import { offlineDb, flushPendingUpdates } from '../../services/offlineDb';
 import { syncService } from '../../services/syncService';
 import DocumentPreview from '../../components/DocumentPreview';
 import MapEngine from '../../components/MapEngine';
@@ -368,11 +368,7 @@ const DriverPortal: React.FC = () => {
     if (!isOffline) {
       // api.logSafetyEvent(...)
     } else {
-      await offlineDb.addPendingUpdate({
-        type: 'EMERGENCY',
-        targetId: currentDn?.id || 'global',
-        data: { type, severity, lat: currentCoords?.lat, lng: currentCoords?.lng }
-      });
+      await offlineDb.queueUpdate('EMERGENCY', currentDn?.id || 'global', { type, severity, lat: currentCoords?.lat, lng: currentCoords?.lng });
     }
   };
 
@@ -397,6 +393,18 @@ const DriverPortal: React.FC = () => {
       unread.forEach(n => useAppStore.getState().markRead(n.id));
     }
   }, [step]);
+
+  // Flush queued offline actions when connectivity returns
+  useEffect(() => {
+    if (!isOnline) return;
+    flushPendingUpdates(async (update) => {
+      if (update.type === 'DN_STATUS') {
+        await api.updateDNStatus(update.targetId, update.payload.status, update.payload.metadata, update.payload.userName);
+      }
+    }).then(({ flushed }) => {
+      if (flushed > 0) addNotification(`Synced ${flushed} offline action${flushed > 1 ? 's' : ''}.`, 'success');
+    }).catch(() => {});
+  }, [isOnline]);
 
   useEffect(() => {
     const fetchFleet = async () => {
@@ -550,11 +558,7 @@ const DriverPortal: React.FC = () => {
     setIsSubmitting(true);
     try {
       if (isOffline) {
-        await offlineDb.addPendingUpdate({
-          type: 'DN_STATUS',
-          targetId: currentDn.id,
-          data: { status: DNStatus.IN_TRANSIT, metadata: { odometerStart: parseFloat(odoStart) }, userName: user?.name }
-        });
+        await offlineDb.queueUpdate('DN_STATUS', currentDn.id, { status: DNStatus.IN_TRANSIT, metadata: { odometerStart: parseFloat(odoStart) }, userName: user?.name });
         addNotification("Offline: Trip started. Will sync when online.", "info");
       } else {
         await api.updateDNStatus(currentDn.id, DNStatus.IN_TRANSIT, { odometerStart: parseFloat(odoStart) }, user?.name);
@@ -577,11 +581,7 @@ const DriverPortal: React.FC = () => {
     setIsSubmitting(true);
     try {
       if (isOffline) {
-        await offlineDb.addPendingUpdate({
-          type: 'DN_STATUS',
-          targetId: currentDn.id,
-          data: { status: DNStatus.DELIVERED, metadata: { odometerEnd: parseFloat(odoEnd) }, userName: user?.name }
-        });
+        await offlineDb.queueUpdate('DN_STATUS', currentDn.id, { status: DNStatus.DELIVERED, metadata: { odometerEnd: parseFloat(odoEnd) }, userName: user?.name });
         addNotification("Offline: Arrival logged. Will sync when online.", "info");
       } else {
         await api.updateDNStatus(currentDn.id, DNStatus.DELIVERED, { odometerEnd: parseFloat(odoEnd) }, user?.name);
@@ -626,11 +626,7 @@ const DriverPortal: React.FC = () => {
         signatureUrl: podSignature
       };
       if (isOffline) {
-        await offlineDb.addPendingUpdate({
-          type: 'DN_STATUS',
-          targetId: currentDn.id,
-          data: { status: DNStatus.COMPLETED, metadata: podData, userName: user?.name }
-        });
+        await offlineDb.queueUpdate('DN_STATUS', currentDn.id, { status: DNStatus.COMPLETED, metadata: podData, userName: user?.name });
         addNotification("Offline: POD captured. Will sync when online.", "info");
       } else {
         await api.updateDNStatus(currentDn.id, DNStatus.COMPLETED, podData, user?.name);
