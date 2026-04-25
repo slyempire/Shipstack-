@@ -55,7 +55,8 @@ import {
   TrafficCone,
   MessageSquare,
   Map as MapIcon,
-  PhoneCall
+  PhoneCall,
+  Star
 } from 'lucide-react';
 import { PaymentModal } from '../../components/PaymentModal';
 
@@ -164,6 +165,11 @@ const DriverPortal: React.FC = () => {
   const [showSignaturePad, setShowSignaturePad] = useState(false);
 
   const [isFinalShiftSuccess, setIsFinalShiftSuccess] = useState(false);
+
+  // Delivery feedback state
+  const [deliveryRating, setDeliveryRating] = useState(0);
+  const [deliveryFeedback, setDeliveryFeedback] = useState('');
+  const [isRatingSubmitted, setIsRatingSubmitted] = useState(false);
 
   const isEnRouteStatus = currentDn?.status === DNStatus.IN_TRANSIT;
   const isAtSiteStatus = currentDn?.status === DNStatus.DELIVERED;
@@ -634,6 +640,22 @@ const DriverPortal: React.FC = () => {
     }
   };
 
+  const handleRatingSubmit = async () => {
+    if (!currentDn || deliveryRating === 0) return;
+    try {
+      await api.updateDNStatus(
+        currentDn.id,
+        currentDn.status,
+        { driverFeedback: { rating: deliveryRating, comment: deliveryFeedback, submittedAt: new Date().toISOString() } },
+        user?.name
+      );
+    } catch {
+      // Non-critical: best effort
+    }
+    setIsRatingSubmitted(true);
+    addNotification('Feedback submitted. Thank you!', 'success');
+  };
+
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;
     const msg = {
@@ -1002,27 +1024,88 @@ const DriverPortal: React.FC = () => {
   );
 
   if (step === 'SUCCESS') return (
-    <div className="h-screen flex flex-col items-center justify-center p-12 text-center bg-navy animate-in fade-in duration-700 transition-colors duration-300">
+    <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-navy animate-in fade-in duration-700">
       <div className="h-24 w-24 bg-emerald text-white rounded-full flex items-center justify-center mb-8 shadow-2xl scale-110 shadow-emerald/20">
         <ShieldCheck size={48} strokeWidth={3} />
       </div>
-      <h2 className="text-3xl font-black mb-2 tracking-tighter uppercase text-white transition-colors">Run Complete</h2>
-      <p className="text-white/60 font-bold mb-12 uppercase text-[10px] tracking-[0.25em] transition-colors">Audit Synchronized.</p>
-      <button 
-        onClick={() => { 
+      <h2 className="text-3xl font-black mb-2 tracking-tighter uppercase text-white">Run Complete</h2>
+      <p className="text-white/60 font-bold mb-10 uppercase text-[10px] tracking-[0.25em]">Audit Synchronized.</p>
+
+      {/* Delivery Feedback */}
+      {!isRatingSubmitted ? (
+        <div className="w-full max-w-sm bg-charcoal rounded-[2rem] border border-white/5 p-6 mb-8 space-y-5">
+          <div>
+            <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1">Delivery Feedback</p>
+            <p className="text-xs font-bold text-white/60">How was the drop-off at {currentDn?.clientName || 'this stop'}?</p>
+          </div>
+
+          {/* Star rating */}
+          <div className="flex items-center justify-center gap-3">
+            {[1, 2, 3, 4, 5].map(star => (
+              <button
+                key={star}
+                onClick={() => setDeliveryRating(star)}
+                className="transition-transform active:scale-90"
+              >
+                <Star
+                  size={36}
+                  className={`transition-colors ${star <= deliveryRating ? 'text-brand fill-brand' : 'text-white/20'}`}
+                />
+              </button>
+            ))}
+          </div>
+
+          {deliveryRating > 0 && (
+            <textarea
+              value={deliveryFeedback}
+              onChange={e => setDeliveryFeedback(e.target.value)}
+              placeholder="Optional: customer present, access issues, damage..."
+              rows={2}
+              className="w-full bg-navy border border-white/10 rounded-2xl p-4 text-xs font-bold text-white placeholder:text-white/20 focus:border-brand/50 outline-none resize-none"
+            />
+          )}
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => setIsRatingSubmitted(true)}
+              className="flex-1 py-3 border border-white/10 text-white/40 rounded-xl text-[9px] font-black uppercase tracking-widest hover:text-white/60 transition-all"
+            >
+              Skip
+            </button>
+            <button
+              onClick={handleRatingSubmit}
+              disabled={deliveryRating === 0}
+              className="flex-[2] py-3 bg-brand text-white rounded-xl text-[9px] font-black uppercase tracking-widest disabled:opacity-30 transition-all active:scale-95"
+            >
+              Submit Feedback
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="w-full max-w-sm bg-emerald/10 border border-emerald/20 rounded-[2rem] p-5 mb-8 text-center">
+          <p className="text-[10px] font-black text-emerald uppercase tracking-widest">Feedback Recorded</p>
+        </div>
+      )}
+
+      <button
+        onClick={() => {
           if (isFinalShiftSuccess) {
             handleClockOut();
             setIsFinalShiftSuccess(false);
           } else {
-            setStep('LIST'); 
+            setStep('LIST');
           }
-          setCurrentDn(null); 
-          setPickedItems({}); 
-          setOdoStart(''); 
-          setOdoEnd(''); 
+          setCurrentDn(null);
+          setPickedItems({});
+          setOdoStart('');
+          setOdoEnd('');
           setSelectedExceptionItems({});
-        }} 
-        className="w-full max-w-xs bg-brand text-white py-5 rounded-2xl font-black uppercase text-xs tracking-widest active:scale-95 shadow-lg shadow-brand/20"
+          setDeliveryRating(0);
+          setDeliveryFeedback('');
+          setIsRatingSubmitted(false);
+        }}
+        disabled={!isRatingSubmitted}
+        className="w-full max-w-xs bg-brand text-white py-5 rounded-2xl font-black uppercase text-xs tracking-widest active:scale-95 shadow-lg shadow-brand/20 disabled:opacity-40 transition-all"
       >
         {isFinalShiftSuccess ? 'End Shift & Exit' : 'Dismiss Terminal'}
       </button>

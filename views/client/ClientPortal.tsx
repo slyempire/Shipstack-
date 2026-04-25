@@ -1,20 +1,21 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuthStore } from '../../store';
 import { api } from '../../api';
 import { useTenant } from '../../hooks/useTenant';
+import { telemetryService } from '../../services/socket';
 import { DeliveryNote, DNStatus, Vehicle } from '../../types';
 import { Badge } from '../../packages/ui/Badge';
-import { 
-  Truck, 
-  Search, 
-  ChevronRight, 
-  Clock, 
-  MapPin, 
-  Package, 
-  Phone, 
-  MessageSquare, 
-  History, 
+import {
+  Truck,
+  Search,
+  ChevronRight,
+  Clock,
+  MapPin,
+  Package,
+  Phone,
+  MessageSquare,
+  History,
   LogOut,
   CheckCircle2,
   AlertCircle,
@@ -23,8 +24,37 @@ import {
   ShieldCheck,
   Zap,
   RefreshCw,
-  Sparkles
+  Sparkles,
+  Radio
 } from 'lucide-react';
+import { formatDistanceToNow, addMinutes, format } from 'date-fns';
+
+interface LivePosition {
+  lat: number;
+  lng: number;
+  speed: number;
+  heading?: number;
+  timestamp: string;
+}
+
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const toRad = (x: number) => (x * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function computeEta(position: LivePosition, destLat?: number, destLng?: number): Date | null {
+  if (!destLat || !destLng) return null;
+  const distKm = haversineKm(position.lat, position.lng, destLat, destLng);
+  const speedKmh = position.speed > 2 ? position.speed : 30; // floor of 30 km/h for slow/stationary
+  const etaMinutes = Math.round((distKm / speedKmh) * 60);
+  return addMinutes(new Date(), etaMinutes);
+}
 
 const ClientPortal: React.FC = () => {
   const { user, logout } = useAuthStore();
@@ -35,6 +65,8 @@ const ClientPortal: React.FC = () => {
   const [trackingNumber, setTrackingNumber] = useState('');
   const [trackedDn, setTrackedDn] = useState<DeliveryNote | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+  const [livePosition, setLivePosition] = useState<LivePosition | null>(null);
+  const telemetryUnsub = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     loadClientData();
@@ -54,6 +86,38 @@ const ClientPortal: React.FC = () => {
       setLoading(false);
     }
   };
+
+  // Subscribe to live telemetry for the tracked shipment
+  useEffect(() => {
+    if (telemetryUnsub.current) {
+      telemetryUnsub.current();
+      telemetryUnsub.current = null;
+    }
+    setLivePosition(null);
+
+    if (!trackedDn) return;
+
+    // Seed with last known position if available
+    if (trackedDn.lastLat && trackedDn.lastLng) {
+      setLivePosition({ lat: trackedDn.lastLat, lng: trackedDn.lastLng, speed: 40, timestamp: new Date().toISOString() });
+    }
+
+    const handler = (data: any) => {
+      if (data.dnId === trackedDn.id) {
+        setLivePosition({ lat: data.lat, lng: data.lng, speed: data.speed ?? 0, heading: data.heading, timestamp: data.timestamp || new Date().toISOString() });
+      }
+    };
+    telemetryService.onTelemetryUpdate(handler);
+
+    return () => {
+      telemetryUnsub.current = null;
+    };
+  }, [trackedDn?.id]);
+
+  const liveEta = useMemo(() => {
+    if (!livePosition || !trackedDn?.lat || !trackedDn?.lng) return null;
+    return computeEta(livePosition, trackedDn.lat, trackedDn.lng);
+  }, [livePosition, trackedDn]);
 
   const handleTrack = () => {
     if (!trackingNumber) return;
@@ -174,11 +238,36 @@ const ClientPortal: React.FC = () => {
                     <h3 className="text-3xl font-black tracking-tighter uppercase">{trackedDn.status.replace('_', ' ')}</h3>
                   </div>
                   <div className="text-right">
-                    <p className="label-logistics mb-2">Estimated Arrival</p>
-                    <div className="flex items-center gap-2 text-emerald">
-                      <Clock size={20} />
-                      <span className="text-2xl font-black tracking-tighter">14:20 PM</span>
+                    <div className="flex items-center justify-end gap-2 mb-2">
+                      <p className="label-logistics !mb-0">Estimated Arrival</p>
+                      {livePosition && (
+                        <span className="flex items-center gap-1 text-[8px] font-black text-brand uppercase tracking-widest animate-pulse">
+                          <Radio size={9} /> Live
+                        </span>
+                      )}
                     </div>
+                    {trackedDn.status === 'DELIVERED' || trackedDn.status === 'COMPLETED' ? (
+                      <div className="flex items-center gap-2 text-emerald">
+                        <CheckCircle2 size={20} />
+                        <span className="text-lg font-black tracking-tighter uppercase">Delivered</span>
+                      </div>
+                    ) : liveEta ? (
+                      <div>
+                        <div className="flex items-center gap-2 text-emerald">
+                          <Clock size={20} />
+                          <span className="text-2xl font-black tracking-tighter">{format(liveEta, 'HH:mm')}</span>
+                        </div>
+                        <p className="text-[9px] font-bold text-white/30 mt-1">
+                          {formatDistanceToNow(liveEta, { addSuffix: true })}
+                          {livePosition && ` · updated ${formatDistanceToNow(new Date(livePosition.timestamp), { addSuffix: true })}`}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-white/40">
+                        <Clock size={20} />
+                        <span className="text-lg font-black tracking-tighter">Awaiting GPS</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 

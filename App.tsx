@@ -28,6 +28,7 @@ const DriverRegistrationForm = React.lazy(() => import('./views/marketing/Driver
 const OnboardingFlow = React.lazy(() => import('./views/onboarding/OnboardingFlow'));
 
 const LoginView = React.lazy(() => import('./views/LoginView'));
+const ResetPasswordView = React.lazy(() => import('./views/ResetPasswordView'));
 const AdminDashboard = React.lazy(() => import('./views/admin/AdminDashboard'));
 const DispatchDashboard = React.lazy(() => import('./views/dispatch/DispatchDashboard'));
 const TripManagement = React.lazy(() => import('./views/admin/TripManagement'));
@@ -164,6 +165,7 @@ const App: React.FC = () => {
                 <Route path="/driver-recruitment" element={<DriverRecruitmentView />} />
                 <Route path="/register-driver" element={<DriverRegistrationForm />} />
                 <Route path="/login" element={<LoginView />} />
+                <Route path="/reset-password" element={<ResetPasswordView />} />
                 <Route path="/legal" element={<LegalView />} />
                 <Route path="/style-guide" element={<StyleGuide />} />
                 <Route path="/solutions/healthcare" element={<HealthcareDashboard />} />

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
+import { Pagination } from '../../components/Pagination';
 import { api } from '../../api';
 import { DeliveryNote, DNStatus, Trip, Zone, DeliveryItem } from '../../types';
 import { Badge } from '../../packages/ui/Badge';
@@ -28,8 +29,7 @@ import {
   Route,
   Package,
   Thermometer,
-  ChevronLeft,
-  ChevronRight,
+
   Filter,
   Activity,
   BarChart3,
@@ -475,28 +475,13 @@ const OperationsHub: React.FC = () => {
               </div>
 
               {/* Pagination */}
-              <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/50 rounded-b-2xl">
-                <p className="text-xs text-slate-400 font-medium">
-                  Showing <span className="text-slate-600 font-bold">{dns.length}</span> entries of <span className="text-slate-600 font-bold">{total}</span> total
-                </p>
-                {total > limit && (
-                  <div className="flex items-center gap-2">
-                    <button 
-                      disabled={page === 1}
-                      onClick={() => setPage(p => p - 1)}
-                      className="p-2 rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-brand disabled:opacity-30 transition-all font-bold shadow-sm"
-                    >
-                      <ChevronLeft size={16} />
-                    </button>
-                    <button 
-                      disabled={page >= Math.ceil(total / limit)}
-                      onClick={() => setPage(p => p + 1)}
-                      className="p-2 rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-brand disabled:opacity-30 transition-all font-bold shadow-sm"
-                    >
-                      <ChevronRight size={16} />
-                    </button>
-                  </div>
-                )}
+              <div className="p-4 bg-slate-50/50 rounded-b-2xl">
+                <Pagination
+                  page={page}
+                  pageSize={limit}
+                  total={total}
+                  onPageChange={setPage}
+                />
               </div>
             </div>
           </div>

@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
+import { Pagination } from '../../components/Pagination';
 import { api } from '../../api';
 import { Vehicle, Facility, VehicleType, MaintenanceLog, FuelLog, User } from '../../types';
 import { Badge } from '../../packages/ui/Badge';
@@ -44,6 +45,8 @@ const FleetManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
+  const [vehiclePage, setVehiclePage] = useState(1);
+  const VEHICLE_PAGE_SIZE = 12;
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isFacilityFormOpen, setIsFacilityFormOpen] = useState(false);
   const [isMaintenanceFormOpen, setIsMaintenanceFormOpen] = useState(false);
@@ -280,11 +283,16 @@ const FleetManagement: React.FC = () => {
   };
 
   const filteredVehicles = vehicles.filter(v => {
-    const matchesSearch = v.plate.toLowerCase().includes(search.toLowerCase()) || 
+    const matchesSearch = v.plate.toLowerCase().includes(search.toLowerCase()) ||
                          v.type.toLowerCase().includes(search.toLowerCase());
     const matchesType = typeFilter === 'ALL' || v.type === typeFilter;
     return matchesSearch && matchesType;
   });
+
+  const pagedVehicles = filteredVehicles.slice(
+    (vehiclePage - 1) * VEHICLE_PAGE_SIZE,
+    vehiclePage * VEHICLE_PAGE_SIZE
+  );
 
   return (
     <Layout title="Asset & Network Infrastructure">
@@ -308,7 +316,7 @@ const FleetManagement: React.FC = () => {
                 type="text" 
                 placeholder="Search assets..." 
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => { setSearch(e.target.value); setVehiclePage(1); }}
                 className="w-full pl-9 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-[11px] font-bold text-slate-900 focus:ring-2 focus:ring-brand outline-none transition-all"
               />
             </div>
@@ -316,7 +324,7 @@ const FleetManagement: React.FC = () => {
             {activeTab === 'FLEET' && (
               <select 
                 value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
+                onChange={(e) => { setTypeFilter(e.target.value); setVehiclePage(1); }}
                 className="hidden sm:block px-4 py-3 bg-white border border-slate-200 rounded-2xl text-[11px] font-bold text-slate-900 focus:ring-2 focus:ring-brand outline-none transition-all"
               >
                 <option value="ALL">All Types</option>
@@ -356,7 +364,7 @@ const FleetManagement: React.FC = () => {
         {activeTab === 'FLEET' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {loading ? [1,2,3].map(i => <div key={i} className="h-64 bg-white animate-pulse rounded-[2.5rem] border border-slate-100" />) :
-              filteredVehicles.map(v => (
+              pagedVehicles.map(v => (
                 <div key={v.id} 
                   onClick={() => {
                     setEditingVehicle(v);
@@ -421,6 +429,16 @@ const FleetManagement: React.FC = () => {
                 </div>
               ))
             }
+            {!loading && (
+              <div className="col-span-full pt-2">
+                <Pagination
+                  page={vehiclePage}
+                  pageSize={VEHICLE_PAGE_SIZE}
+                  total={filteredVehicles.length}
+                  onPageChange={setVehiclePage}
+                />
+              </div>
+            )}
           </div>
         ) : activeTab === 'FACILITIES' ? (
           <div className="bg-white rounded-[3rem] border border-slate-200 overflow-hidden shadow-sm">

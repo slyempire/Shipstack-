@@ -2,16 +2,15 @@
 import React, { useState } from 'react';
 import Layout from '../../components/Layout';
 import { useAuditStore } from '../../store';
-import { 
-  ShieldCheck, 
-  Search, 
-  Filter, 
-  Download, 
-  AlertTriangle, 
-  ShieldAlert, 
-  Info, 
+import { Pagination } from '../../components/Pagination';
+import {
+  ShieldCheck,
+  Search,
+  Download,
+  AlertTriangle,
+  ShieldAlert,
+  Info,
   Activity,
-  Calendar,
   User,
   ExternalLink,
   Lock,
@@ -22,19 +21,34 @@ import { format } from 'date-fns';
 import { motion } from 'framer-motion';
 import RoleGuard from '../../components/RoleGuard';
 
+const PAGE_SIZE = 25;
+
 const SecurityAudit: React.FC = () => {
   const { auditLog } = useAuditStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [severityFilter, setSeverityFilter] = useState<'ALL' | 'info' | 'warning' | 'critical'>('ALL');
+  const [page, setPage] = useState(1);
 
   const filteredLogs = auditLog.filter(log => {
-    const matchesSearch = 
+    const matchesSearch =
       log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
       log.resource.toLowerCase().includes(searchQuery.toLowerCase()) ||
       log.userEmail.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesSeverity = severityFilter === 'ALL' || log.severity === severityFilter;
     return matchesSearch && matchesSeverity;
   });
+
+  const pagedLogs = filteredLogs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const handleFilterChange = (value: string) => {
+    setSeverityFilter(value as any);
+    setPage(1);
+  };
+
+  const handleSearch = (value: string) => {
+    setSearchQuery(value);
+    setPage(1);
+  };
 
   const getSeverityStyles = (severity: string) => {
     switch (severity) {
@@ -54,8 +68,8 @@ const SecurityAudit: React.FC = () => {
 
   return (
     <RoleGuard permissions={['security:view']} showFullPageError>
-      <Layout 
-        title="Security Audit Terminal" 
+      <Layout
+        title="Security Audit Terminal"
         subtitle="Unalterable operational ledger & access logs"
       >
         <div className="space-y-8 pb-20">
@@ -83,11 +97,11 @@ const SecurityAudit: React.FC = () => {
           <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col lg:flex-row items-center gap-6">
              <div className="relative flex-1 w-full">
                 <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input 
+                <input
                   type="text"
                   placeholder="Query action, resource, or operator email..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => handleSearch(e.target.value)}
                   className="w-full pl-12 pr-6 py-4 bg-slate-50 rounded-2xl border border-transparent focus:border-brand/20 outline-none text-sm font-medium transition-all"
                 />
              </div>
@@ -95,7 +109,7 @@ const SecurityAudit: React.FC = () => {
                 {['ALL', 'info', 'warning', 'critical'].map(sev => (
                   <button
                     key={sev}
-                    onClick={() => setSeverityFilter(sev as any)}
+                    onClick={() => handleFilterChange(sev)}
                     className={`px-6 py-3 rounded-xl text-[10px] font-black capitalize transition-all ${severityFilter === sev ? 'bg-slate-900 text-white shadow-xl' : 'bg-slate-50 text-slate-400 hover:text-slate-600'}`}
                   >
                     {sev}
@@ -121,11 +135,11 @@ const SecurityAudit: React.FC = () => {
                    </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                   {filteredLogs.map((log) => (
-                      <motion.tr 
+                   {pagedLogs.map((log) => (
+                      <motion.tr
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        key={log.id} 
+                        key={log.id}
                         className="hover:bg-slate-50/50 transition-colors group"
                       >
                          <td className="px-8 py-5 whitespace-nowrap">
@@ -178,6 +192,14 @@ const SecurityAudit: React.FC = () => {
                    )}
                 </tbody>
              </table>
+             <div className="px-8 py-4 bg-slate-50/50 rounded-b-[3rem]">
+               <Pagination
+                 page={page}
+                 pageSize={PAGE_SIZE}
+                 total={filteredLogs.length}
+                 onPageChange={setPage}
+               />
+             </div>
           </div>
 
           {/* Verification Banner */}

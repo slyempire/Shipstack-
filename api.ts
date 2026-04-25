@@ -572,6 +572,27 @@ export const api = {
     }
   },
 
+  async requestPasswordReset(email: string): Promise<void> {
+    const sanitizedEmail = sanitize(email);
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.auth.resetPasswordForEmail(sanitizedEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw new Error(error.message);
+    } else {
+      // Demo mode: simulate email sent without actually doing anything
+      await new Promise(r => setTimeout(r, 600));
+    }
+  },
+
+  async updatePassword(newPassword: string): Promise<void> {
+    if (!isSupabaseConfigured) {
+      throw new Error('Password update requires Supabase configuration.');
+    }
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw new Error(error.message);
+  },
+
   async register(data: any): Promise<{ user: User, token: string }> {
     const sanitizedData = sanitizeObject(data);
     
