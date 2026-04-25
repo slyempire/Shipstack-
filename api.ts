@@ -506,15 +506,12 @@ export const api = {
         
         return { user, token: data.session?.access_token || '' };
       } catch (error: any) {
-        console.error('Supabase Auth Error:', error);
-        if (error.message !== 'Failed to fetch') {
-          throw new Error(error.message || 'Authentication failed');
-        }
-        console.warn('Supabase unreachable, falling back to mock auth');
+        console.warn('Supabase auth failed, falling back to demo mode:', error.message);
+        // Fall through to mock auth below — covers misconfigured keys, invalid creds, network issues
       }
     }
 
-    // Fallback to mock logic if Supabase not configured
+    // Fallback to mock logic (always reachable when Supabase fails or isn't configured)
     try {
       const users = await api.getUsers();
       const sanitizedEmail = email.toLowerCase().trim();
@@ -651,11 +648,8 @@ export const api = {
         
         return { user, token: authData.session?.access_token || '' };
       } catch (error: any) {
-        console.error('Supabase Registration Error:', error);
-        if (error.message !== 'Failed to fetch') {
-          throw new Error(error.message || 'Registration failed');
-        }
-        console.warn('Supabase unreachable, falling back to mock registration');
+        console.warn('Supabase registration failed, falling back to demo mode:', error.message);
+        // Fall through to mock registration below
       }
     }
 

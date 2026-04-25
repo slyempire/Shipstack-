@@ -277,12 +277,12 @@ const MagneticCTA: React.FC<{ onClick: () => void; children: React.ReactNode; cl
 const FloatingIcon: React.FC<{ icon: React.ElementType; delay?: number; duration?: number; style?: React.CSSProperties }> =
   ({ icon: Icon, delay = 0, duration = 9, style }) => (
     <motion.div
-      className="absolute rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm flex items-center justify-center pointer-events-none"
+      className="absolute rounded-2xl bg-brand/15 border border-brand/25 backdrop-blur-sm flex items-center justify-center pointer-events-none"
       style={{ width: 52, height: 52, ...style }}
       animate={{ y: [0, -22, 4, -16, 0], rotate: [-2, 3, -1, 2, -2] }}
       transition={{ duration, delay, repeat: Infinity, ease: "easeInOut" }}
     >
-      <Icon size={22} className="text-brand/70" />
+      <Icon size={22} className="text-brand" />
     </motion.div>
   );
 
