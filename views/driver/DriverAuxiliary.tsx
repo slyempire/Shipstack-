@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore, useAppStore } from '../../store';
+import { useAuthStore, useAppStore, useTenantStore } from '../../store';
 import { api } from '../../api';
 import { 
   ChevronLeft, 
@@ -49,11 +49,34 @@ interface InspectionStatus {
 const DriverAuxiliary: React.FC = () => {
   const { user, logout } = useAuthStore();
   const { addNotification } = useAppStore();
+  const { currentTenant } = useTenantStore();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<AuxTab>('PERFORMANCE');
-  const [inspectionStep, setInspectionStep] = useState(0);
   const [inspectionData, setInspectionData] = useState<Record<string, InspectionStatus>>({});
+  const [pushNotifications, setPushNotifications] = useState(() => localStorage.getItem('driver_push_notifications') === 'true');
+  const [offlineMapsEnabled, setOfflineMapsEnabled] = useState(() => localStorage.getItem('driver_offline_maps') === 'true');
   const [guideOpen, setGuideOpen] = useState(false);
+
+  const togglePushNotifications = async () => {
+    const next = !pushNotifications;
+    if (next && 'Notification' in window && Notification.permission === 'default') {
+      await Notification.requestPermission();
+    }
+    if (next && 'Notification' in window && Notification.permission === 'denied') {
+      addNotification('Notifications blocked by browser. Enable in site settings.', 'error');
+      return;
+    }
+    setPushNotifications(next);
+    localStorage.setItem('driver_push_notifications', String(next));
+    addNotification(next ? 'Push notifications enabled' : 'Push notifications disabled', 'success');
+  };
+
+  const toggleOfflineMaps = () => {
+    const next = !offlineMapsEnabled;
+    setOfflineMapsEnabled(next);
+    localStorage.setItem('driver_offline_maps', String(next));
+    addNotification(next ? 'Offline maps caching enabled' : 'Offline maps cache cleared', next ? 'success' : 'info');
+  };
   const [activeTrip, setActiveTrip] = useState<DeliveryNote | null>(null);
   const [loadingTrip, setLoadingTrip] = useState(true);
 
@@ -204,9 +227,9 @@ const DriverAuxiliary: React.FC = () => {
         </h3>
         <div className="space-y-5">
           {[
-            { label: 'Route NBO-204', date: 'Today, 09:12', status: 'COMPLETED', value: '+ $42.00' },
-            { label: 'Route NBO-198', date: 'Yesterday, 14:45', status: 'COMPLETED', value: '+ $38.50' },
-            { label: 'Fuel Subsidy', date: '21 Feb, 10:00', status: 'CREDITED', value: '+ $15.00' },
+            { label: 'Route NBO-204', date: 'Today, 09:12', status: 'COMPLETED', value: '+ KES 4,200' },
+            { label: 'Route NBO-198', date: 'Yesterday, 14:45', status: 'COMPLETED', value: '+ KES 3,850' },
+            { label: 'Fuel Subsidy', date: '21 Feb, 10:00', status: 'CREDITED', value: '+ KES 1,500' },
           ].map((item, i) => (
             <div key={i} className="flex items-center justify-between group">
               <div className="flex items-center gap-3">
@@ -233,7 +256,7 @@ const DriverAuxiliary: React.FC = () => {
         </div>
         <div>
           <h4 className="label-mono !text-slate-900 dark:!text-white mb-0.5">Weekly Earnings</h4>
-          <p className="text-xl font-black text-slate-900 dark:text-white">$412.50</p>
+          <p className="text-xl font-black text-slate-900 dark:text-white">KES 41,250</p>
           <p className="text-[8px] font-bold text-blue-400 uppercase tracking-widest mt-0.5">Next Payout: Feb 28</p>
         </div>
       </div>
@@ -372,8 +395,15 @@ const DriverAuxiliary: React.FC = () => {
 
       <div className="card-tactical text-center">
         <p className="label-mono mb-3">Direct Dispatch Line</p>
-        <p className="text-xl font-black text-slate-900 dark:text-white tracking-tighter mb-4 transition-colors">+254 700 000 000</p>
-        <button className="btn-tactical w-full bg-brand text-white shadow-lg">Call Dispatch Now</button>
+        <p className="text-xl font-black text-slate-900 dark:text-white tracking-tighter mb-4 transition-colors">
+          {currentTenant?.settings?.dispatchPhone || import.meta.env.VITE_DISPATCH_PHONE || '+254 700 000 000'}
+        </p>
+        <a
+          href={`tel:${currentTenant?.settings?.dispatchPhone || import.meta.env.VITE_DISPATCH_PHONE || '+254700000000'}`}
+          className="btn-tactical w-full bg-brand text-white shadow-lg flex items-center justify-center gap-2"
+        >
+          Call Dispatch Now
+        </a>
       </div>
     </div>
   );
@@ -393,9 +423,12 @@ const DriverAuxiliary: React.FC = () => {
             </div>
             <span className="text-[11px] font-black text-slate-900 uppercase tracking-tight transition-colors">Push Notifications</span>
           </div>
-          <div className="h-5 w-10 bg-brand rounded-full relative p-1 cursor-pointer">
-            <div className="h-3 w-3 bg-white rounded-full ml-auto" />
-          </div>
+          <button
+            onClick={togglePushNotifications}
+            className={`h-5 w-10 rounded-full relative p-1 cursor-pointer transition-colors ${pushNotifications ? 'bg-brand' : 'bg-slate-300'}`}
+          >
+            <div className={`h-3 w-3 bg-white rounded-full transition-transform ${pushNotifications ? 'translate-x-5' : 'translate-x-0'}`} />
+          </button>
         </div>
 
         <div className="p-5 bg-eggshell border border-line rounded-3xl flex items-center justify-between transition-colors">
@@ -403,9 +436,14 @@ const DriverAuxiliary: React.FC = () => {
             <div className="h-9 w-9 rounded-xl bg-white border border-line flex items-center justify-center text-slate-500 transition-colors">
               <Smartphone size={18} />
             </div>
-            <span className="text-[11px] font-black text-slate-900 uppercase tracking-tight transition-colors">Offline Maps Cache</span>
+            <div>
+              <span className="text-[11px] font-black text-slate-900 uppercase tracking-tight transition-colors">Offline Maps Cache</span>
+              {offlineMapsEnabled && <p className="text-[8px] font-bold text-emerald-500 uppercase tracking-widest">Active</p>}
+            </div>
           </div>
-          <button className="label-mono !text-brand-accent">Manage</button>
+          <button onClick={toggleOfflineMaps} className={`label-mono ${offlineMapsEnabled ? '!text-red-400' : '!text-brand-accent'}`}>
+            {offlineMapsEnabled ? 'Disable' : 'Enable'}
+          </button>
         </div>
       </div>
 

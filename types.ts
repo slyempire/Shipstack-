@@ -84,6 +84,7 @@ export interface Tenant {
     currency: string;
     timezone: string;
     primaryColor: string;
+    dispatchPhone?: string;
     allowSelfRegistration?: boolean;
     onboardingCompleted?: boolean;
     businessLogic?: {

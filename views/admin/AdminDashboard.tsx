@@ -258,9 +258,7 @@ const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { addNotification } = useAppStore();
   const { isModuleEnabled, tenant } = useTenant();
-  const isDemoUser = user?.email?.endsWith('@shipstack.com') || 
-                    user?.email === 'admin@shipstack.com' ||
-                    user?.email === 'joemugoh215@gmail.com' ||
+  const isDemoUser = user?.email?.endsWith('@shipstack.com') ||
                     window.location.search.includes('demo=true') ||
                     localStorage.getItem('shipstack_demo_mode') === 'true';
 
@@ -278,6 +276,32 @@ const AdminDashboard: React.FC = () => {
   const fleetUtilization = vehicles.length > 0 ? Math.round((activeVehicles / vehicles.length) * 100) : 85;
 
   const monthlyRevenue = dns.reduce((acc, curr) => acc + (curr.rate || 0), 0);
+
+  // Derive weekly volume from real dns by day-of-week
+  const weeklyData = React.useMemo(() => {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const counts = [0, 0, 0, 0, 0, 0, 0];
+    dns.forEach(d => {
+      try {
+        const dow = new Date(d.createdAt).getDay();
+        counts[dow]++;
+      } catch {}
+    });
+    // Rotate to Mon-Sun display order
+    return [1, 2, 3, 4, 5, 6, 0].map(i => ({ day: days[i], count: counts[i] || 0 }));
+  }, [dns]);
+
+  // Stable heatmap intensities — randomised once on mount, not on every render
+  const heatmapIntensities = React.useMemo(
+    () => Array.from({ length: 25 }, () => Math.random()),
+    []
+  );
+
+  // Stable forecast bar heights — seeded once, not re-randomised on state changes
+  const forecastHeights = React.useMemo(
+    () => Array.from({ length: 30 }, (_, i) => 30 + Math.sin(i * 0.5) * 20 + Math.random() * 30),
+    []
+  );
 
   const verticalLabels: Record<string, any> = {
     'E-COMMERCE': {
@@ -313,17 +337,7 @@ const AdminDashboard: React.FC = () => {
   const labels = verticalLabels[activeIndustry] || verticalLabels['E-COMMERCE'];
   const revenueDisplay = monthlyRevenue > 0 ? `$${(monthlyRevenue / 1000).toFixed(1)}k` : "$14.2k";
 
-  // Weekly Volume Data (Mocking distribution for the chart)
-  const weeklyData = [
-    { day: 'Mon', count: 42 },
-    { day: 'Tue', count: 58 },
-    { day: 'Wed', count: 45 },
-    { day: 'Thu', count: 62 },
-    { day: 'Fri', count: 75 },
-    { day: 'Sat', count: 30 },
-    { day: 'Sun', count: 15 },
-  ];
-  const maxVolume = Math.max(...weeklyData.map(d => d.count));
+  const maxVolume = Math.max(...weeklyData.map(d => d.count), 1);
 
   useEffect(() => {
     loadData();
@@ -416,10 +430,28 @@ const AdminDashboard: React.FC = () => {
                   {tenant?.industry || 'Vertical'} Hub
                 </button>
               </div>
-              <div className="flex items-center gap-3 px-6 py-3 bg-emerald/10 text-emerald rounded-xl border border-emerald/20 shadow-sm">
-                 <div className="h-2 w-2 rounded-full bg-emerald animate-pulse" />
-                 <span className="text-[10px] font-black uppercase tracking-widest">All Systems Nominal</span>
-              </div>
+              {(() => {
+                const isHealthy = !health || (health.isSupabaseHealthy !== false && health.isFrappeHealthy !== false);
+                const hasDegraded = health && (health.isSupabaseHealthy === false || health.isFrappeHealthy === false);
+                const label = loading ? 'Connecting...' : hasDegraded ? 'Degraded Service' : 'All Systems Nominal';
+                const cls = loading
+                  ? 'bg-slate-100 text-slate-400 border-slate-200'
+                  : hasDegraded
+                    ? 'bg-red-50 text-red-600 border-red-200'
+                    : 'bg-emerald/10 text-emerald border-emerald/20';
+                const dotCls = loading ? 'bg-slate-300' : hasDegraded ? 'bg-red-500' : 'bg-emerald';
+                return (
+                  <div className={`flex items-center gap-3 px-6 py-3 rounded-xl border shadow-sm transition-colors ${cls}`}>
+                    <div className={`h-2 w-2 rounded-full animate-pulse ${dotCls}`} />
+                    <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
+                    {hasDegraded && (
+                      <button onClick={handleTroubleshoot} disabled={troubleshooting} className="ml-1 text-[9px] font-black uppercase tracking-widest underline">
+                        {troubleshooting ? '...' : 'Fix'}
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
            </div>
         </div>
 
@@ -541,20 +573,17 @@ const AdminDashboard: React.FC = () => {
                     </div>
                     
                     <div className="grid grid-cols-5 gap-3 h-64">
-                      {Array.from({ length: 25 }).map((_, i) => {
-                        const intensity = Math.random();
-                        return (
-                          <div 
-                            key={i} 
-                            className="rounded-lg transition-all hover:scale-110 cursor-help"
-                            style={{ 
-                              backgroundColor: intensity > 0.8 ? '#DC2626' : intensity > 0.5 ? '#F59E0B' : '#10B981',
-                              opacity: 0.2 + intensity * 0.8
-                            }}
-                            title={`Zone ${i+1}: ${Math.round(intensity * 100)}% Depletion Risk`}
-                          />
-                        );
-                      })}
+                      {heatmapIntensities.map((intensity, i) => (
+                        <div
+                          key={i}
+                          className="rounded-lg transition-all hover:scale-110 cursor-help"
+                          style={{
+                            backgroundColor: intensity > 0.8 ? '#DC2626' : intensity > 0.5 ? '#F59E0B' : '#10B981',
+                            opacity: 0.2 + intensity * 0.8
+                          }}
+                          title={`Zone ${i + 1}: ${Math.round(intensity * 100)}% Depletion Risk`}
+                        />
+                      ))}
                     </div>
                     <div className="mt-6 flex justify-between items-center px-2">
                       <div className="flex items-center gap-4">
@@ -627,9 +656,8 @@ const AdminDashboard: React.FC = () => {
                 </div>
                 
                 <div className="h-64 w-full flex items-end justify-between gap-1 px-2">
-                  {Array.from({ length: 30 }).map((_, i) => {
+                  {forecastHeights.map((height, i) => {
                     const isPast = i < 15;
-                    const height = 30 + Math.sin(i * 0.5) * 20 + Math.random() * 30;
                     return (
                       <div key={i} className="flex-1 flex flex-col items-center gap-2 group relative">
                         <div className="relative w-full flex justify-center items-end h-full">

@@ -59,6 +59,7 @@ import {
   Star
 } from 'lucide-react';
 import { PaymentModal } from '../../components/PaymentModal';
+import { SignaturePad } from '../../components/SignaturePad';
 
 const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
   const R = 6371;
@@ -948,9 +949,15 @@ const DriverPortal: React.FC = () => {
            </div>
         </div>
 
-        <button 
+        {exceptionType && !exceptionPhoto && (
+          <div className="flex items-center gap-2 px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl">
+            <AlertCircle size={16} className="text-amber-400 shrink-0" />
+            <p className="text-[10px] font-black text-amber-300 uppercase tracking-widest">Photo evidence required to log exception</p>
+          </div>
+        )}
+        <button
           onClick={handleReportException}
-          disabled={!exceptionType || isSubmitting}
+          disabled={!exceptionType || !exceptionPhoto || isSubmitting}
           className="btn-tactical w-full py-6 bg-red-600 text-white shadow-2xl disabled:opacity-50"
         >
           {isSubmitting ? <RefreshCw className="animate-spin" size={20} /> : <><AlertCircle size={20} /> Log Exception</>}
@@ -997,20 +1004,30 @@ const DriverPortal: React.FC = () => {
            </div>
         </div>
 
-        <div className="bg-charcoal p-6 rounded-2xl border border-white/5 shadow-2xl space-y-4 transition-colors">
-           <div className="flex justify-between items-center">
-              <span className="label-logistics text-white/80">Successful Drops</span>
-              <span className="text-sm font-black">12</span>
-           </div>
-           <div className="flex justify-between items-center">
-              <span className="label-logistics text-white/80">Exceptions Logged</span>
-              <span className="text-sm font-black text-red">1</span>
-           </div>
-           <div className="pt-4 border-t border-white/10 flex justify-between items-center">
-              <span className="label-logistics">Total Reconciled</span>
-              <span className="text-xl font-black text-emerald">${reconData.codCollected.toLocaleString()}</span>
-           </div>
-        </div>
+        {(() => {
+          const successfulDrops = dns.filter(d => d.status === DNStatus.DELIVERED || d.status === DNStatus.COMPLETED).length;
+          const exceptionsLogged = dns.filter(d => d.status === DNStatus.EXCEPTION).length;
+          return (
+            <div className="bg-charcoal p-6 rounded-2xl border border-white/5 shadow-2xl space-y-4 transition-colors">
+               <div className="flex justify-between items-center">
+                  <span className="label-logistics text-white/80">Successful Drops</span>
+                  <span className="text-sm font-black">{successfulDrops}</span>
+               </div>
+               <div className="flex justify-between items-center">
+                  <span className="label-logistics text-white/80">Exceptions Logged</span>
+                  <span className={`text-sm font-black ${exceptionsLogged > 0 ? 'text-red' : 'text-emerald'}`}>{exceptionsLogged}</span>
+               </div>
+               <div className="flex justify-between items-center">
+                  <span className="label-logistics text-white/80">Returned Items</span>
+                  <span className="text-sm font-black">{reconData.returnedItemsCount}</span>
+               </div>
+               <div className="pt-4 border-t border-white/10 flex justify-between items-center">
+                  <span className="label-logistics">COD Collected</span>
+                  <span className="text-xl font-black text-emerald">KES {reconData.codCollected.toLocaleString()}</span>
+               </div>
+            </div>
+          );
+        })()}
 
         <button 
           onClick={handleReconcile}
@@ -1244,12 +1261,15 @@ const DriverPortal: React.FC = () => {
           </div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold text-white tracking-tight">{currentRoute}</h1>
-            {activeTrip && (
-              <div className="flex items-center gap-1 text-[10px] text-slate-400 bg-slate-800/50 px-2 py-0.5 rounded-lg border border-slate-700/50 ml-1">
-                <Truck size={10} />
-                <span>12.4 km to next stop</span>
-              </div>
-            )}
+            {activeTrip && currentCoords && activeTrip.lat && activeTrip.lng && (() => {
+              const distKm = calculateDistance(currentCoords.lat, currentCoords.lng, activeTrip.lat, activeTrip.lng);
+              return (
+                <div className="flex items-center gap-1 text-[10px] text-slate-400 bg-slate-800/50 px-2 py-0.5 rounded-lg border border-slate-700/50 ml-1">
+                  <Truck size={10} />
+                  <span>{distKm < 1 ? `${Math.round(distKm * 1000)}m` : `${distKm.toFixed(1)}km`} to next stop</span>
+                </div>
+              );
+            })()}
           </div>
         </div>
         <div className="flex gap-2 items-center">
@@ -1310,7 +1330,11 @@ const DriverPortal: React.FC = () => {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <div className="px-1.5 py-0.5 bg-emerald-500 text-white text-[8px] font-black rounded uppercase">Next Stop</div>
-                  <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-tight">~12 min</span>
+                  {currentCoords && activeTrip.lat && activeTrip.lng && (() => {
+                    const distKm = calculateDistance(currentCoords.lat, currentCoords.lng, activeTrip.lat, activeTrip.lng);
+                    const etaMins = Math.round((distKm / 40) * 60);
+                    return <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-tight">~{etaMins}min · {distKm < 1 ? `${Math.round(distKm * 1000)}m` : `${distKm.toFixed(1)}km`}</span>;
+                  })()}
                 </div>
                 <h4 className="text-base font-bold text-white truncate transition-colors">{activeTrip.clientName}</h4>
                 <div className="flex items-center gap-1 text-slate-400 mt-0.5">
@@ -1397,10 +1421,21 @@ const DriverPortal: React.FC = () => {
                       }`}>
                         {dn.status.replace('_', ' ')}
                       </div>
-                      <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold transition-colors">
-                         <Clock size={12} />
-                         <span>ETA: 14:30</span>
-                      </div>
+                      {dn.status !== DNStatus.DELIVERED && dn.status !== DNStatus.COMPLETED && currentCoords && dn.lat && dn.lng ? (() => {
+                        const distKm = calculateDistance(currentCoords.lat, currentCoords.lng, dn.lat, dn.lng);
+                        const etaMins = Math.round((distKm / 40) * 60); // assume 40 km/h avg city speed
+                        return (
+                          <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold transition-colors">
+                            <Clock size={12} />
+                            <span>{distKm < 1 ? `${Math.round(distKm * 1000)}m` : `${distKm.toFixed(1)}km`} · ~{etaMins}min</span>
+                          </div>
+                        );
+                      })() : dn.status === DNStatus.DELIVERED ? (
+                        <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold">
+                          <CheckCircle size={12} />
+                          <span>Delivered</span>
+                        </div>
+                      ) : null}
                    </div>
                 </div>
 
@@ -2249,7 +2284,7 @@ const DriverPortal: React.FC = () => {
                       >
                         {podSignature ? (
                           <>
-                            <img src={podSignature} className="absolute inset-0 w-full h-full object-contain p-4 opacity-40" alt="Signature" referrerPolicy="no-referrer" />
+                            <img src={podSignature} className="absolute inset-0 w-full h-full object-contain p-4 opacity-40" alt="Signature" />
                             <CheckCircle size={32} className="text-emerald relative z-10" />
                             <span className="text-[8px] font-black text-emerald uppercase tracking-widest relative z-10 transition-colors">Signed Off</span>
                           </>
@@ -2263,25 +2298,15 @@ const DriverPortal: React.FC = () => {
                    </div>
 
                    {showSignaturePad && (
-                     <div className="fixed inset-0 z-[6000] bg-navy/90 backdrop-blur-xl flex flex-col p-6 animate-in fade-in duration-300">
-                        <div className="flex justify-between items-center mb-8">
-                           <h3 className="text-xl font-black text-white uppercase tracking-tighter">Customer Signature</h3>
-                           <button onClick={() => setShowSignaturePad(false)} className="text-white/40 hover:text-white"><X size={24} /></button>
-                        </div>
-                        <div className="flex-1 bg-white rounded-3xl relative overflow-hidden flex items-center justify-center border-4 border-white/10 transition-colors">
-                           <p className="text-navy/5 font-black uppercase tracking-[0.5em] rotate-[-15deg] select-none transition-colors">Sign Here</p>
-                           {/* In a real app, this would be a canvas signature pad */}
-                           <div className="absolute inset-0 cursor-crosshair" onClick={() => {
-                             setPodSignature('https://upload.wikimedia.org/wikipedia/commons/7/7d/Signature_of_John_Hancock.png');
-                             setShowSignaturePad(false);
-                             addNotification("Signature captured.", "success");
-                           }} />
-                        </div>
-                        <div className="mt-8 flex gap-4">
-                           <button onClick={() => setShowSignaturePad(false)} className="flex-1 py-5 bg-white/10 text-white rounded-2xl font-black uppercase text-xs tracking-widest transition-colors">Cancel</button>
-                           <button className="flex-1 py-5 bg-brand text-white rounded-2xl font-black uppercase text-xs tracking-widest">Confirm</button>
-                        </div>
-                     </div>
+                     <SignaturePad
+                       label={`${currentDn?.clientName || 'Customer'} Signature`}
+                       onCapture={(dataUrl) => {
+                         setPodSignature(dataUrl);
+                         setShowSignaturePad(false);
+                         addNotification("Signature captured.", "success");
+                       }}
+                       onClose={() => setShowSignaturePad(false)}
+                     />
                    )}
 
                     <div className="space-y-3">
