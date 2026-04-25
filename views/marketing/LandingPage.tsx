@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../../store';
-import { 
-  ArrowRight, 
-  Truck, 
-  ShieldCheck, 
+import {
+  ArrowRight,
+  Truck,
+  ShieldCheck,
   CheckCircle,
-  Zap, 
+  Zap,
   Globe,
   MapPin,
   Activity,
@@ -28,11 +28,12 @@ import {
   BarChart3,
   Smartphone,
   Bell,
-  Users
+  Users,
+  Package
 } from 'lucide-react';
 
 import MarketingLayout from '../../components/marketing/MarketingLayout';
-import { motion, AnimatePresence, useScroll, useSpring, useInView } from 'framer-motion';
+import { motion, AnimatePresence, useScroll, useSpring, useInView, useMotionValue, useTransform } from 'framer-motion';
 
 const TrustBadge = () => (
   <motion.div 
@@ -42,7 +43,7 @@ const TrustBadge = () => (
     className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full mt-8"
   >
     <Shield size={14} className="text-brand" />
-    <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Trusted by 1,500+ logistics operators across Africa</span>
+    <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Trusted by 1,500+ operators across 12 African cities</span>
   </motion.div>
 );
 
@@ -240,10 +241,67 @@ const SectionWrapper = ({ children, className }: any) => {
   );
 };
 
+const MagneticCTA: React.FC<{ onClick: () => void; children: React.ReactNode; className?: string }> = ({ onClick, children, className }) => {
+  const ref = React.useRef<HTMLButtonElement>(null);
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const springX = useSpring(x, { stiffness: 200, damping: 20 });
+  const springY = useSpring(y, { stiffness: 200, damping: 20 });
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    const btn = ref.current;
+    if (!btn) return;
+    const rect = btn.getBoundingClientRect();
+    x.set((e.clientX - rect.left - rect.width / 2) * 0.3);
+    y.set((e.clientY - rect.top - rect.height / 2) * 0.3);
+  };
+
+  return (
+    <motion.button
+      ref={ref}
+      style={{ x: springX, y: springY }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={() => { x.set(0); y.set(0); }}
+      onClick={onClick}
+      whileTap={{ scale: 0.95 }}
+      className={className}
+    >
+      {children}
+    </motion.button>
+  );
+};
+
+const FloatingIcon: React.FC<{ icon: React.ElementType; delay?: number; duration?: number; style?: React.CSSProperties }> =
+  ({ icon: Icon, delay = 0, duration = 9, style }) => (
+    <motion.div
+      className="absolute rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm flex items-center justify-center pointer-events-none"
+      style={{ width: 52, height: 52, ...style }}
+      animate={{ y: [0, -22, 4, -16, 0], rotate: [-2, 3, -1, 2, -2] }}
+      transition={{ duration, delay, repeat: Infinity, ease: "easeInOut" }}
+    >
+      <Icon size={22} className="text-brand/70" />
+    </motion.div>
+  );
+
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuthStore();
   const [showBackToTop, setShowBackToTop] = useState(false);
+
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const smoothX = useSpring(mouseX, { stiffness: 80, damping: 25 });
+  const smoothY = useSpring(mouseY, { stiffness: 80, damping: 25 });
+  const layer1X = useTransform(smoothX, v => v * 0.018);
+  const layer1Y = useTransform(smoothY, v => v * 0.018);
+  const layer2X = useTransform(smoothX, v => v * -0.025);
+  const layer2Y = useTransform(smoothY, v => v * -0.025);
+
+  const handleHeroMouse = (e: React.MouseEvent<HTMLElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    mouseX.set(e.clientX - rect.left - rect.width / 2);
+    mouseY.set(e.clientY - rect.top - rect.height / 2);
+  };
 
   useEffect(() => {
     const handleScroll = () => setShowBackToTop(window.scrollY > 400);
@@ -262,88 +320,90 @@ const LandingPage: React.FC = () => {
   return (
     <MarketingLayout>
       {/* Hero Section */}
-      <section className="relative min-h-[95vh] flex flex-col items-center justify-center pt-32 pb-24 overflow-hidden">
-        {/* Slow Ken-Burns Background */}
+      <section
+        className="relative min-h-[95vh] flex flex-col items-center justify-center pt-32 pb-24 overflow-hidden"
+        onMouseMove={handleHeroMouse}
+        onMouseLeave={() => { mouseX.set(0); mouseY.set(0); }}
+      >
+        {/* Background */}
         <div className="absolute inset-0 z-0 bg-[#1A2B4D]">
-          <motion.img 
-            initial={{ scale: 1 }}
-            animate={{ scale: 1.15 }}
-            transition={{ duration: 60, repeat: Infinity, repeatType: "reverse", ease: "linear" }}
-            src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&q=80&w=2000" 
-            alt="Logistics Background" 
-            className="w-full h-full object-cover opacity-20"
-            referrerPolicy="no-referrer"
-          />
-          
-          {/* Map Grid Overlay - CSS Only */}
-          <div className="absolute inset-0 pointer-events-none opacity-20" 
-            style={{ 
-              backgroundImage: `
-                linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px)
-              `,
-              backgroundSize: '80px 80px'
-            }} 
-          />
-
-          {/* Route Lines Overlay - CSS Only */}
-          <div className="absolute inset-0 pointer-events-none opacity-10"
+          <div className="absolute inset-0 pointer-events-none opacity-20"
             style={{
-              backgroundImage: `
-                repeating-linear-gradient(45deg, transparent, transparent 120px, rgba(255, 140, 66, 0.15) 120px, rgba(255, 140, 66, 0.15) 121px),
-                repeating-linear-gradient(-45deg, transparent, transparent 180px, rgba(255, 140, 66, 0.1) 180px, rgba(255, 140, 66, 0.1) 181px)
-              `
+              backgroundImage: `linear-gradient(rgba(255,255,255,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.05) 1px,transparent 1px)`,
+              backgroundSize: '80px 80px'
             }}
           />
+          <div className="absolute inset-0 pointer-events-none opacity-10"
+            style={{
+              backgroundImage: `repeating-linear-gradient(45deg,transparent,transparent 120px,rgba(255,140,66,0.15) 120px,rgba(255,140,66,0.15) 121px),repeating-linear-gradient(-45deg,transparent,transparent 180px,rgba(255,140,66,0.1) 180px,rgba(255,140,66,0.1) 181px)`
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#1A2B4D]/60 via-[#1A2B4D]/90 to-[#1A2B4D]" />
+        </div>
 
-          <div className="absolute inset-0 bg-gradient-to-b from-[#1A2B4D]/60 via-[#1A2B4D]/90 to-[#1A2B4D]"></div>
+        {/* Cursor-parallax layer 1 — orbs */}
+        <motion.div className="absolute inset-0 z-[1] pointer-events-none" style={{ x: layer1X, y: layer1Y }}>
+          <div className="absolute top-[15%] left-[10%] w-48 h-48 rounded-full bg-brand/10 blur-3xl" />
+          <div className="absolute bottom-[20%] right-[8%] w-64 h-64 rounded-full bg-brand-teal/10 blur-3xl" />
+        </motion.div>
+
+        {/* Cursor-parallax layer 2 — counter-orbs */}
+        <motion.div className="absolute inset-0 z-[1] pointer-events-none" style={{ x: layer2X, y: layer2Y }}>
+          <div className="absolute top-[40%] right-[15%] w-32 h-32 rounded-full bg-indigo-500/10 blur-2xl" />
+          <div className="absolute bottom-[35%] left-[20%] w-24 h-24 rounded-full bg-brand/8 blur-xl" />
+        </motion.div>
+
+        {/* Floating logistics icons */}
+        <div className="absolute inset-0 z-[2] pointer-events-none">
+          <FloatingIcon icon={Truck}    delay={0}    duration={10} style={{ top: '18%', left:  '8%' }} />
+          <FloatingIcon icon={MapPin}   delay={1.2}  duration={8}  style={{ top: '30%', right: '7%' }} />
+          <FloatingIcon icon={Package}  delay={2.5}  duration={11} style={{ bottom: '30%', left: '12%' }} />
+          <FloatingIcon icon={Activity} delay={0.7}  duration={9}  style={{ top: '55%', right: '11%' }} />
+          <FloatingIcon icon={Bell}     delay={3.1}  duration={13} style={{ bottom: '18%', right: '22%' }} />
+          <FloatingIcon icon={Users}    delay={1.8}  duration={8.5} style={{ top: '12%', right: '22%' }} />
         </div>
 
         <div className="container-responsive relative z-10 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-brand/10 border border-brand/20 rounded-full mb-8">
               <Globe size={14} className="text-brand" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-brand">The Operating System for African Trade</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-brand">Built for Africa. Ready for the world.</span>
             </div>
           </motion.div>
 
-          <motion.h1 
+          <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
             className="text-6xl md:text-9xl font-black tracking-tighter leading-[0.85] mb-10 uppercase text-white"
           >
-            Logistics Built <br />
-            <span className="text-brand">For Africa.</span>
+            Deliver More.<br />
+            <span className="text-brand">Stress Less.</span>
           </motion.h1>
 
-          <motion.p 
+          <motion.p
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-lg md:text-2xl text-slate-300 max-w-3xl mx-auto mb-16 font-medium leading-relaxed"
+            className="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto mb-16 font-medium leading-relaxed"
           >
-            Manage deliveries, track shipments in real time, and scale your logistics operations—whether you're in Nairobi, Lagos, or beyond.
+            Stop juggling spreadsheets and phone calls. Shipstack gives you a single place to dispatch drivers, track every delivery live, and keep your customers in the loop — automatically.
           </motion.p>
 
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.6 }}
             className="flex flex-col sm:flex-row items-center justify-center gap-6"
           >
-            <button 
+            <MagneticCTA
               onClick={() => isAuthenticated ? handleDashboardRedirect() : navigate('/register')}
-              className="w-full sm:w-auto px-12 py-6 bg-brand hover:bg-[#E07A35] text-white rounded-2xl text-lg font-black uppercase tracking-widest shadow-2xl transition-all hover:scale-105 active:scale-95 shadow-brand/20"
+              className="w-full sm:w-auto px-12 py-6 bg-brand hover:bg-[#E07A35] text-white rounded-2xl text-lg font-black uppercase tracking-widest shadow-2xl transition-colors shadow-brand/20"
             >
-              {isAuthenticated ? 'Go to Dashboard' : 'Get Started Free'}
-            </button>
+              {isAuthenticated ? 'Go to Dashboard' : 'Start for Free'}
+            </MagneticCTA>
             <button className="w-full sm:w-auto px-12 py-6 border-2 border-white/20 text-white rounded-2xl text-lg font-black uppercase tracking-widest hover:bg-white/5 transition-all">
-              Watch Demo
+              See How It Works
             </button>
           </motion.div>
 
@@ -367,27 +427,27 @@ const LandingPage: React.FC = () => {
       <SectionWrapper className="py-32 px-4 bg-[#1A2B4D]">
         <div className="container-responsive">
           <div className="text-center mb-24">
-            <h2 className="text-4xl md:text-7xl font-black uppercase tracking-tighter text-white mb-6">Built for <span className="text-brand">Growth.</span></h2>
-            <p className="text-slate-400 max-w-2xl mx-auto font-medium text-lg leading-relaxed">Stabilize your supply chain and empower your workforce with enterprise-grade tools.</p>
+            <h2 className="text-4xl md:text-7xl font-black uppercase tracking-tighter text-white mb-6">Built to <span className="text-brand">Scale.</span></h2>
+            <p className="text-slate-400 max-w-2xl mx-auto font-medium text-lg leading-relaxed">Whether you run 10 deliveries a day or 10,000, Shipstack handles the complexity so you can focus on growing your business.</p>
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-            <FeatureCard 
-              icon={ShieldCheck} 
-              title="Bank-Level Security" 
-              desc="Your shipment data is encrypted and immutable, giving you and your customers complete peace of mind. Built with enterprise-grade blockchain verification."
+            <FeatureCard
+              icon={ShieldCheck}
+              title="Peace of Mind, Built In"
+              desc="Your data is encrypted and backed up automatically. Every delivery creates a tamper-proof record your team and customers can always verify."
               delay={0}
             />
-            <FeatureCard 
-              icon={TrendingUp} 
-              title="MSME Empowerment" 
-              desc="Built specifically for African logistics businesses. Whether you run 10 or 10,000 deliveries a day, Shipstack grows with your business."
+            <FeatureCard
+              icon={TrendingUp}
+              title="Grows With You"
+              desc="Start with one driver and scale to a hundred. Shipstack is designed for African logistics operators at every stage — no IT team required."
               delay={0.1}
             />
-            <FeatureCard 
-              icon={MapPin} 
-              title="Real-Time Tracking" 
-              desc="Track every shipment live on a map. Your customers get automatic SMS and WhatsApp updates at every step of their delivery journey."
+            <FeatureCard
+              icon={MapPin}
+              title="Live Delivery Tracking"
+              desc="See every package move on a live map. Customers get automatic updates via SMS and WhatsApp — and stop calling you to ask where their order is."
               delay={0.2}
             />
           </div>
@@ -568,10 +628,10 @@ const LandingPage: React.FC = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-16">
-              <StepAction number="1" icon={User} title="Create Account" desc="Sign up in minutes and verify your business details." delay={0.1} />
-              <StepAction number="2" icon={Truck} title="Routes & Drivers" desc="Onboard your fleet and define your delivery corridors." delay={0.2} />
-              <StepAction number="3" icon={MapPin} title="Start Tracking" desc="Create delivery notes and watch them live on the map." delay={0.3} />
-              <StepAction number="4" icon={TrendingUp} title="Scale Operations" desc="Use AI insights to optimize routes and grow your business." delay={0.4} />
+              <StepAction number="1" icon={User}       title="Create Account"  desc="Sign up free in under 2 minutes. No credit card needed." delay={0.1} />
+              <StepAction number="2" icon={Truck}      title="Add Your Fleet"  desc="Invite your drivers and list your vehicles — takes about 5 minutes." delay={0.2} />
+              <StepAction number="3" icon={MapPin}     title="Book Deliveries" desc="Create a delivery order. The system dispatches the nearest driver automatically." delay={0.3} />
+              <StepAction number="4" icon={TrendingUp} title="Watch It Grow"   desc="Use reports and analytics to cut costs and increase on-time rates." delay={0.4} />
             </div>
           </div>
         </div>
@@ -724,25 +784,25 @@ const LandingPage: React.FC = () => {
               <p className="text-slate-400 font-medium leading-relaxed">Everything you need to know about the Shipstack platform and our operations across Africa.</p>
             </div>
             <div className="lg:col-span-2 space-y-2">
-              <FAQItem 
-                question="How secure is my data?" 
-                answer="All data encrypted with enterprise-grade AES-256 protocols and stored on redundant, ISO-certified African servers. We maintain strict chain-of-custody for all shipment records."
+              <FAQItem
+                question="Is my data safe?"
+                answer="Yes. Everything is encrypted and stored on secure African servers. You and your customers are the only ones who can see your delivery data."
               />
-              <FAQItem 
-                question="How long does setup take?" 
-                answer="Most operators are live within 24 hours. Our onboarding team guides you through driver enrollment, route definition, and system integration personally."
+              <FAQItem
+                question="How long does it take to get started?"
+                answer="Most businesses are up and running the same day. Our setup wizard walks you through everything step by step — no technical background needed."
               />
-              <FAQItem 
-                question="Can I use this on mobile?" 
-                answer="Yes, Shipstack works flawlessly on any smartphone browser. We also provide native iOS and Android apps for drivers for optimal offline support."
+              <FAQItem
+                question="Does it work on my phone?"
+                answer="Absolutely. Shipstack runs on any smartphone browser. Drivers also get a dedicated mobile app that works offline — perfect for areas with patchy connectivity."
               />
-              <FAQItem 
-                question="What about data privacy?" 
-                answer="We strictly comply with data protection laws across Kenya (ODPC), Nigeria (NDRP), Uganda, and South Africa. Your data belongs to you—we just make it work harder."
+              <FAQItem
+                question="Who owns my data?"
+                answer="You do. We comply with data protection laws across Kenya, Nigeria, Uganda, and South Africa. You can export or delete your data at any time."
               />
-              <FAQItem 
-                question="Is there customer support?" 
-                answer="Absolutely. We provide 24/7 technical support via WhatsApp, email, and phone in English, Swahili, and French to ensure your operations never stop."
+              <FAQItem
+                question="What if I need help?"
+                answer="We're here 24/7. Reach us on WhatsApp, email, or phone in English, Swahili, or French. We also have an in-app help guide that answers most questions instantly."
               />
             </div>
           </div>

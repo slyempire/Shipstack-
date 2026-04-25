@@ -26,6 +26,8 @@ const RegisterPage = React.lazy(() => import('./views/marketing/RegisterPage'));
 const DriverRecruitmentView = React.lazy(() => import('./views/marketing/DriverRecruitmentView'));
 const DriverRegistrationForm = React.lazy(() => import('./views/marketing/DriverRegistrationForm'));
 const OnboardingFlow = React.lazy(() => import('./views/onboarding/OnboardingFlow'));
+const OnboardingView = React.lazy(() => import('./views/onboarding/OnboardingView'));
+const WelcomeTutorial = React.lazy(() => import('./components/WelcomeTutorial'));
 
 const LoginView = React.lazy(() => import('./views/LoginView'));
 const ResetPasswordView = React.lazy(() => import('./views/ResetPasswordView'));
@@ -60,6 +62,28 @@ const SettingsView = React.lazy(() => import('./views/shared/SettingsView'));
 const LegalView = React.lazy(() => import('./views/shared/LegalView'));
 const StyleGuide = React.lazy(() => import('./views/marketing/StyleGuide'));
 const HealthcareDashboard = React.lazy(() => import('./views/industry/HealthcareDashboard'));
+
+const TutorialManager: React.FC = () => {
+  const { user, isAuthenticated } = useAuthStore();
+  const [showTutorial, setShowTutorial] = React.useState(false);
+
+  React.useEffect(() => {
+    if (isAuthenticated && user?.isOnboarded) {
+      const seen = localStorage.getItem('shipstack_tutorial_seen');
+      if (!seen) {
+        const timer = setTimeout(() => setShowTutorial(true), 1000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isAuthenticated, user?.isOnboarded]);
+
+  if (!showTutorial) return null;
+  return (
+    <React.Suspense fallback={null}>
+      <WelcomeTutorial isOpen={showTutorial} onClose={() => setShowTutorial(false)} />
+    </React.Suspense>
+  );
+};
 
 const DashboardSwitcher = () => {
   const { currentUserRole } = useAuthStore();
@@ -148,6 +172,7 @@ const App: React.FC = () => {
       <TenantInitializer>
         <ThemeManager>
           <NotificationToast />
+          <TutorialManager />
           <Suspense fallback={<div className="flex h-screen items-center justify-center bg-eggshell"><div className="animate-spin h-10 w-10 border-4 border-brand border-t-transparent rounded-full shadow-lg" /></div>}>
             <ErrorBoundary componentName="Global App Shell">
               <Routes>
@@ -171,7 +196,8 @@ const App: React.FC = () => {
                 <Route path="/solutions/healthcare" element={<HealthcareDashboard />} />
                 
                 {/* Onboarding Flow - Publicly accessible but requires auth to complete */}
-                <Route path="/onboarding" element={<OnboardingFlow />} />
+                <Route path="/onboarding" element={<OnboardingView />} />
+                <Route path="/onboarding/enterprise" element={<OnboardingFlow />} />
 
                 {/* Core App Routes - Guarded */}
                 <Route path="/admin" element={

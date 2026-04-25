@@ -39,7 +39,7 @@ const RegisterPage: React.FC = () => {
     try {
       const { user, token } = await api.register(formData);
       login(user, token);
-      addNotification("Mission Initialized. Proceed to Onboarding.", "success");
+      addNotification("Account created! Let's set things up.", "success");
       navigate('/onboarding');
     } catch (err: any) {
       addNotification(err.message, "error");
@@ -63,7 +63,7 @@ const RegisterPage: React.FC = () => {
           <span className="text-xl font-black tracking-tighter uppercase">Shipstack</span>
         </Link>
         <Link to="/" className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-brand flex items-center gap-2">
-           <ChevronLeft size={16} /> Abort Registration
+           <ChevronLeft size={16} /> Back to Home
         </Link>
       </motion.nav>
 
@@ -81,8 +81,8 @@ const RegisterPage: React.FC = () => {
               transition={{ delay: 0.2, duration: 0.6 }}
               className="mb-12"
             >
-               <h1 className="text-4xl font-black tracking-tighter uppercase mb-4">Initialize Your Stack.</h1>
-               <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] leading-relaxed">Manifest your operational hub in seconds. 14-day full professional access included.</p>
+               <h1 className="text-4xl font-black tracking-tighter uppercase mb-4">Create Your Account.</h1>
+               <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] leading-relaxed">Get started in seconds. Full access included — no credit card required.</p>
             </motion.div>
 
             <motion.form 
@@ -93,18 +93,18 @@ const RegisterPage: React.FC = () => {
               className="space-y-6"
             >
                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Commander Name</label>
-                  <input 
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Your Name</label>
+                  <input
                     type="text" required
                     value={formData.name}
                     onChange={e => setFormData({...formData, name: e.target.value})}
-                    placeholder="Full identity name"
+                    placeholder="e.g. Amara Osei"
                     className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-5 text-sm font-bold text-slate-900 focus:border-brand-accent outline-none transition-all"
                   />
                </div>
 
                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Secure Email</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
                   <input 
                     type="email" required
                     value={formData.email}
@@ -115,7 +115,7 @@ const RegisterPage: React.FC = () => {
                </div>
 
                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Organization / Fleet Name</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Company or Business Name</label>
                   <input 
                     type="text" required
                     value={formData.company}
@@ -125,8 +125,8 @@ const RegisterPage: React.FC = () => {
                   />
                </div>
 
-               <PasswordInput 
-                 label="Set Master Password"
+               <PasswordInput
+                 label="Password"
                  required
                  showStrength
                  value={formData.password}
@@ -141,7 +141,7 @@ const RegisterPage: React.FC = () => {
                  whileTap={{ scale: 0.98 }}
                  className="w-full bg-brand text-white py-6 rounded-2xl font-black uppercase text-sm tracking-[0.2em] shadow-2xl shadow-brand/20 active:scale-95 disabled:opacity-50 transition-all flex items-center justify-center gap-3 mt-10"
                >
-                  {isLoading ? <RefreshCw className="animate-spin" size={20} /> : <><CheckCircle2 size={20} /> Deploy Base Stack</>}
+                  {isLoading ? <RefreshCw className="animate-spin" size={20} /> : <><CheckCircle2 size={20} /> Create Account</>}
                </motion.button>
             </motion.form>
 
@@ -151,7 +151,7 @@ const RegisterPage: React.FC = () => {
               transition={{ delay: 0.5, duration: 0.8 }}
               className="mt-10 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest"
             >
-               Already running on Shipstack? <Link to="/login" className="text-brand-accent hover:underline">Sign In Terminal</Link>
+               Already have an account? <Link to="/login" className="text-brand-accent hover:underline">Sign in</Link>
             </motion.p>
           </div>
         </motion.div>
@@ -178,23 +178,23 @@ const RegisterPage: React.FC = () => {
                 transition={{ delay: 0.6, duration: 0.8 }}
                 className="text-4xl font-black text-white uppercase tracking-tighter mb-8 leading-tight"
               >
-                Your Logistics Data, Secured.
+                Trusted by operators across Africa.
               </motion.h2>
               <div className="space-y-8">
-                 <RegisterBenefit 
+                 <RegisterBenefit
                    index={0}
-                   title="High-Precision Tracking" 
-                   desc="Street-level telemetry for every unit in your fleet pool." 
+                   title="Live GPS Tracking"
+                   desc="See every driver and delivery on a live map, updated in real time."
                  />
-                 <RegisterBenefit 
+                 <RegisterBenefit
                    index={1}
-                   title="Audit-Grade Compliance" 
-                   desc="Permanent manifest and document trails for every manifest." 
+                   title="Automatic Proof of Delivery"
+                   desc="Signatures, photos, and delivery records stored securely for every drop."
                  />
-                 <RegisterBenefit 
+                 <RegisterBenefit
                    index={2}
-                   title="Automated Settlement" 
-                   desc="Reduce billing disputes with verified proof of delivery." 
+                   title="M-Pesa & Card Payments"
+                   desc="Accept mobile money, cards, and bank transfers — built for Africa."
                  />
               </div>
            </div>

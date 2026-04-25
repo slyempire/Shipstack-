@@ -52,6 +52,11 @@ const OnboardingView: React.FC = () => {
   const [lowStockThreshold, setLowStockThreshold] = useState(currentTenant?.settings?.businessLogic?.lowStockThreshold || 10);
   const [defaultTaxRate, setDefaultTaxRate] = useState(currentTenant?.settings?.businessLogic?.defaultTaxRate || 16);
 
+  // Additional profile state
+  const [teamSize, setTeamSize] = useState<string>('1-5');
+  const [timezone, setTimezone] = useState('Africa/Nairobi');
+  const [operatingRegions, setOperatingRegions] = useState<string[]>(['Nairobi']);
+
   // First Shipment State
   const [firstShipment, setFirstShipment] = useState({
     clientName: '',
@@ -85,6 +90,7 @@ const OnboardingView: React.FC = () => {
         settings: {
           ...currentTenant!.settings,
           currency,
+          timezone,
           onboardingCompleted: true,
           businessLogic: {
             autoDispatch,
@@ -157,25 +163,44 @@ const OnboardingView: React.FC = () => {
   const renderStep = () => {
     if (isSuccess) {
       return (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="text-center space-y-6"
+          className="text-center space-y-6 py-8"
         >
-          <div className="w-24 h-24 bg-emerald-500 text-white rounded-[2.5rem] flex items-center justify-center mx-auto shadow-2xl shadow-emerald-200">
-            <Rocket size={48} className="animate-bounce" />
-          </div>
+          <motion.div
+            animate={{ rotate: [0, -8, 8, -4, 4, 0] }}
+            transition={{ duration: 0.7, delay: 0.2 }}
+            className="w-24 h-24 bg-emerald-500 text-white rounded-[2.5rem] flex items-center justify-center mx-auto shadow-2xl shadow-emerald-200"
+          >
+            <Rocket size={48} />
+          </motion.div>
           <div className="space-y-2">
-            <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Platform Ready</h2>
-            <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Deploying your logistics infrastructure...</p>
+            <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">You're all set!</h2>
+            <p className="text-slate-500 text-sm font-medium">Setting up your dashboard — this takes just a moment.</p>
           </div>
-          <div className="max-w-xs mx-auto h-1.5 bg-slate-100 rounded-full overflow-hidden">
-            <motion.div 
-              initial={{ width: 0 }}
-              animate={{ width: '100%' }}
-              transition={{ duration: 2 }}
-              className="h-full bg-emerald-500"
-            />
+          <div className="max-w-xs mx-auto space-y-3">
+            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: '100%' }}
+                transition={{ duration: 2.2 }}
+                className="h-full bg-emerald-500 rounded-full"
+              />
+            </div>
+            <div className="flex flex-wrap justify-center gap-2">
+              {[companyName, industry, currency].filter(Boolean).map((val, i) => (
+                <motion.span
+                  key={i}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 + i * 0.15 }}
+                  className="px-3 py-1 bg-emerald-50 border border-emerald-100 rounded-full text-[10px] font-black text-emerald-700 uppercase tracking-widest"
+                >
+                  {val}
+                </motion.span>
+              ))}
+            </div>
           </div>
         </motion.div>
       );
@@ -191,8 +216,8 @@ const OnboardingView: React.FC = () => {
             className="space-y-8"
           >
             <div className="text-center space-y-2">
-              <h2 className="mobile-h2">What best describes you?</h2>
-              <p className="text-slate-500">We'll personalize your experience based on your role.</p>
+              <h2 className="mobile-h2">What's your role?</h2>
+              <p className="text-slate-500">We'll tailor your workspace to match how you work.</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
@@ -243,7 +268,7 @@ const OnboardingView: React.FC = () => {
                 <Zap size={16} />
                 Quick Start with Defaults
               </button>
-              <p className="text-[10px] text-slate-400 font-bold">Skip setup and explore the platform immediately.</p>
+              <p className="text-[10px] text-slate-400 font-bold">Skip setup and explore the platform now. You can finish this later.</p>
             </div>
           </motion.div>
         );
@@ -257,8 +282,8 @@ const OnboardingView: React.FC = () => {
             className="space-y-8"
           >
             <div className="text-center space-y-2">
-              <h2 className="mobile-h2">Company Profile</h2>
-              <p className="text-slate-500">Tell us about your business.</p>
+              <h2 className="mobile-h2">About Your Business</h2>
+              <p className="text-slate-500">This helps us set up the right tools for you from day one.</p>
             </div>
 
             <div className="space-y-6 max-w-md mx-auto">
@@ -297,13 +322,32 @@ const OnboardingView: React.FC = () => {
                 </div>
               </div>
 
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase tracking-widest text-slate-400">Team Size</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {['1–5', '6–20', '21–100', '100+'].map((size) => (
+                    <button
+                      key={size}
+                      onClick={() => setTeamSize(size)}
+                      className={`py-3 rounded-2xl text-[10px] font-bold transition-all border ${
+                        teamSize === size
+                          ? 'bg-brand text-white border-brand shadow-lg'
+                          : 'bg-white text-slate-600 border-slate-200 hover:border-brand-accent'
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {INDUSTRY_TEMPLATES[industry] && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="p-4 bg-brand/5 border border-brand/10 rounded-2xl"
                 >
-                  <p className="text-[10px] font-bold text-brand uppercase tracking-widest mb-1">Recommended Template</p>
+                  <p className="text-[10px] font-bold text-brand uppercase tracking-widest mb-1">Recommended for you</p>
                   <p className="text-xs text-slate-600 leading-relaxed">
                     {INDUSTRY_TEMPLATES[industry].description}
                   </p>
@@ -322,8 +366,8 @@ const OnboardingView: React.FC = () => {
             className="space-y-8"
           >
             <div className="text-center space-y-2">
-              <h2 className="mobile-h2">Choose Your Modules</h2>
-              <p className="text-slate-500">Select the features that match your operational workflow.</p>
+              <h2 className="mobile-h2">Pick Your Features</h2>
+              <p className="text-slate-500">Choose the tools that match how you run your operations. You can add more later.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
@@ -372,8 +416,8 @@ const OnboardingView: React.FC = () => {
             className="space-y-8"
           >
             <div className="text-center space-y-2">
-              <h2 className="mobile-h2">Business Logic & Rules</h2>
-              <p className="text-slate-500">Define how your operations should be automated and verified.</p>
+              <h2 className="mobile-h2">How Should It Work?</h2>
+              <p className="text-slate-500">Set your default rules. Everything here can be changed later in settings.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
@@ -448,21 +492,21 @@ const OnboardingView: React.FC = () => {
             className="space-y-8"
           >
             <div className="text-center space-y-2">
-              <h2 className="mobile-h2">Regional Settings</h2>
-              <p className="text-slate-500">Configure localization for your operations.</p>
+              <h2 className="mobile-h2">Where Do You Operate?</h2>
+              <p className="text-slate-500">Tell us your region so we can set the right currency, timezone, and local settings.</p>
             </div>
 
             <div className="space-y-6 max-w-md mx-auto">
               <div className="space-y-2">
                 <label className="text-xs font-black uppercase tracking-widest text-slate-400">Operating Currency</label>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-5 gap-2">
                   {['KES', 'USD', 'UGX', 'TZS', 'RWF'].map((curr) => (
                     <button
                       key={curr}
                       onClick={() => setCurrency(curr)}
-                      className={`py-4 rounded-2xl text-xs font-bold transition-all border ${
-                        currency === curr 
-                          ? 'bg-brand text-white border-brand shadow-lg' 
+                      className={`py-3 rounded-2xl text-xs font-bold transition-all border ${
+                        currency === curr
+                          ? 'bg-brand text-white border-brand shadow-lg'
                           : 'bg-white text-slate-600 border-slate-200 hover:border-brand-accent'
                       }`}
                     >
@@ -472,25 +516,58 @@ const OnboardingView: React.FC = () => {
                 </div>
               </div>
 
-              <div className="p-6 bg-brand-teal/5 border border-brand-teal/20 rounded-[2rem] space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase tracking-widest text-slate-400">Where do you operate?</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {['Nairobi', 'Mombasa', 'Lagos', 'Kampala', 'Dar es Salaam', 'Kigali'].map((region) => (
+                    <button
+                      key={region}
+                      onClick={() => setOperatingRegions(prev =>
+                        prev.includes(region) ? prev.filter(r => r !== region) : [...prev, region]
+                      )}
+                      className={`py-2.5 rounded-xl text-[10px] font-bold transition-all border ${
+                        operatingRegions.includes(region)
+                          ? 'bg-brand text-white border-brand shadow-lg'
+                          : 'bg-white text-slate-600 border-slate-200 hover:border-brand-accent'
+                      }`}
+                    >
+                      {region}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-black uppercase tracking-widest text-slate-400">Timezone</label>
+                <select
+                  value={timezone}
+                  onChange={e => setTimezone(e.target.value)}
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-brand-accent outline-none transition-all"
+                >
+                  <option value="Africa/Nairobi">East Africa Time (EAT) — Nairobi, Kampala, Dar</option>
+                  <option value="Africa/Lagos">West Africa Time (WAT) — Lagos, Accra</option>
+                  <option value="Africa/Johannesburg">South Africa Time (SAST) — Johannesburg</option>
+                  <option value="Africa/Kigali">Central Africa Time (CAT) — Kigali, Kinshasa</option>
+                  <option value="UTC">UTC</option>
+                </select>
+              </div>
+
+              <div className="p-5 bg-brand-teal/5 border border-brand-teal/20 rounded-2xl space-y-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-brand-teal text-white rounded-xl flex items-center justify-center">
-                    <Rocket className="w-5 h-5" />
+                  <div className="w-9 h-9 bg-brand-teal text-white rounded-xl flex items-center justify-center shrink-0">
+                    <Rocket className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-brand-teal">Ready for Launch</h4>
-                    <p className="text-xs text-slate-500">Your custom stack is being prepared.</p>
+                    <h4 className="font-bold text-brand-teal text-sm">Almost there!</h4>
+                    <p className="text-[10px] text-slate-500">Your workspace is ready to launch.</p>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <p className="text-xs font-bold text-slate-600">Selected Modules:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedModules.map(m => (
-                      <span key={m} className="px-3 py-1 bg-white border border-brand-teal/20 rounded-full text-[10px] font-black uppercase tracking-wider text-brand-teal">
-                        {m.replace('-', ' ')}
-                      </span>
-                    ))}
-                  </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedModules.map(m => (
+                    <span key={m} className="px-2.5 py-1 bg-white border border-brand-teal/20 rounded-full text-[9px] font-black uppercase tracking-wider text-brand-teal">
+                      {m.replace('-', ' ')}
+                    </span>
+                  ))}
                 </div>
               </div>
             </div>
@@ -538,8 +615,8 @@ const OnboardingView: React.FC = () => {
             className="space-y-8"
           >
             <div className="text-center space-y-2">
-              <h2 className="mobile-h2">Your First Shipment</h2>
-              <p className="text-slate-500">Let's book your first delivery to see the platform in action.</p>
+              <h2 className="mobile-h2">Book Your First Delivery</h2>
+              <p className="text-slate-500">Try it live — create a delivery right now and see how the platform works in action.</p>
             </div>
 
             <div className="max-w-xl mx-auto bg-white border border-slate-100 rounded-[2.5rem] p-8 shadow-sm space-y-6">
@@ -631,7 +708,7 @@ const OnboardingView: React.FC = () => {
         </div>
         <div className="flex items-center gap-4">
           <div className="hidden sm:flex items-center gap-2 mr-4">
-             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Step {step} of 6</span>
+             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Step {step} of 6 — Setup</span>
           </div>
           <div className="flex items-center gap-2">
             {[1, 2, 3, 4, 5, 6].map(i => (
@@ -678,7 +755,7 @@ const OnboardingView: React.FC = () => {
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  {step === 6 ? 'Launch Platform' : 'Continue'}
+                  {step === 6 ? "Let's Go!" : 'Continue'}
                   <ChevronRight className="w-5 h-5" />
                 </>
               )}
