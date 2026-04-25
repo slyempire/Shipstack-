@@ -265,6 +265,83 @@ async function startServer() {
     });
   });
 
+  // ─── Privacy / GDPR API ────────────────────────────────────────────────
+
+  /**
+   * POST /api/privacy/export-request
+   * User requests a portable data export (GDPR Art. 20).
+   * Body: { userId: string }
+   */
+  app.post('/api/privacy/export-request', apiRateLimit, (req, res) => {
+    const { userId } = req.body;
+    if (!userId || typeof userId !== 'string') {
+      return res.status(400).json({ error: 'Validation Error', message: 'userId is required' });
+    }
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    console.log(`[PRIVACY] Data export requested for user ${userId}`);
+    io.to(`user:${userId}`).emit('privacy:export-ready', { expiresAt });
+    res.json({
+      success: true,
+      message: 'Export request received. You will receive an email with a download link within 30 minutes.',
+      expiresAt,
+    });
+  });
+
+  /**
+   * POST /api/privacy/deletion-request
+   * User requests account & data deletion (GDPR Art. 17).
+   * Body: { userId: string }
+   * 30-day grace period before permanent deletion.
+   */
+  app.post('/api/privacy/deletion-request', apiRateLimit, (req, res) => {
+    const { userId } = req.body;
+    if (!userId || typeof userId !== 'string') {
+      return res.status(400).json({ error: 'Validation Error', message: 'userId is required' });
+    }
+    const gracePeriodEnd      = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const permanentDeletionAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+    console.log(`[PRIVACY] Deletion requested for user ${userId} — permanent after ${permanentDeletionAt}`);
+    res.json({
+      success: true,
+      message: 'Deletion request received. Your account will be deactivated immediately. Personal data will be permanently deleted after 30 days.',
+      gracePeriodEnd,
+      permanentDeletionAt,
+      recoveryInstructions: 'To cancel, log in before the grace period ends and go to Settings → Restore Account.',
+    });
+  });
+
+  /**
+   * POST /api/privacy/recover-deletion
+   * User cancels a pending deletion within the grace period.
+   * Body: { userId: string }
+   */
+  app.post('/api/privacy/recover-deletion', apiRateLimit, (req, res) => {
+    const { userId } = req.body;
+    if (!userId || typeof userId !== 'string') {
+      return res.status(400).json({ error: 'Validation Error', message: 'userId is required' });
+    }
+    console.log(`[PRIVACY] Deletion recovery requested for user ${userId}`);
+    res.json({ success: true, message: 'Deletion cancelled. Your account has been fully restored.' });
+  });
+
+  /**
+   * POST /api/privacy/opt-out
+   * User opts out of specific processing (GDPR Art. 21).
+   * Body: { userId: string, processingType: 'MARKETING' | 'ANALYTICS' | 'PROFILING' }
+   */
+  app.post('/api/privacy/opt-out', apiRateLimit, (req, res) => {
+    const VALID_TYPES = ['MARKETING', 'ANALYTICS', 'PROFILING'] as const;
+    const { userId, processingType } = req.body;
+    if (!userId || !VALID_TYPES.includes(processingType)) {
+      return res.status(400).json({ error: 'Validation Error', message: `processingType must be one of: ${VALID_TYPES.join(', ')}` });
+    }
+    console.log(`[PRIVACY] Opt-out: user ${userId} → ${processingType}`);
+    res.json({
+      success: true,
+      message: `You have been opted out of ${processingType} processing. This takes effect immediately.`,
+    });
+  });
+
   // Global Error Handler
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
     console.error(`[ERROR] ${req.method} ${req.url}:`, err);

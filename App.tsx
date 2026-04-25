@@ -11,6 +11,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { ModuleGuard } from './components/ModuleGuard';
 import ProtectedRoute from './components/ProtectedRoute';
 import NotificationToast from './components/NotificationToast';
+import CookieConsent from './components/CookieConsent';
 import TenantInitializer from './components/TenantInitializer';
 import ThemeManager from './components/ThemeManager';
 
@@ -173,6 +174,7 @@ const App: React.FC = () => {
         <ThemeManager>
           <NotificationToast />
           <TutorialManager />
+          <CookieConsent />
           <Suspense fallback={<div className="flex h-screen items-center justify-center bg-eggshell"><div className="animate-spin h-10 w-10 border-4 border-brand border-t-transparent rounded-full shadow-lg" /></div>}>
             <ErrorBoundary componentName="Global App Shell">
               <Routes>
@@ -192,6 +194,7 @@ const App: React.FC = () => {
                 <Route path="/login" element={<LoginView />} />
                 <Route path="/reset-password" element={<ResetPasswordView />} />
                 <Route path="/legal" element={<LegalView />} />
+                <Route path="/legal/:section" element={<LegalView />} />
                 <Route path="/style-guide" element={<StyleGuide />} />
                 <Route path="/solutions/healthcare" element={<HealthcareDashboard />} />
                 
