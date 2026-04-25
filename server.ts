@@ -4,6 +4,7 @@ import { Server } from "socket.io";
 import cors from "cors";
 import helmet from "helmet";
 import compression from "compression";
+import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import { createServer as createViteServer } from "vite";
 import path from "path";
@@ -37,8 +38,19 @@ const TelemetrySchema = z.object({
   signature: z.string().min(1)
 });
 
-// Shared secret - must match frontend
-const SECURITY_SECRET = process.env.SECURITY_SECRET || 'shipstack-default-secret-key-2026';
+// Shared secret - must match frontend. No fallback; fail loudly if absent.
+const SECURITY_SECRET = process.env.SECURITY_SECRET;
+if (!SECURITY_SECRET || SECURITY_SECRET.length < 32) {
+  throw new Error(
+    '[Shipstack Security] SECURITY_SECRET is not set or is too short (min 32 chars). ' +
+    'Generate one with: openssl rand -hex 32'
+  );
+}
+
+// Valid API keys for ERP ingestion, comma-separated in env.
+const VALID_API_KEYS = new Set(
+  (process.env.VALID_API_KEYS || '').split(',').map(k => k.trim()).filter(Boolean)
+);
 
 /**
  * Verifies the HMAC signature of a telemetry payload.
@@ -55,31 +67,65 @@ const verifyTelemetrySignature = (data: any): boolean => {
 async function startServer() {
   const app = express();
   const httpServer = createServer(app);
+
+  const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
+    .split(',')
+    .map(o => o.trim());
+
   const io = new Server(httpServer, {
     cors: {
-      origin: "*",
-      methods: ["GET", "POST"]
+      origin: allowedOrigins,
+      methods: ["GET", "POST"],
+      credentials: true,
     },
-    transports: ['websocket']
+    transports: ['websocket', 'polling'],
   });
 
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
-  // Security Headers (XSS, CSRF protection, etc.)
-  // app.use(helmet({
-  //   frameguard: false, // Allow iframing for AI Studio preview
-  //   contentSecurityPolicy: {
-  //     directives: {
-  //       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-  //       "img-src": ["'self'", "data:", "https:", "http:", "https://*.google.com"],
-  //       "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-  //       "connect-src": ["'self'", "https:", "http:", "wss:", "ws:", "https://*.google.com"],
-  //       "frame-ancestors": ["'self'", "https://ai.studio", "https://*.google.com"]
-  //     }
-  //   }
-  // }));
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        imgSrc: ["'self'", "data:", "https:", "blob:"],
+        connectSrc: ["'self'", "https:", "wss:", "ws:"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        workerSrc: ["'self'", "blob:"],
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+  }));
 
-  app.use(cors());
+  app.use(cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`Origin '${origin}' not allowed by CORS policy`));
+      }
+    },
+    credentials: true,
+  }));
+
+  const apiRateLimit = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 200,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too Many Requests', message: 'Rate limit exceeded. Please try again later.' },
+  });
+
+  const ingestRateLimit = rateLimit({
+    windowMs: 60 * 1000,
+    max: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too Many Requests', message: 'Ingest rate limit exceeded.' },
+  });
+
+  app.use('/api/', apiRateLimit);
   app.use(compression());
   app.use(express.json({ limit: '1mb' })); // Limit payload size
 
@@ -91,28 +137,29 @@ async function startServer() {
     next();
   };
 
-  /**
-   * API Ingestion Middleware (ISO 27001 A.12.4)
-   * Validates Bearer tokens for external ERP integrations.
-   */
   const apiAuthMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {
     const authHeader = req.headers.authorization;
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ 
-        error: "Unauthorized", 
-        message: "Missing or invalid Authorization header. Expected 'Bearer <token>'" 
+
+    if (!authHeader?.startsWith('Bearer ')) {
+      return res.status(401).json({
+        error: "Unauthorized",
+        message: "Missing or invalid Authorization header. Expected 'Bearer <token>'"
       });
     }
 
     const token = authHeader.split(' ')[1];
-    
-    // In a production environment, we would validate this against a database.
-    // For this platform reconstruction, we accept valid-formatted tokens.
-    if (!token.startsWith('sk_live_') && !token.startsWith('SS_PUB_')) {
-      return res.status(403).json({ 
-        error: "Forbidden", 
-        message: "Invalid API Key format or revoked token." 
+
+    if (VALID_API_KEYS.size === 0) {
+      return res.status(503).json({
+        error: "Service Unavailable",
+        message: "API key validation is not configured on this server."
+      });
+    }
+
+    if (!VALID_API_KEYS.has(token)) {
+      return res.status(403).json({
+        error: "Forbidden",
+        message: "Invalid or revoked API key."
       });
     }
 
@@ -128,7 +175,7 @@ async function startServer() {
    * Inbound Ingestion Endpoint
    * Purpose: Standardized entry point for Client ERPs to push shipment requests.
    */
-  app.post("/api/ingest", apiAuthMiddleware, (req, res) => {
+  app.post("/api/ingest", ingestRateLimit, apiAuthMiddleware, (req, res) => {
     try {
       const payload = IngestSchema.parse(req.body);
       

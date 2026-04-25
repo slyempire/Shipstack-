@@ -29,50 +29,47 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>()(
-  persist(
-    (set, get) => ({
-      user: null,
-      token: null,
-      isAuthenticated: false,
-      currentUserRole: 'tenant_admin',
-      currentUserPermissions: [],
-      login: (user, token) => {
-        if (!user) {
-          set({ user: null, token, isAuthenticated: true });
-          return;
-        }
-        const userWithPrefs = {
-          ...user,
-          preferences: {
-            theme: 'LIGHT',
-            ...user.preferences
-          }
-        };
-        const role = (user.role as SystemRole) || 'tenant_admin';
-        set({ 
-          user: userWithPrefs, 
-          token, 
-          isAuthenticated: true,
-          currentUserRole: role,
-          currentUserPermissions: ROLE_DEFINITIONS[role]?.permissions || []
-        });
-      },
-      logout: () => set({ user: null, token: null, isAuthenticated: false, currentUserPermissions: [] }),
-      updateUser: (data) => set((state) => {
-        const updatedUser = state.user ? { ...state.user, ...data } : null;
-        return { user: updatedUser };
-      }),
-      setUserRole: (role) => set({ 
-        currentUserRole: role, 
-        currentUserPermissions: ROLE_DEFINITIONS[role]?.permissions || [] 
-      }),
-      hasPermission: (permission) => {
-        const { currentUserRole } = get();
-        return checkPermission(currentUserRole, permission);
+  (set, get) => ({
+    user: null,
+    token: null,
+    isAuthenticated: false,
+    currentUserRole: 'client',
+    currentUserPermissions: [],
+    login: (user, token) => {
+      if (!user || !token) {
+        console.error('[Auth] login() called without user or token — rejected');
+        return;
       }
+      const userWithPrefs = {
+        ...user,
+        preferences: {
+          theme: 'LIGHT',
+          ...user.preferences
+        }
+      };
+      const role = (user.role as SystemRole) || 'client';
+      set({
+        user: userWithPrefs,
+        token,
+        isAuthenticated: true,
+        currentUserRole: role,
+        currentUserPermissions: ROLE_DEFINITIONS[role]?.permissions || []
+      });
+    },
+    logout: () => set({ user: null, token: null, isAuthenticated: false, currentUserRole: 'client', currentUserPermissions: [] }),
+    updateUser: (data) => set((state) => {
+      const updatedUser = state.user ? { ...state.user, ...data } : null;
+      return { user: updatedUser };
     }),
-    { name: 'shipstack-auth-storage' }
-  )
+    setUserRole: (role) => set({
+      currentUserRole: role,
+      currentUserPermissions: ROLE_DEFINITIONS[role]?.permissions || []
+    }),
+    hasPermission: (permission) => {
+      const { currentUserRole } = get();
+      return checkPermission(currentUserRole, permission);
+    }
+  })
 );
 
 interface ModuleState {
@@ -113,9 +110,6 @@ export const useModuleStore = create<ModuleState>()(
         if (hasConflict) throw new Error(`Conflicting modules: ${conflicting.join(', ')}`);
 
         set(state => ({ pendingInstalls: [...state.pendingInstalls, moduleId] }));
-        
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
 
         const newModule: TenantModule = {
           id: `${Date.now()}`,
@@ -175,7 +169,6 @@ export const useAuditStore = create<AuditState>()(
           metadata,
           severity,
           timestamp: new Date().toISOString(),
-          ipAddress: '127.0.0.1', // Mock
           userAgent: navigator.userAgent
         };
         set(state => ({ auditLog: [entry, ...state.auditLog].slice(0, 1000) }));
@@ -198,10 +191,8 @@ interface AppState {
   unreadCount: number;
   addNotification: (n: string | Omit<Notification, 'id' | 'createdAt' | 'read' | 'timestamp' | 'tenantId' | 'persistent'> & { persistent?: boolean }, type?: Notification['type']) => void;
   markRead: (id: string) => void;
-  markAsRead: (id: string) => void;
   markAllRead: () => void;
   dismissNotification: (id: string) => void;
-  clearNotification: (id: string) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -247,24 +238,22 @@ export const useAppStore = create<AppState>()(
       }),
       markRead: (id) => set((state) => {
         const notifications = state.notifications.map(n => n.id === id ? { ...n, read: true } : n);
-        return { 
+        return {
           notifications,
           unreadCount: notifications.filter(x => !x.read).length
         };
       }),
-      markAsRead: (id) => get().markRead(id),
       markAllRead: () => set((state) => ({
         notifications: state.notifications.map(n => ({ ...n, read: true })),
         unreadCount: 0
       })),
       dismissNotification: (id) => set((state) => {
         const notifications = state.notifications.filter(n => n.id !== id);
-        return { 
+        return {
           notifications,
           unreadCount: notifications.filter(x => !x.read).length
         };
-      }),
-      clearNotification: (id) => get().dismissNotification(id)
+      })
     }),
     { name: 'shipstack-app-storage' }
   )

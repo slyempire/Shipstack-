@@ -4,18 +4,17 @@ import { useAppStore } from '../store';
 import { X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 
 export const NotificationToast = () => {
-  const { notifications, clearNotification } = useAppStore();
-  
+  const { notifications, dismissNotification } = useAppStore();
+
   useEffect(() => {
     if (notifications.length > 0) {
       const timer = setTimeout(() => {
-        // Clear the oldest unread notification if it exists
         const oldest = notifications[notifications.length - 1];
-        if (oldest) clearNotification(oldest.id);
+        if (oldest) dismissNotification(oldest.id);
       }, 1500);
       return () => clearTimeout(timer);
     }
-  }, [notifications, clearNotification]);
+  }, [notifications, dismissNotification]);
 
   if (notifications.length === 0) return null;
   
@@ -38,7 +37,7 @@ export const NotificationToast = () => {
           {n.type === 'info' && <Info size={18} className="text-blue-500" />}
           <span className="text-xs font-bold">{n.message}</span>
           <button 
-            onClick={() => clearNotification(n.id)} 
+            onClick={() => dismissNotification(n.id)}
             className="ml-2 p-1 hover:bg-slate-50 rounded-full"
           >
             <X size={14} />

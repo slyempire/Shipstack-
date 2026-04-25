@@ -1,6 +1,6 @@
 
 import React, { Suspense, useEffect } from 'react';
-import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore, useAppStore, useTenantStore } from './store';
 import { X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import { useTenant } from './hooks/useTenant';
@@ -61,15 +61,15 @@ const StyleGuide = React.lazy(() => import('./views/marketing/StyleGuide'));
 const HealthcareDashboard = React.lazy(() => import('./views/industry/HealthcareDashboard'));
 
 const DashboardSwitcher = () => {
-  const { user } = useAuthStore();
-  const role = user?.role?.toLowerCase();
-  
-  if (role === 'dispatcher') return <DispatchDashboard />;
-  if (role === 'warehouse' || role === 'facility_operator') return <ModuleGuard moduleId="warehouse"><WarehouseManagement /></ModuleGuard>;
-  if (role === 'driver') return <DriverPortal />;
-  if (role === 'client') return <ClientPortal />;
-  
-  return <AdminDashboard />;
+  const { currentUserRole } = useAuthStore();
+
+  switch (currentUserRole) {
+    case 'dispatcher': return <DispatchDashboard />;
+    case 'facility_operator': return <ModuleGuard moduleId="warehouse"><WarehouseManagement /></ModuleGuard>;
+    case 'driver': return <DriverPortal />;
+    case 'client': return <ClientPortal />;
+    default: return <AdminDashboard />;
+  }
 };
 
 const App: React.FC = () => {
@@ -143,7 +143,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <HashRouter>
+    <BrowserRouter>
       <TenantInitializer>
         <ThemeManager>
           <NotificationToast />
@@ -211,7 +211,7 @@ const App: React.FC = () => {
           </Suspense>
         </ThemeManager>
       </TenantInitializer>
-    </HashRouter>
+    </BrowserRouter>
   );
 };
 

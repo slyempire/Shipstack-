@@ -387,7 +387,7 @@ const DriverPortal: React.FC = () => {
   useEffect(() => {
     if (step === 'NOTIFICATIONS') {
       const unread = useAppStore.getState().notifications.filter(n => !n.read);
-      unread.forEach(n => useAppStore.getState().markAsRead(n.id));
+      unread.forEach(n => useAppStore.getState().markRead(n.id));
     }
   }, [step]);
 
