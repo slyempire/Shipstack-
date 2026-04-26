@@ -2614,7 +2614,53 @@ export const api = {
   getTenantPlan(): 'STARTER' | 'GROWTH' | 'SCALE' | 'ENTERPRISE' {
     const tenant = getStore<Tenant | null>('tenant', null);
     return tenant?.plan || 'STARTER';
-  }
+  },
+
+  async upgradeSubscription(
+    tenantId: string,
+    newPlan: 'STARTER' | 'GROWTH' | 'SCALE' | 'ENTERPRISE'
+  ): Promise<Tenant> {
+    const { PLAN_MODULES, PLAN_HIERARCHY } = await import('./constants');
+    const current = await api.getTenant(tenantId);
+    if (!current) throw new Error('Tenant not found');
+
+    const currentLevel = PLAN_HIERARCHY[current.plan ?? 'STARTER'] ?? 0;
+    const newLevel = PLAN_HIERARCHY[newPlan] ?? 0;
+    if (newLevel <= currentLevel) throw new Error(`Cannot upgrade from ${current.plan} to ${newPlan}: target plan is not higher.`);
+
+    // Merge new plan modules with any existing custom modules
+    const existingModules: ModuleId[] = Array.isArray(current.enabledModules) ? current.enabledModules as ModuleId[] : [];
+    const planModules: ModuleId[] = PLAN_MODULES[newPlan] ?? [];
+    const merged = Array.from(new Set([...planModules, ...existingModules.filter(m => !planModules.includes(m))]));
+
+    const updated = await api.updateTenant(tenantId, { plan: newPlan, enabledModules: merged });
+    await logAudit('PLAN_UPGRADED', { from: current.plan, to: newPlan, modulesAdded: planModules.filter(m => !existingModules.includes(m)) }, '');
+    return updated;
+  },
+
+  async downgradeSubscription(
+    tenantId: string,
+    newPlan: 'STARTER' | 'GROWTH' | 'SCALE' | 'ENTERPRISE'
+  ): Promise<{ tenant: Tenant; removedModules: ModuleId[] }> {
+    const { PLAN_MODULES, PLAN_HIERARCHY } = await import('./constants');
+    const current = await api.getTenant(tenantId);
+    if (!current) throw new Error('Tenant not found');
+
+    const currentLevel = PLAN_HIERARCHY[current.plan ?? 'STARTER'] ?? 0;
+    const newLevel = PLAN_HIERARCHY[newPlan] ?? 0;
+    if (newLevel >= currentLevel) throw new Error(`Cannot downgrade from ${current.plan} to ${newPlan}: target plan is not lower.`);
+
+    const newPlanModules: ModuleId[] = PLAN_MODULES[newPlan] ?? [];
+    const existingModules: ModuleId[] = Array.isArray(current.enabledModules) ? current.enabledModules as ModuleId[] : [];
+    // Remove any core modules not in the new plan; keep marketplace add-ons (they're billed separately)
+    const marketplaceIds: ModuleId[] = existingModules.filter(m => !Object.keys(PLAN_MODULES['ENTERPRISE'] ?? {}).includes(m) && !PLAN_MODULES['ENTERPRISE'].includes(m));
+    const newModules = [...newPlanModules, ...existingModules.filter(m => !PLAN_MODULES['ENTERPRISE'].includes(m))];
+    const removedModules: ModuleId[] = existingModules.filter(m => PLAN_MODULES['ENTERPRISE'].includes(m) && !newPlanModules.includes(m));
+
+    const updated = await api.updateTenant(tenantId, { plan: newPlan, enabledModules: newModules });
+    await logAudit('PLAN_DOWNGRADED', { from: current.plan, to: newPlan, removedModules }, '');
+    return { tenant: updated, removedModules };
+  },
 };
 
 export const integrationsApi = api;

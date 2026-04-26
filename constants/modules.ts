@@ -2,11 +2,41 @@
 import { ModuleDefinition, ModuleTier, Tenant } from '../types';
 
 export const MODULE_CATEGORIES = [
-  { id: 'industry_vertical', label: 'Industry Verticals', description: 'Deep industry-specific logic and UI' },
-  { id: 'ai_feature', label: 'Intelligence', description: 'ML and predictive capability add-ons' },
-  { id: 'integration', label: 'Connectivity', description: 'ERP, Payment, and SMS gateways' },
-  { id: 'addon', label: 'Functional Boost', description: 'Enhanced operations and visibility' },
-  { id: 'compliance', label: 'Governance', description: 'Legal and regulatory toolkits' }
+  {
+    id: 'industry_vertical',
+    label: 'Industry Kits',
+    icon: 'Briefcase',
+    description: 'Drop-in workflow packs tailored for healthcare, agriculture, e-commerce, retail, cold chain, and construction.',
+    color: 'bg-blue-50 text-blue-700 border-blue-100'
+  },
+  {
+    id: 'ai_feature',
+    label: 'AI & Intelligence',
+    icon: 'Brain',
+    description: 'Route optimization, demand forecasting, and dispatch automation powered by real ML models.',
+    color: 'bg-violet-50 text-violet-700 border-violet-100'
+  },
+  {
+    id: 'integration',
+    label: 'Integrations',
+    icon: 'Plug',
+    description: 'Connect your ERP (Frappe, SAP), accounting (QuickBooks), storefront (Shopify), and payment systems (M-Pesa, Stripe).',
+    color: 'bg-emerald-50 text-emerald-700 border-emerald-100'
+  },
+  {
+    id: 'addon',
+    label: 'Productivity Add-ons',
+    icon: 'Puzzle',
+    description: 'White-label customer portals, driver app upgrades, and power-user features that extend your core stack.',
+    color: 'bg-amber-50 text-amber-700 border-amber-100'
+  },
+  {
+    id: 'compliance',
+    label: 'Compliance & Audit',
+    icon: 'ShieldCheck',
+    description: 'GDPR data rights toolkit, ISO 28000 supply chain security audits, and regulatory reporting dashboards.',
+    color: 'bg-rose-50 text-rose-700 border-rose-100'
+  }
 ];
 
 export const CORE_MODULES: ModuleDefinition[] = [

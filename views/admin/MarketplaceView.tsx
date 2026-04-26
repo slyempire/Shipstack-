@@ -1,33 +1,27 @@
 
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
-import { 
-  MARKETPLACE_MODULES, 
-  getModulesForTier, 
-  checkModuleDependencies, 
-  checkModuleConflicts 
+import {
+  MARKETPLACE_MODULES,
+  MODULE_CATEGORIES,
+  checkModuleDependencies,
+  checkModuleConflicts
 } from '../../constants/modules';
+import { PLAN_HIERARCHY, MODULE_TIER_MIN_PLAN, PLAN_PRICING } from '../../constants';
 import { useModuleStore, useAppStore, useAuthStore, useAuditStore, useTenantStore } from '../../store';
 import { 
-  Search, 
-  Grid, 
-  Filter, 
-  CheckCircle2, 
-  Star, 
+  Search,
+  CheckCircle2,
+  Star,
   ArrowRight,
-  ExternalLink,
-  Plus,
   Zap,
   ShieldCheck,
   Boxes,
-  Info,
-  ChevronRight,
   X,
-  CreditCard,
-  History as HistoryIcon,
-  AlertCircle,
-  HelpCircle,
-  ShieldAlert
+  Lock,
+  ShieldAlert,
+  Plus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import RoleGuard from '../../components/RoleGuard';
@@ -35,23 +29,33 @@ import PermissionGate from '../../components/PermissionGate';
 import { ModuleDefinition, ModuleCategory, ModuleTier } from '../../types';
 
 const MarketplaceView: React.FC = () => {
-  const { 
-    installedModules, 
-    installModule, 
-    uninstallModule, 
-    isModuleInstalled, 
+  const {
+    installedModules,
+    installModule,
+    uninstallModule,
+    isModuleInstalled,
     isModuleActive,
     pendingInstalls
   } = useModuleStore();
   const { currentTenant } = useTenantStore();
   const { addNotification } = useAppStore();
   const { logAction } = useAuditStore();
-  
+  const navigate = useNavigate();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<ModuleCategory | 'ALL'>('ALL');
   const [selectedTier, setSelectedTier] = useState<ModuleTier | 'ALL'>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<'ALL' | 'INSTALLED' | 'AVAILABLE'>('ALL');
   const [selectedSolution, setSelectedSolution] = useState<ModuleDefinition | null>(null);
+
+  const currentPlan = ((currentTenant?.plan as string)?.toUpperCase() || 'STARTER') as 'STARTER' | 'GROWTH' | 'SCALE' | 'ENTERPRISE';
+  const currentPlanLevel = PLAN_HIERARCHY[currentPlan] ?? 0;
+
+  const canInstallModule = (mod: ModuleDefinition): boolean => {
+    const minPlan = MODULE_TIER_MIN_PLAN[mod.tier] ?? 'STARTER';
+    const requiredLevel = PLAN_HIERARCHY[minPlan] ?? 0;
+    return currentPlanLevel >= requiredLevel;
+  };
 
   const filteredModules = useMemo(() => {
     return MARKETPLACE_MODULES.filter(mod => {
@@ -71,11 +75,21 @@ const MarketplaceView: React.FC = () => {
   }, [searchQuery, selectedCategory, selectedTier, selectedStatus, isModuleInstalled]);
 
   const handleInstall = async (mod: ModuleDefinition) => {
+    if (!canInstallModule(mod)) {
+      const minPlan = MODULE_TIER_MIN_PLAN[mod.tier] ?? 'STARTER';
+      addNotification({
+        title: 'Plan upgrade required',
+        message: `${mod.name} requires the ${PLAN_PRICING[minPlan]?.label ?? minPlan} plan or above. Upgrade in Subscription settings.`,
+        type: 'warning',
+        category: 'MODULES'
+      });
+      return;
+    }
     try {
       await installModule(mod.id);
-      addNotification({ 
-        title: 'Installation Complete', 
-        message: `${mod.name} has been successfully provisioned.`,
+      addNotification({
+        title: 'Installation Complete',
+        message: `${mod.name} has been provisioned and is now active.`,
         type: 'success',
         category: 'MODULES'
       });
@@ -116,28 +130,40 @@ const MarketplaceView: React.FC = () => {
                <div className="space-y-4">
                   <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2">Category</h4>
                   <div className="space-y-1">
-                    {['ALL', 'industry_vertical', 'ai_feature', 'integration', 'addon', 'compliance'].map(cat => (
+                    <button
+                      onClick={() => setSelectedCategory('ALL' as any)}
+                      className={`w-full text-left px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase transition-all ${selectedCategory === 'ALL' ? 'bg-brand text-white shadow-lg shadow-brand/20' : 'text-slate-500 hover:bg-slate-50'}`}
+                    >
+                      All Categories
+                    </button>
+                    {MODULE_CATEGORIES.map(cat => (
                       <button
-                        key={cat}
-                        onClick={() => setSelectedCategory(cat as any)}
-                        className={`w-full text-left px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase transition-all ${selectedCategory === cat ? 'bg-brand text-white shadow-lg shadow-brand/20' : 'text-slate-500 hover:bg-slate-50'}`}
+                        key={cat.id}
+                        onClick={() => setSelectedCategory(cat.id as any)}
+                        className={`w-full text-left px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase transition-all ${selectedCategory === cat.id ? 'bg-brand text-white shadow-lg shadow-brand/20' : 'text-slate-500 hover:bg-slate-50'}`}
                       >
-                        {cat.replace('_', ' ')}
+                        {cat.label}
                       </button>
                     ))}
                   </div>
                </div>
 
                <div className="space-y-4">
-                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2">Pricing Tier</h4>
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2">Required Plan</h4>
                   <div className="space-y-1">
-                    {['ALL', 'free', 'starter', 'professional', 'enterprise'].map(tier => (
+                    {[
+                      { value: 'ALL', label: 'All tiers' },
+                      { value: 'free', label: 'Free' },
+                      { value: 'starter', label: 'Starter plan+' },
+                      { value: 'professional', label: 'Growth plan+' },
+                      { value: 'enterprise', label: 'Scale plan+' },
+                    ].map(tier => (
                       <button
-                        key={tier}
-                        onClick={() => setSelectedTier(tier as any)}
-                        className={`w-full text-left px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase transition-all ${selectedTier === tier ? 'bg-slate-900 text-white shadow-xl' : 'text-slate-500 hover:bg-slate-50'}`}
+                        key={tier.value}
+                        onClick={() => setSelectedTier(tier.value as any)}
+                        className={`w-full text-left px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase transition-all ${selectedTier === tier.value ? 'bg-slate-900 text-white shadow-xl' : 'text-slate-500 hover:bg-slate-50'}`}
                       >
-                        {tier}
+                        {tier.label}
                       </button>
                     ))}
                   </div>
@@ -171,12 +197,17 @@ const MarketplaceView: React.FC = () => {
 
             <div className="bg-slate-900 rounded-[2rem] p-8 text-white space-y-4 relative overflow-hidden group">
                <Zap size={100} className="absolute -bottom-10 -right-10 opacity-10 group-hover:scale-125 transition-transform duration-700" />
-               <h4 className="text-lg font-black uppercase tracking-tighter relative z-10">Scale for Growth</h4>
+               <h4 className="text-lg font-black uppercase tracking-tighter relative z-10">
+                 Current: {PLAN_PRICING[currentPlan]?.label ?? currentPlan}
+               </h4>
                <p className="text-[11px] font-medium text-white/60 leading-relaxed relative z-10">
-                 Unlock advanced concurrency and high-frequency sync by moving to the Enterprise Tier.
+                 Some modules require a higher plan. Upgrade to unlock professional and enterprise add-ons.
                </p>
-               <button className="w-full py-4 bg-brand-accent text-slate-950 rounded-xl text-[10px] font-black uppercase tracking-widest relative z-10 transform active:scale-95 transition-all">
-                 Upgrade Plan
+               <button
+                 onClick={() => navigate('/admin/subscription')}
+                 className="w-full py-4 bg-brand-accent text-slate-950 rounded-xl text-[10px] font-black uppercase tracking-widest relative z-10 transform active:scale-95 transition-all flex items-center justify-center gap-2"
+               >
+                 Manage Plan <ArrowRight size={13} />
                </button>
             </div>
           </aside>
@@ -233,11 +264,12 @@ const MarketplaceView: React.FC = () => {
             {/* Module Grid */}
             <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
                {filteredModules.map(mod => (
-                 <ModuleCard 
-                   key={mod.id} 
-                   module={mod} 
+                 <ModuleCard
+                   key={mod.id}
+                   module={mod}
                    isInstalled={isModuleInstalled(mod.id)}
                    isPending={pendingInstalls.includes(mod.id)}
+                   isLocked={!canInstallModule(mod)}
                    onClick={() => setSelectedSolution(mod)}
                  />
                ))}
@@ -274,14 +306,16 @@ const MarketplaceView: React.FC = () => {
   );
 };
 
-const ModuleCard = ({ module, isInstalled, isPending, onClick }: { 
-  module: ModuleDefinition; 
+const ModuleCard = ({ module, isInstalled, isPending, isLocked, onClick }: {
+  module: ModuleDefinition;
   isInstalled: boolean;
   isPending: boolean;
+  isLocked: boolean;
   onClick: () => void;
 }) => {
+  const catLabel = MODULE_CATEGORIES.find(c => c.id === module.category)?.label ?? module.category.replace('_', ' ');
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -5 }}
@@ -298,13 +332,18 @@ const ModuleCard = ({ module, isInstalled, isPending, onClick }: {
          />
          <div className="absolute top-4 left-4 z-10 px-3 py-1 bg-white/90 backdrop-blur rounded-full flex items-center gap-1.5 shadow-sm">
             <span className={`h-1.5 w-1.5 rounded-full ${module.status === 'active' ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-            <span className="text-[8px] font-black uppercase tracking-widest text-slate-600">{module.category.replace('_', ' ')}</span>
+            <span className="text-[8px] font-black uppercase tracking-widest text-slate-600">{catLabel}</span>
          </div>
-         {isInstalled && (
+         {isInstalled ? (
            <div className="absolute top-4 right-4 z-10 h-8 w-8 bg-brand text-white rounded-xl flex items-center justify-center shadow-lg animate-in zoom-in-50 duration-300">
               <CheckCircle2 size={16} />
            </div>
-         )}
+         ) : isLocked ? (
+           <div className="absolute top-4 right-4 z-10 px-2.5 py-1 bg-slate-900/80 backdrop-blur text-white rounded-full flex items-center gap-1.5 shadow-sm">
+              <Lock size={9} />
+              <span className="text-[8px] font-black uppercase tracking-widest">Plan required</span>
+           </div>
+         ) : null}
       </div>
       
       <div className="p-8 flex-1 flex flex-col">
