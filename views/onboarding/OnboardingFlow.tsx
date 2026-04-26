@@ -62,7 +62,7 @@ const OnboardingFlow: React.FC = () => {
     setTenant(newTenant as any);
     updateUser({ isOnboarded: true });
     logAction('tenant_initialized', 'tenant', newTenant.id, { industry: formData.industry });
-    navigate('/admin/dashboard');
+    navigate('/admin');
   };
 
   const next = () => setCurrentStep(s => s + 1);

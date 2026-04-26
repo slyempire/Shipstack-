@@ -93,9 +93,8 @@ export const useTenant = () => {
       try {
         if (!moduleId) return true;
         
-        const isDemoUser = user?.email?.endsWith('@shipstack.com') || 
+        const isDemoUser = user?.email?.endsWith('@shipstack.com') ||
                           user?.email === 'admin@shipstack.com' ||
-                          user?.email === 'joemugoh215@gmail.com' ||
                           window.location.search.includes('demo=true') ||
                           localStorage.getItem('shipstack_demo_mode') === 'true';
         

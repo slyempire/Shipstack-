@@ -1,16 +1,19 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Truck, 
-  CheckCircle, 
-  ArrowRight, 
-  ShieldCheck, 
-  Zap, 
-  Clock, 
+import {
+  Truck,
+  CheckCircle,
+  ArrowRight,
+  ShieldCheck,
+  Zap,
+  Clock,
   DollarSign,
   ChevronLeft,
-  Loader2
+  Loader2,
+  Upload,
+  File,
+  X
 } from 'lucide-react';
 import { api } from '../../api';
 import { VehicleType, DriverApplication } from '../../types';
@@ -25,7 +28,25 @@ const DriverRecruitmentView: React.FC = () => {
   const [checkingStatus, setCheckingStatus] = useState(false);
   const [statusEmail, setStatusEmail] = useState('');
   const [applicationStatus, setApplicationStatus] = useState<DriverApplication | null>(null);
-  
+  const [uploadingDocs, setUploadingDocs] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDocumentUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const newFiles = Array.from(files);
+    setUploadedFiles(prev => [...prev, ...newFiles]);
+    setUploadingDocs(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      addNotification(`${newFiles.length} document${newFiles.length > 1 ? 's' : ''} uploaded successfully.`, 'success');
+    } catch {
+      addNotification('Upload failed. Please try again.', 'error');
+    } finally {
+      setUploadingDocs(false);
+    }
+  };
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -132,19 +153,44 @@ const DriverRecruitmentView: React.FC = () => {
               </div>
             </div>
 
-            <div className="pt-8 border-t border-slate-100 flex gap-4">
-              <button 
-                onClick={() => setStep(1)}
-                className="flex-1 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400"
-              >
-                Back to Portal
-              </button>
-              <button 
-                onClick={() => addNotification('Document upload feature coming soon to portal.', 'info')}
-                className="flex-[2] bg-slate-900 text-white py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all"
-              >
-                Upload Missing Documents
-              </button>
+            <div className="pt-8 border-t border-slate-100 space-y-4">
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept=".pdf,.jpg,.jpeg,.png"
+                className="hidden"
+                onChange={e => handleDocumentUpload(e.target.files)}
+              />
+              {uploadedFiles.length > 0 && (
+                <div className="space-y-2">
+                  {uploadedFiles.map((f, i) => (
+                    <div key={i} className="flex items-center gap-3 bg-slate-50 rounded-xl px-4 py-3">
+                      <File size={14} className="text-brand shrink-0" />
+                      <span className="text-[10px] font-bold text-slate-600 truncate flex-1">{f.name}</span>
+                      <button onClick={() => setUploadedFiles(prev => prev.filter((_, idx) => idx !== i))}>
+                        <X size={14} className="text-slate-400 hover:text-red-500 transition-colors" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-4">
+                <button
+                  onClick={() => setStep(1)}
+                  className="flex-1 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400"
+                >
+                  Back to Portal
+                </button>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingDocs}
+                  className="flex-[2] bg-slate-900 text-white py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {uploadingDocs ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                  {uploadingDocs ? 'Uploading...' : 'Upload Documents'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

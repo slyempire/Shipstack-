@@ -227,24 +227,20 @@ const DriverPortal: React.FC = () => {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     
-    // Weather/traffic advisories — triggered by API data, not random intervals
-    const advisoryInterval = setInterval(() => {
-      // Placeholder: fetch real advisories from /api/advisories when available
-      if (false) {
-        setWeatherAdvisory({
-          type: 'Heavy Rain',
-          severity: 'MEDIUM',
-          message: 'Expect slippery roads on A104. Reduce speed.'
-        });
-        addNotification("Weather Advisory: Heavy Rain detected on route.", "info");
-      }
-      if (false) {
-        setTrafficAdvisory({
-          type: 'Congestion',
-          delay: '15 mins',
-          message: 'Heavy traffic at Museum Hill. Rerouting suggested.'
-        });
-        addNotification("Traffic Alert: 15 min delay ahead.", "info");
+    // Weather/traffic advisories — polled from API when available
+    const advisoryInterval = setInterval(async () => {
+      try {
+        const advisories = await (api as any).getAdvisories?.();
+        if (advisories?.weather) {
+          setWeatherAdvisory(advisories.weather);
+          addNotification(`Weather Advisory: ${advisories.weather.message}`, 'info');
+        }
+        if (advisories?.traffic) {
+          setTrafficAdvisory(advisories.traffic);
+          addNotification(`Traffic Alert: ${advisories.traffic.message}`, 'info');
+        }
+      } catch {
+        // Advisory endpoint not yet available — silently skip
       }
     }, 30000);
 
@@ -264,6 +260,7 @@ const DriverPortal: React.FC = () => {
     window.addEventListener('devicemotion', handleMotion);
     
     return () => {
+      clearInterval(advisoryInterval);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       window.removeEventListener('devicemotion', handleMotion);
@@ -2516,7 +2513,11 @@ const DriverPortal: React.FC = () => {
     );
   }
 
-  return null;
+  return (
+    <div className="flex h-screen items-center justify-center bg-slate-900 text-white flex-col gap-4">
+      <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Loading driver portal...</div>
+    </div>
+  );
 };
 
 export default DriverPortal;

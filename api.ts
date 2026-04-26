@@ -2661,6 +2661,19 @@ export const api = {
     await logAudit('PLAN_DOWNGRADED', { from: current.plan, to: newPlan, removedModules }, '');
     return { tenant: updated, removedModules };
   },
+
+  async syncLocalData(): Promise<void> {
+    const stores = ['shipstack-auth', 'shipstack-tenant', 'shipstack-modules', 'shipstack-app'];
+    await Promise.allSettled(stores.map(s => {
+      try {
+        const raw = localStorage.getItem(s);
+        if (raw) JSON.parse(raw);
+      } catch {
+        localStorage.removeItem(s);
+      }
+      return Promise.resolve();
+    }));
+  },
 };
 
 export const integrationsApi = api;

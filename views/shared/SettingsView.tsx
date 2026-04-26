@@ -381,11 +381,17 @@ const Toggle = React.memo(({ active, onClick }: { active: boolean, onClick: () =
                     desc="Traceability for all system actions" 
                     action={<Toggle active={securitySettings.auditLogging} onClick={() => toggleSecurity('auditLogging')} />}
                   />
-                  <SettingRow 
-                    icon={ShieldCheck} 
-                    title="NTSA Verification" 
-                    desc="Mandatory asset data validation" 
+                  <SettingRow
+                    icon={ShieldCheck}
+                    title="NTSA Verification"
+                    desc="Mandatory asset data validation"
                     action={<Toggle active={securitySettings.requireNTSAVerification} onClick={() => toggleSecurity('requireNTSAVerification')} />}
+                  />
+                  <SettingRow
+                    icon={ShieldCheck}
+                    title="Two-Factor Authentication"
+                    desc="Require 2FA for all admin logins"
+                    action={<Toggle active={securitySettings.twoFactorAuth} onClick={() => toggleSecurity('twoFactorAuth')} />}
                   />
                 </div>
               </section>
@@ -580,7 +586,10 @@ const Toggle = React.memo(({ active, onClick }: { active: boolean, onClick: () =
                    >
                       <Trash2 size={16} /> Purge Terminal Data
                    </button>
-                   <button className="flex-1 py-4 bg-white/5 text-white/40 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all">
+                   <button
+                    onClick={() => { api.syncLocalData?.(); addNotification('Local database synced.', 'success'); }}
+                    className="flex-1 py-4 bg-white/5 text-white/40 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+                   >
                       Sync Local DB
                    </button>
                 </div>

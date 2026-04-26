@@ -1,15 +1,14 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { 
-  User, 
-  SystemRole, 
-  Permission, 
-  Tenant, 
-  Notification, 
-  AuditLogEntry, 
-  TenantModule, 
-  PublisherProfile,
+import {
+  User,
+  SystemRole,
+  Permission,
+  Tenant,
+  Notification,
+  AuditLogEntry,
+  TenantModule,
   ModuleDefinition
 } from './types';
 import { hasPermission as checkPermission, ROLE_DEFINITIONS } from './constants/rbac';
@@ -259,22 +258,6 @@ export const useAppStore = create<AppState>()(
   )
 );
 
-interface PublisherState {
-  publisherProfile: PublisherProfile | null;
-  publishedModules: ModuleDefinition[];
-  setPublisherProfile: (profile: PublisherProfile) => void;
-}
-
-export const usePublisherStore = create<PublisherState>()(
-  persist(
-    (set) => ({
-      publisherProfile: null,
-      publishedModules: [],
-      setPublisherProfile: (profile) => set({ publisherProfile: profile })
-    }),
-    { name: 'shipstack-publisher-storage' }
-  )
-);
 
 interface TenantState {
   currentTenant: Tenant | null;

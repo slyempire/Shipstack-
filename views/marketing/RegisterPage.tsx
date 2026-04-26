@@ -13,6 +13,7 @@ const RegisterPage: React.FC = () => {
     email: '',
     company: '',
     password: '',
+    confirmPassword: '',
     role: 'tenant_admin' as any
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -32,6 +33,11 @@ const RegisterPage: React.FC = () => {
 
     if (formData.password.length < 8) {
       addNotification("Password must be at least 8 characters long.", "error");
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      addNotification("Passwords do not match. Please re-enter.", "error");
       return;
     }
 
@@ -133,6 +139,18 @@ const RegisterPage: React.FC = () => {
                  onChange={e => setFormData({...formData, password: e.target.value})}
                  placeholder="••••••••"
                />
+
+               <PasswordInput
+                 label="Confirm Password"
+                 required
+                 value={formData.confirmPassword}
+                 onChange={e => setFormData({...formData, confirmPassword: e.target.value})}
+                 placeholder="••••••••"
+                 className={formData.confirmPassword && formData.confirmPassword !== formData.password ? 'border-red-300 focus:border-red-400' : ''}
+               />
+               {formData.confirmPassword && formData.confirmPassword !== formData.password && (
+                 <p className="text-[10px] font-black text-red-500 uppercase tracking-widest ml-1">Passwords do not match</p>
+               )}
 
                <motion.button 
                  type="submit"

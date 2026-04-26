@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
+import ErrorBoundary from '../../components/ErrorBoundary';
 import { useAuthStore, useAppStore } from '../../store';
 import { api } from '../../api';
 import { DeliveryNote, DNStatus, Facility, HealthMetrics, Vehicle, User } from '../../types';
@@ -400,6 +401,7 @@ const AdminDashboard: React.FC = () => {
   };
 
   return (
+    <ErrorBoundary componentName="Admin Dashboard">
     <Layout title="Dashboard">
       <div className="space-y-8">
         {loading && (
@@ -971,9 +973,9 @@ const AdminDashboard: React.FC = () => {
                  <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-6">Industry Solutions</h4>
                  <div className="space-y-2">
                     {(tenant?.industry === 'MEDICAL' || tenant?.industry === 'PHARMA') && (
-                      <AdminLink index={4} icon={Stethoscope} label="Healthcare Command" desc="Cold Chain & Compliance" onClick={() => navigate('/industry/healthcare')} />
+                      <AdminLink index={4} icon={Stethoscope} label="Healthcare Command" desc="Cold Chain & Compliance" onClick={() => navigate('/solutions/healthcare')} />
                     )}
-                    <AdminLink index={5} icon={Layers} label="Solution Marketplace" desc="Explore Industry Modules" onClick={() => addNotification("Marketplace coming soon.", "info")} />
+                    <AdminLink index={5} icon={Layers} label="Solution Marketplace" desc="Explore Industry Modules" onClick={() => navigate('/admin/marketplace')} />
                  </div>
               </div>
 
@@ -994,6 +996,7 @@ const AdminDashboard: React.FC = () => {
         </div>
       </div>
     </Layout>
+    </ErrorBoundary>
   );
 };
 

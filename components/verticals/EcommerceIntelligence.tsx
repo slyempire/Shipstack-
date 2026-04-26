@@ -1,14 +1,17 @@
 
 import React from 'react';
-import { 
-  ShoppingCart, 
-  RefreshCw, 
+import {
+  ShoppingCart,
+  RefreshCw,
   ExternalLink,
   Zap
 } from 'lucide-react';
 import { Badge } from '../../packages/ui/Badge';
+import { useAppStore } from '../../store';
 
-export const EcommerceIntelligence: React.FC<{ data: any }> = ({ data }) => (
+export const EcommerceIntelligence: React.FC<{ data: any }> = ({ data }) => {
+  const { addNotification } = useAppStore();
+  return (
   <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
     <div className="flex items-center justify-between">
        <div className="flex items-center gap-4">
@@ -73,8 +76,11 @@ export const EcommerceIntelligence: React.FC<{ data: any }> = ({ data }) => (
             <button 
               onClick={() => {
                 const code = `<!-- Shipstack Tracking Widget -->\n<script src="https://shipstack.africa/v1/widget.js" async></script>\n<shipstack-track tenant-id="${window.location.host.split('.')[0]}"></shipstack-track>`;
-                navigator.clipboard.writeText(code);
-                alert('Embed code copied to clipboard!');
+                navigator.clipboard.writeText(code).then(() => {
+                  addNotification('Tracking widget code copied to clipboard!', 'success');
+                }).catch(() => {
+                  addNotification('Could not copy — please copy the code manually.', 'error');
+                });
               }}
               className="w-full py-3 bg-brand text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-brand/20 active:scale-95 transition-all"
             >
@@ -113,4 +119,5 @@ export const EcommerceIntelligence: React.FC<{ data: any }> = ({ data }) => (
           </div>
        </div>
   </div>
-);
+  );
+};
