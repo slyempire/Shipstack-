@@ -274,17 +274,45 @@ const MagneticCTA: React.FC<{ onClick: () => void; children: React.ReactNode; cl
   );
 };
 
-const FloatingIcon: React.FC<{ icon: React.ElementType; delay?: number; duration?: number; style?: React.CSSProperties }> =
-  ({ icon: Icon, delay = 0, duration = 9, style }) => (
+const FloatingIcon: React.FC<{
+  icon: React.ElementType;
+  delay?: number;
+  duration?: number;
+  style?: React.CSSProperties;
+  size?: 'sm' | 'md' | 'lg';
+}> = ({ icon: Icon, delay = 0, duration = 9, style, size = 'md' }) => {
+  const boxSize = size === 'lg' ? 90 : size === 'md' ? 68 : 50;
+  const iconSize = size === 'lg' ? 40 : size === 'md' ? 30 : 22;
+
+  return (
     <motion.div
-      className="absolute rounded-2xl bg-brand/15 border border-brand/25 backdrop-blur-sm flex items-center justify-center pointer-events-none"
-      style={{ width: 52, height: 52, ...style }}
-      animate={{ y: [0, -22, 4, -16, 0], rotate: [-2, 3, -1, 2, -2] }}
-      transition={{ duration, delay, repeat: Infinity, ease: "easeInOut" }}
+      className="absolute rounded-2xl backdrop-blur-md flex items-center justify-center pointer-events-none"
+      style={{
+        width: boxSize,
+        height: boxSize,
+        background: 'rgba(255, 140, 66, 0.20)',
+        border: '1.5px solid rgba(255, 140, 66, 0.45)',
+        boxShadow: '0 0 32px rgba(255,140,66,0.18), 0 8px 32px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.12)',
+        ...style,
+      }}
+      initial={{ opacity: 0, y: 30 }}
+      animate={{
+        opacity: [0, 1, 1, 1, 1],
+        y: [30, 0, -55, -8, -40, 0],
+        rotate: [-4, 0, 5, -2, 4, -4],
+        scale: [0.85, 1, 1.05, 0.97, 1.03, 1],
+      }}
+      transition={{
+        opacity: { duration: 0.7, delay, times: [0, 0.15, 0.3, 0.5, 1] },
+        y: { duration, delay, repeat: Infinity, ease: 'easeInOut' },
+        rotate: { duration: duration * 1.15, delay, repeat: Infinity, ease: 'easeInOut' },
+        scale: { duration: duration * 0.9, delay, repeat: Infinity, ease: 'easeInOut' },
+      }}
     >
-      <Icon size={22} className="text-brand" />
+      <Icon size={iconSize} style={{ color: '#FF8C42', filter: 'drop-shadow(0 0 6px rgba(255,140,66,0.5))' }} />
     </motion.div>
   );
+};
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -344,26 +372,50 @@ const LandingPage: React.FC = () => {
           <div className="absolute inset-0 bg-gradient-to-b from-[#1A2B4D]/60 via-[#1A2B4D]/90 to-[#1A2B4D]" />
         </div>
 
+        {/* Pulsing glow rings — anti-gravity energy field */}
+        <div className="absolute inset-0 z-[1] flex items-center justify-center pointer-events-none">
+          {[1, 2, 3].map((i) => (
+            <motion.div
+              key={i}
+              className="absolute rounded-full"
+              style={{
+                width: i * 340,
+                height: i * 340,
+                border: `1px solid rgba(255,140,66,${0.12 - i * 0.03})`,
+                boxShadow: `0 0 ${i * 20}px rgba(255,140,66,${0.06 - i * 0.015})`,
+              }}
+              animate={{ scale: [1, 1.06, 1], opacity: [0.6, 1, 0.6] }}
+              transition={{ duration: 3 + i * 1.2, repeat: Infinity, ease: 'easeInOut', delay: i * 0.7 }}
+            />
+          ))}
+        </div>
+
         {/* Cursor-parallax layer 1 — orbs */}
         <motion.div className="absolute inset-0 z-[1] pointer-events-none" style={{ x: layer1X, y: layer1Y }}>
-          <div className="absolute top-[15%] left-[10%] w-48 h-48 rounded-full bg-brand/10 blur-3xl" />
-          <div className="absolute bottom-[20%] right-[8%] w-64 h-64 rounded-full bg-brand-teal/10 blur-3xl" />
+          <div className="absolute top-[15%] left-[10%] w-72 h-72 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(255,140,66,0.12) 0%, transparent 70%)' }} />
+          <div className="absolute bottom-[20%] right-[8%] w-80 h-80 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(255,140,66,0.08) 0%, transparent 70%)' }} />
         </motion.div>
 
         {/* Cursor-parallax layer 2 — counter-orbs */}
         <motion.div className="absolute inset-0 z-[1] pointer-events-none" style={{ x: layer2X, y: layer2Y }}>
-          <div className="absolute top-[40%] right-[15%] w-32 h-32 rounded-full bg-indigo-500/10 blur-2xl" />
-          <div className="absolute bottom-[35%] left-[20%] w-24 h-24 rounded-full bg-brand/8 blur-xl" />
+          <div className="absolute top-[40%] right-[15%] w-48 h-48 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.10) 0%, transparent 70%)' }} />
+          <div className="absolute bottom-[35%] left-[20%] w-40 h-40 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(255,140,66,0.09) 0%, transparent 70%)' }} />
         </motion.div>
 
-        {/* Floating logistics icons */}
+        {/* Floating logistics icons — anti-gravity style */}
         <div className="absolute inset-0 z-[2] pointer-events-none">
-          <FloatingIcon icon={Truck}    delay={0}    duration={10} style={{ top: '18%', left:  '8%' }} />
-          <FloatingIcon icon={MapPin}   delay={1.2}  duration={8}  style={{ top: '30%', right: '7%' }} />
-          <FloatingIcon icon={Package}  delay={2.5}  duration={11} style={{ bottom: '30%', left: '12%' }} />
-          <FloatingIcon icon={Activity} delay={0.7}  duration={9}  style={{ top: '55%', right: '11%' }} />
-          <FloatingIcon icon={Bell}     delay={3.1}  duration={13} style={{ bottom: '18%', right: '22%' }} />
-          <FloatingIcon icon={Users}    delay={1.8}  duration={8.5} style={{ top: '12%', right: '22%' }} />
+          {/* Left column */}
+          <FloatingIcon icon={Truck}       size="lg"  delay={0}    duration={10}   style={{ top: '16%',  left: '6%'  }} />
+          <FloatingIcon icon={Package}     size="md"  delay={2.5}  duration={11}   style={{ top: '48%',  left: '9%'  }} />
+          <FloatingIcon icon={Zap}         size="sm"  delay={4.1}  duration={8.5}  style={{ bottom: '24%', left: '4%' }} />
+          {/* Right column */}
+          <FloatingIcon icon={MapPin}      size="md"  delay={1.2}  duration={9}    style={{ top: '22%',  right: '6%' }} />
+          <FloatingIcon icon={Activity}    size="lg"  delay={0.8}  duration={12}   style={{ top: '52%',  right: '9%' }} />
+          <FloatingIcon icon={Bell}        size="sm"  delay={3.1}  duration={8}    style={{ bottom: '20%', right: '5%' }} />
+          {/* Upper flanks — visible above the fold */}
+          <FloatingIcon icon={Users}       size="md"  delay={1.8}  duration={9.5}  style={{ top: '10%',  right: '20%' }} />
+          <FloatingIcon icon={Smartphone}  size="sm"  delay={5.0}  duration={11}   style={{ top: '8%',   left: '20%'  }} />
+          <FloatingIcon icon={TrendingUp}  size="sm"  delay={3.5}  duration={9}    style={{ bottom: '12%', right: '20%' }} />
         </div>
 
         <div className="container-responsive relative z-10 text-center">
