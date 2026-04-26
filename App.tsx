@@ -1,6 +1,6 @@
 
 import React, { Suspense, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore, useAppStore, useTenantStore } from './store';
 import { X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import { useTenant } from './hooks/useTenant';
@@ -105,16 +105,24 @@ const App: React.FC = () => {
   const [isInitializing, setIsInitializing] = React.useState(true);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
+    console.log('App initialization starting, isSupabaseConfigured:', isSupabaseConfigured, 'supabase:', !!supabase);
+    
+    if (!isSupabaseConfigured || !supabase) {
+      console.log('Supabase not configured or null, setting isInitializing to false');
       setIsInitializing(false);
       return;
     }
 
+    console.log('Supabase configured, checking session...');
     // Check initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Session check result:', !!session);
       if (session?.user) {
         handleAuthChange(session.user, session.access_token);
       }
+      setIsInitializing(false);
+    }).catch((error) => {
+      console.error('Error checking session:', error);
       setIsInitializing(false);
     });
 
@@ -169,7 +177,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <TenantInitializer>
         <ThemeManager>
           <NotificationToast />
@@ -242,7 +250,7 @@ const App: React.FC = () => {
           </Suspense>
         </ThemeManager>
       </TenantInitializer>
-    </BrowserRouter>
+    </HashRouter>
   );
 };
 
