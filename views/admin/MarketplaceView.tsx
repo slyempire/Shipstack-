@@ -27,11 +27,7 @@ import {
   History as HistoryIcon,
   AlertCircle,
   HelpCircle,
-  ShieldAlert,
-  Activity,
-  User,
-  Building2,
-  FileText
+  ShieldAlert
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import RoleGuard from '../../components/RoleGuard';
@@ -55,71 +51,24 @@ const MarketplaceView: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<ModuleCategory | 'ALL'>('ALL');
   const [selectedTier, setSelectedTier] = useState<ModuleTier | 'ALL'>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<'ALL' | 'INSTALLED' | 'AVAILABLE'>('ALL');
-  const [selectedRating, setSelectedRating] = useState<'ALL' | '4+' | '3+' | '2+'>('ALL');
-  const [sortBy, setSortBy] = useState<'name' | 'rating' | 'installs' | 'updated' | 'price'>('rating');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [selectedSolution, setSelectedSolution] = useState<ModuleDefinition | null>(null);
-  const [showReviews, setShowReviews] = useState(false);
 
   const filteredModules = useMemo(() => {
-    let filtered = MARKETPLACE_MODULES.filter(mod => {
-      const matchesSearch = mod.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    return MARKETPLACE_MODULES.filter(mod => {
+      const matchesSearch = mod.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                            mod.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           mod.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                           mod.publisher.name.toLowerCase().includes(searchQuery.toLowerCase());
+                           mod.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()));
       const matchesCategory = selectedCategory === 'ALL' || mod.category === selectedCategory;
       const matchesTier = selectedTier === 'ALL' || mod.tier === selectedTier;
-
+      
       const isInstalled = isModuleInstalled(mod.id);
-      const matchesStatus = selectedStatus === 'ALL' ||
+      const matchesStatus = selectedStatus === 'ALL' || 
                            (selectedStatus === 'INSTALLED' && isInstalled) ||
                            (selectedStatus === 'AVAILABLE' && !isInstalled);
-
-      const matchesRating = selectedRating === 'ALL' ||
-                           (selectedRating === '4+' && (mod.rating || 0) >= 4) ||
-                           (selectedRating === '3+' && (mod.rating || 0) >= 3) ||
-                           (selectedRating === '2+' && (mod.rating || 0) >= 2);
-
-      return matchesSearch && matchesCategory && matchesTier && matchesStatus && matchesRating;
+                           
+      return matchesSearch && matchesCategory && matchesTier && matchesStatus;
     });
-
-    // Sort the filtered results
-    filtered.sort((a, b) => {
-      let aValue: any, bValue: any;
-
-      switch (sortBy) {
-        case 'rating':
-          aValue = a.rating || 0;
-          bValue = b.rating || 0;
-          break;
-        case 'installs':
-          aValue = a.installCount || 0;
-          bValue = b.installCount || 0;
-          break;
-        case 'updated':
-          aValue = new Date(a.lastUpdated || a.updatedAt).getTime();
-          bValue = new Date(b.lastUpdated || b.updatedAt).getTime();
-          break;
-        case 'price':
-          aValue = a.pricing.model === 'free' ? 0 : (a.pricing.amount || 999999);
-          bValue = b.pricing.model === 'free' ? 0 : (b.pricing.amount || 999999);
-          break;
-        case 'name':
-        default:
-          aValue = a.name.toLowerCase();
-          bValue = b.name.toLowerCase();
-          break;
-      }
-
-      if (sortOrder === 'asc') {
-        return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
-      } else {
-        return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
-      }
-    });
-
-    return filtered;
-  }, [searchQuery, selectedCategory, selectedTier, selectedStatus, selectedRating, sortBy, sortOrder, isModuleInstalled]);
+  }, [searchQuery, selectedCategory, selectedTier, selectedStatus, isModuleInstalled]);
 
   const handleInstall = async (mod: ModuleDefinition) => {
     try {
@@ -195,42 +144,16 @@ const MarketplaceView: React.FC = () => {
                </div>
 
                <div className="space-y-4">
-                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2">Rating</h4>
-                  <div className="space-y-1">
-                    {['ALL', '4+', '3+', '2+'].map(rating => (
-                      <button
-                        key={rating}
-                        onClick={() => setSelectedRating(rating as any)}
-                        className={`w-full text-left px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase transition-all ${selectedRating === rating ? 'bg-yellow-500 text-white shadow-lg shadow-yellow-500/20' : 'text-slate-500 hover:bg-slate-50'}`}
-                      >
-                        {rating === 'ALL' ? 'All Ratings' : `${rating} Stars`}
-                      </button>
-                    ))}
-                  </div>
-               </div>
-
-               <div className="space-y-4">
-                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2">Sort By</h4>
-                  <div className="space-y-1">
-                    {[
-                      { key: 'rating', label: 'Highest Rated' },
-                      { key: 'installs', label: 'Most Installed' },
-                      { key: 'updated', label: 'Recently Updated' },
-                      { key: 'price', label: 'Price: Low to High' },
-                      { key: 'name', label: 'Name A-Z' }
-                    ].map(sort => (
-                      <button
-                        key={sort.key}
-                        onClick={() => {
-                          setSortBy(sort.key as any);
-                          setSortOrder(sort.key === 'name' || sort.key === 'price' ? 'asc' : 'desc');
-                        }}
-                        className={`w-full text-left px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase transition-all ${sortBy === sort.key ? 'bg-slate-900 text-white shadow-xl' : 'text-slate-500 hover:bg-slate-50'}`}
-                      >
-                        {sort.label}
-                      </button>
-                    ))}
-                  </div>
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2">State</h4>
+                  <select 
+                    value={selectedStatus}
+                    onChange={(e) => setSelectedStatus(e.target.value as any)}
+                    className="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl text-[10px] font-bold uppercase outline-none focus:border-brand"
+                  >
+                    <option value="ALL">All Modules</option>
+                    <option value="INSTALLED">Installed</option>
+                    <option value="AVAILABLE">Available</option>
+                  </select>
                </div>
 
                <button 
@@ -239,9 +162,6 @@ const MarketplaceView: React.FC = () => {
                     setSelectedCategory('ALL');
                     setSelectedTier('ALL');
                     setSelectedStatus('ALL');
-                    setSelectedRating('ALL');
-                    setSortBy('rating');
-                    setSortOrder('desc');
                  }}
                  className="w-full py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-red transition-all border border-transparent hover:border-red/10 rounded-xl"
                >
@@ -392,65 +312,32 @@ const ModuleCard = ({ module, isInstalled, isPending, onClick }: {
             <div className="h-10 w-10 bg-slate-50 text-slate-400 rounded-xl flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-all">
                <Zap size={20} />
             </div>
-            <div className="flex-1">
+            <div>
                <h4 className="text-[13px] font-black uppercase tracking-tight text-slate-900 leading-none mb-1">{module.name}</h4>
-               <div className="flex items-center gap-2">
-                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">By {module.publisher.name}</p>
-                 {module.publisher.verified && (
-                   <ShieldCheck size={10} className="text-emerald-500" />
-                 )}
-               </div>
+               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">By {module.publisher.name}</p>
             </div>
-            {module.rating && (
-              <div className="flex items-center gap-1">
-                <Star size={12} className="text-yellow-400 fill-yellow-400" />
-                <span className="text-[10px] font-bold text-slate-600">{module.rating.toFixed(1)}</span>
-              </div>
-            )}
          </div>
-
-         <p className="text-xs font-medium text-slate-500 leading-relaxed line-clamp-2 mb-4">
+         
+         <p className="text-xs font-medium text-slate-500 leading-relaxed line-clamp-2 mb-6">
             {module.description}
          </p>
-
-         {module.tags && module.tags.length > 0 && (
-           <div className="flex flex-wrap gap-1 mb-4">
-             {module.tags.slice(0, 3).map(tag => (
-               <span key={tag} className="px-2 py-0.5 bg-slate-50 text-slate-500 rounded text-[8px] font-bold uppercase tracking-widest">
-                 {tag}
-               </span>
-             ))}
-           </div>
-         )}
-
+         
          <div className="mt-auto flex items-center justify-between pt-6 border-t border-slate-50">
-            <div className="flex items-center gap-3">
-               <div className="flex -space-x-2">
-                  {['#FF5733', '#33FF57', '#3357FF'].map((c, i) => (
-                    <div key={i} className="h-5 w-5 rounded-full border-2 border-white bg-slate-200 overflow-hidden">
-                       <img src={`https://i.pravatar.cc/50?u=${module.id}${i}`} className="h-full w-full grayscale" />
-                    </div>
-                  ))}
-                  <div className="h-5 w-5 rounded-full border-2 border-white bg-slate-50 flex items-center justify-center">
-                     <span className="text-[8px] font-black text-slate-400">{module.installCount || 0}+</span>
-                  </div>
+            <div className="flex -space-x-2">
+               {['#FF5733', '#33FF57', '#3357FF'].map((c, i) => (
+                 <div key={i} className="h-5 w-5 rounded-full border-2 border-white bg-slate-200 overflow-hidden">
+                    <img src={`https://i.pravatar.cc/50?u=${module.id}${i}`} className="h-full w-full grayscale" />
+                 </div>
+               ))}
+               <div className="h-5 w-5 rounded-full border-2 border-white bg-slate-50 flex items-center justify-center">
+                  <span className="text-[8px] font-black text-slate-400">{module.installCount || 0}+</span>
                </div>
-               {module.reviews && module.reviews.length > 0 && (
-                 <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">
-                   {module.reviews.length} reviews
-                 </span>
-               )}
             </div>
-
+            
             <div className="text-right">
                <span className="text-[11px] font-black text-slate-900 uppercase">
                   {module.pricing.model === 'free' ? 'Free' : `$${module.pricing.amount}/mo`}
                </span>
-               {module.pricing.annualDiscount && (
-                 <div className="text-[8px] font-bold text-emerald-600 uppercase tracking-widest">
-                   {module.pricing.annualDiscount}% off annually
-                 </div>
-               )}
             </div>
          </div>
       </div>
@@ -581,69 +468,6 @@ const ModuleDetailPanel = ({ module, onClose, onInstall, onUninstall, isInstalle
 
              <section className="space-y-6">
                 <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                   <Star size={14} className="text-yellow-500" /> Reviews & Ratings
-                </h4>
-
-                {module.reviews && module.reviews.length > 0 ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-4 p-6 bg-slate-50 rounded-2xl border border-slate-100">
-                      <div className="flex items-center gap-1">
-                        <Star size={24} className="text-yellow-400 fill-yellow-400" />
-                        <span className="text-3xl font-black text-slate-900">{module.rating?.toFixed(1) || '0.0'}</span>
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          {[1,2,3,4,5].map(star => (
-                            <Star
-                              key={star}
-                              size={16}
-                              className={`${star <= (module.rating || 0) ? 'text-yellow-400 fill-yellow-400' : 'text-slate-200'} transition-all`}
-                            />
-                          ))}
-                        </div>
-                        <p className="text-sm font-medium text-slate-500">{module.reviews.length} reviews from verified users</p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3 max-h-80 overflow-y-auto">
-                      {module.reviews.map(review => (
-                        <div key={review.id} className="p-5 bg-white border border-slate-100 rounded-2xl shadow-sm">
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                              <div className="h-10 w-10 bg-slate-100 rounded-full flex items-center justify-center">
-                                <span className="text-sm font-bold text-slate-600">{review.userName.charAt(0)}</span>
-                              </div>
-                              <div>
-                                <span className="text-sm font-bold text-slate-900">{review.userName}</span>
-                                <p className="text-xs text-slate-400">{new Date(review.createdAt).toLocaleDateString()}</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              {[1,2,3,4,5].map(star => (
-                                <Star
-                                  key={star}
-                                  size={14}
-                                  className={`${star <= review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-slate-200'}`}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                          <p className="text-sm text-slate-600 leading-relaxed">{review.content}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-8 bg-slate-50 rounded-2xl text-center border border-slate-100">
-                    <Star size={32} className="text-slate-300 mx-auto mb-3" />
-                    <p className="text-sm font-medium text-slate-500">No reviews yet</p>
-                    <p className="text-xs text-slate-400 mt-1">Be the first to review this module after installation</p>
-                  </div>
-                )}
-             </section>
-
-             <section className="space-y-6">
-                <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
                    <Boxes size={14} className="text-amber-500" /> Technical Requirements
                 </h4>
                 <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden divide-y divide-slate-50 shadow-sm">
@@ -678,92 +502,6 @@ const ModuleDetailPanel = ({ module, onClose, onInstall, onUninstall, isInstalle
                          {module.conflicts.length > 0 ? module.conflicts.map(c => (
                            <span key={c} className="text-[9px] font-bold uppercase text-red-400">{c}</span>
                          )) : <span className="text-[9px] font-bold uppercase">Clean Stack</span>}
-                      </div>
-                   </div>
-                </div>
-             </section>
-
-             <section className="space-y-6">
-                <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                   <Activity size={14} className="text-blue-500" /> Installation & Usage
-                </h4>
-                <div className="grid grid-cols-2 gap-4">
-                   <div className="p-5 bg-white border border-slate-100 rounded-2xl">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Total Installs</p>
-                      <p className="text-2xl font-black text-slate-900">{module.installCount || 0}</p>
-                      <p className="text-xs text-slate-500 mt-1">Active installations</p>
-                   </div>
-                   <div className="p-5 bg-white border border-slate-100 rounded-2xl">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Last Updated</p>
-                      <p className="text-sm font-black text-slate-900">{new Date(module.lastUpdated).toLocaleDateString()}</p>
-                      <p className="text-xs text-slate-500 mt-1">v{module.version}</p>
-                   </div>
-                </div>
-
-                {isInstalled && module.installations && module.installations.length > 0 && (
-                  <div className="p-5 bg-emerald-50 border border-emerald-100 rounded-2xl">
-                     <div className="flex items-center gap-2 mb-3">
-                        <CheckCircle2 size={16} className="text-emerald-600" />
-                        <span className="text-sm font-bold text-emerald-800">Installed on your system</span>
-                     </div>
-                     <div className="space-y-2">
-                        {module.installations.slice(0, 3).map(install => (
-                          <div key={install.id} className="flex items-center justify-between text-xs">
-                            <span className="text-slate-600">Installed {new Date(install.installedAt).toLocaleDateString()}</span>
-                            <span className="text-emerald-600 font-medium">v{install.version}</span>
-                          </div>
-                        ))}
-                     </div>
-                  </div>
-                )}
-             </section>
-
-             <section className="space-y-6">
-                <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                   <User size={14} className="text-purple-500" /> Publisher Information
-                </h4>
-                <div className="p-6 bg-white border border-slate-100 rounded-2xl">
-                   <div className="flex items-start gap-4">
-                      <div className="h-16 w-16 bg-slate-100 rounded-2xl flex items-center justify-center overflow-hidden">
-                         {module.publisher.logo ? (
-                           <img src={module.publisher.logo} className="h-full w-full object-cover" />
-                         ) : (
-                           <Building2 size={24} className="text-slate-400" />
-                         )}
-                      </div>
-                      <div className="flex-1">
-                         <div className="flex items-center gap-2 mb-2">
-                           <h5 className="text-lg font-black text-slate-900">{module.publisher.name}</h5>
-                           {module.publisher.verified && (
-                             <ShieldCheck size={16} className="text-emerald-500" />
-                           )}
-                         </div>
-                         <p className="text-sm text-slate-600 mb-3">{module.publisher.description}</p>
-                         <div className="flex items-center gap-4 text-xs text-slate-500">
-                           <span>📧 {module.publisher.supportEmail || 'support@shipstack.com'}</span>
-                           <span>🌐 {module.publisher.website}</span>
-                         </div>
-                      </div>
-                   </div>
-                </div>
-             </section>
-
-             <section className="bg-slate-50 rounded-3xl p-8 border border-slate-100">
-                <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
-                   <FileText size={14} className="text-slate-500" /> Additional Details
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                   <div>
-                      <h5 className="text-sm font-bold text-slate-900 mb-3">Setup Instructions</h5>
-                      <p className="text-xs text-slate-600 leading-relaxed">{module.setupInstructions || 'Standard installation process. No additional setup required.'}</p>
-                   </div>
-                   <div>
-                      <h5 className="text-sm font-bold text-slate-900 mb-3">Support & Documentation</h5>
-                      <div className="space-y-2">
-                         {module.documentationUrl && (
-                           <a href={module.documentationUrl} className="text-xs text-brand hover:underline">📚 Documentation</a>
-                         )}
-                         <a href={`mailto:${module.publisher.supportEmail || 'support@shipstack.com'}`} className="text-xs text-brand hover:underline">💬 Contact Support</a>
                       </div>
                    </div>
                 </div>

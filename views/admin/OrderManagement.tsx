@@ -44,8 +44,6 @@ const OrderManagement: React.FC = () => {
     totalAmount: 0,
     notes: ''
   });
-  const [formErrors, setFormErrors] = useState<{[key: string]: string}>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => { 
     if (tenant?.id) loadOrders(); 
@@ -99,52 +97,8 @@ const OrderManagement: React.FC = () => {
     }
   };
 
-  const validateForm = () => {
-    const errors: {[key: string]: string} = {};
-    const skuMap = new Map<string, number>();
-
-    if (!newOrderData.customerName.trim()) {
-      errors.customerName = 'Customer name is required';
-    }
-
-    if (!newOrderData.totalAmount || newOrderData.totalAmount <= 0) {
-      errors.totalAmount = 'Total amount must be greater than 0';
-    }
-
-    // Validate items
-    newOrderData.items.forEach((item, index) => {
-      if (!item.name.trim()) {
-        errors[`item_${index}_name`] = 'Item name is required';
-      }
-      if (!item.sku.trim()) {
-        errors[`item_${index}_sku`] = 'SKU is required';
-      } else {
-        const normalizedSku = item.sku.trim().toUpperCase();
-        if (skuMap.has(normalizedSku)) {
-          errors[`item_${index}_sku`] = 'Duplicate SKU detected';
-          errors[`item_${skuMap.get(normalizedSku)}`] = 'Duplicate SKU detected';
-        } else {
-          skuMap.set(normalizedSku, index);
-        }
-      }
-      if (!item.qty || item.qty <= 0) {
-        errors[`item_${index}_qty`] = 'Quantity must be greater than 0';
-      }
-    });
-
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
   const handleCreateOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      addNotification("Please fix the form errors before submitting", "error");
-      return;
-    }
-    
-    setIsSubmitting(true);
     const requestId = `ord-create-${Date.now()}`;
     try {
       await api.createOrder({
@@ -161,13 +115,9 @@ const OrderManagement: React.FC = () => {
         totalAmount: 0,
         notes: ''
       });
-      setFormErrors({});
       loadOrders();
     } catch (err) {
-      console.error('Order creation error:', err);
-      addNotification("Failed to create order. Please try again.", "error");
-    } finally {
-      setIsSubmitting(false);
+      addNotification("Failed to create order", "error");
     }
   };
 
@@ -239,121 +189,97 @@ const OrderManagement: React.FC = () => {
 
         {/* Orders Table */}
         <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-          {filteredOrders.length === 0 && !loading ? (
-            <div className="p-16 text-center">
-              <div className="h-16 w-16 bg-slate-100 dark:bg-slate-800 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                <ShoppingBag size={32} className="text-slate-400" />
-              </div>
-              <h3 className="text-lg font-black text-slate-900 dark:text-white mb-2">
-                {orders.length === 0 ? 'No orders yet' : 'No orders found'}
-              </h3>
-              <p className="text-sm text-slate-500 mb-6 max-w-md mx-auto">
-                {orders.length === 0
-                  ? 'Create your first sales order to get started with order management. Track customer orders, manage fulfillment, and monitor performance.'
-                  : 'Try changing the filters or search keywords to find the order you need.'}
-              </p>
-              <RoleGuard allowedRoles={['ADMIN', 'DISPATCHER']}>
-                <button 
-                  onClick={() => setIsCreateModalOpen(true)}
-                  className="bg-brand text-white px-8 py-4 rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl hover:opacity-90 active:scale-95 transition-all flex items-center gap-2 mx-auto"
-                >
-                  <Plus size={16} /> Create New Order
-                </button>
-              </RoleGuard>
-            </div>
-          ) : (
-            <table className="w-full text-left">
-              <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-                <tr>
-                  <th className="px-8 py-6 w-12">
-                    <div 
-                      onClick={() => {
-                        if (selectedOrders.length === filteredOrders.length) {
-                          setSelectedOrders([]);
-                        } else {
-                          setSelectedOrders(filteredOrders.map(o => o.id));
-                        }
-                      }}
-                      className={`h-5 w-5 rounded border-2 cursor-pointer flex items-center justify-center transition-all ${selectedOrders.length === filteredOrders.length ? 'bg-brand border-brand' : 'border-slate-300'}`}
-                    >
-                      {selectedOrders.length === filteredOrders.length && <CheckCircle size={12} className="text-white" />}
-                    </div>
-                  </th>
-                  <th className="px-8 py-6 label-logistics">Order Reference</th>
-                  <th className="px-8 py-6 label-logistics">Customer</th>
-                  <th className="px-8 py-6 label-logistics">Amount</th>
-                  <th className="px-8 py-6 label-logistics">Status</th>
-                  <th className="px-8 py-6 label-logistics">Risk</th>
-                  <th className="px-8 py-6 label-logistics text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                {loading ? [1,2,3].map(i => <SkeletonRow key={i} />) :
-                  filteredOrders.map(order => (
-                    <tr key={order.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group ${selectedOrders.includes(order.id) ? 'bg-brand/5' : ''}`}>
-                      <td className="px-8 py-6">
-                        <div 
-                          onClick={() => toggleOrderSelection(order.id)}
-                          className={`h-5 w-5 rounded border-2 cursor-pointer flex items-center justify-center transition-all ${selectedOrders.includes(order.id) ? 'bg-brand border-brand' : 'border-slate-300'}`}
+          <table className="w-full text-left">
+            <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+              <tr>
+                <th className="px-8 py-6 w-12">
+                  <div 
+                    onClick={() => {
+                      if (selectedOrders.length === filteredOrders.length) {
+                        setSelectedOrders([]);
+                      } else {
+                        setSelectedOrders(filteredOrders.map(o => o.id));
+                      }
+                    }}
+                    className={`h-5 w-5 rounded border-2 cursor-pointer flex items-center justify-center transition-all ${selectedOrders.length === filteredOrders.length ? 'bg-brand border-brand' : 'border-slate-300'}`}
+                  >
+                    {selectedOrders.length === filteredOrders.length && <CheckCircle size={12} className="text-white" />}
+                  </div>
+                </th>
+                <th className="px-8 py-6 label-logistics">Order Reference</th>
+                <th className="px-8 py-6 label-logistics">Customer</th>
+                <th className="px-8 py-6 label-logistics">Amount</th>
+                <th className="px-8 py-6 label-logistics">Status</th>
+                <th className="px-8 py-6 label-logistics">Risk</th>
+                <th className="px-8 py-6 label-logistics text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+              {loading ? [1,2,3].map(i => <SkeletonRow key={i} />) :
+                filteredOrders.map(order => (
+                  <tr key={order.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group ${selectedOrders.includes(order.id) ? 'bg-brand/5' : ''}`}>
+                    <td className="px-8 py-6">
+                      <div 
+                        onClick={() => toggleOrderSelection(order.id)}
+                        className={`h-5 w-5 rounded border-2 cursor-pointer flex items-center justify-center transition-all ${selectedOrders.includes(order.id) ? 'bg-brand border-brand' : 'border-slate-300'}`}
+                      >
+                        {selectedOrders.includes(order.id) && <CheckCircle size={12} className="text-white" />}
+                      </div>
+                    </td>
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center text-slate-400"><ShoppingBag size={18} /></div>
+                        <div>
+                          <span className="body-value truncate-name block">{order.externalId}</span>
+                          <span className="text-[10px] text-slate-400 font-bold uppercase">{new Date(order.createdAt).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-2">
+                        <User size={14} className="text-slate-300 dark:text-slate-600" />
+                        <span className="body-value truncate-name">{order.customerName}</span>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6">
+                      <span className="body-value">{formatCurrency(order.totalAmount)}</span>
+                    </td>
+                    <td className="px-8 py-6">
+                      <Badge variant={order.status === 'APPROVED' ? 'delivered' : order.status === 'PENDING' ? 'neutral' : 'failed'}>
+                        {order.status}
+                      </Badge>
+                    </td>
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-2">
+                        <div className={`h-2 w-2 rounded-full ${order.fraudScore && order.fraudScore > 20 ? 'bg-red-500' : 'bg-emerald-500'}`} />
+                        <span className="text-[10px] font-black text-slate-500 uppercase">{order.fraudScore || 0}% Score</span>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button 
+                          onClick={() => { setSelectedOrder(order); setIsDetailOpen(true); }}
+                          className="p-2 text-slate-400 hover:text-brand bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm transition-all"
                         >
-                          {selectedOrders.includes(order.id) && <CheckCircle size={12} className="text-white" />}
-                        </div>
-                      </td>
-                      <td className="px-8 py-6">
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center text-slate-400"><ShoppingBag size={18} /></div>
-                          <div>
-                            <span className="body-value truncate-name block">{order.externalId}</span>
-                            <span className="text-[10px] text-slate-400 font-bold uppercase">{new Date(order.createdAt).toLocaleDateString()}</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-8 py-6">
-                        <div className="flex items-center gap-2">
-                          <User size={14} className="text-slate-300 dark:text-slate-600" />
-                          <span className="body-value truncate-name">{order.customerName}</span>
-                        </div>
-                      </td>
-                      <td className="px-8 py-6">
-                        <span className="body-value">{formatCurrency(order.totalAmount)}</span>
-                      </td>
-                      <td className="px-8 py-6">
-                        <Badge variant={order.status === 'APPROVED' ? 'delivered' : order.status === 'PENDING' ? 'neutral' : 'failed'}>
-                          {order.status}
-                        </Badge>
-                      </td>
-                      <td className="px-8 py-6">
-                        <div className="flex items-center gap-2">
-                          <div className={`h-2 w-2 rounded-full ${order.fraudScore && order.fraudScore > 20 ? 'bg-red-500' : 'bg-emerald-500'}`} />
-                          <span className="text-[10px] font-black text-slate-500 uppercase">{order.fraudScore || 0}% Score</span>
-                        </div>
-                      </td>
-                      <td className="px-8 py-6 text-right">
-                        <div className="flex justify-end gap-2">
-                          <button 
-                            onClick={() => { setSelectedOrder(order); setIsDetailOpen(true); }}
-                            className="p-2 text-slate-400 hover:text-brand bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm transition-all"
-                          >
-                            <Eye size={14} />
-                          </button>
-                          <RoleGuard allowedRoles={['ADMIN', 'DISPATCHER']}>
-                            {order.status === 'PENDING' && (
-                              <button 
-                                onClick={() => handleApprove(order)}
-                                className="p-2 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 bg-white dark:bg-slate-800 border border-emerald-100 dark:border-emerald-500/20 rounded-lg shadow-sm transition-all"
-                              >
-                                <CheckCircle size={14} />
-                              </button>
-                            )}
-                          </RoleGuard>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                }
-              </tbody>
-            </table>
-          )}
+                          <Eye size={14} />
+                        </button>
+                        <RoleGuard allowedRoles={['ADMIN', 'DISPATCHER']}>
+                          {order.status === 'PENDING' && (
+                            <button 
+                              onClick={() => handleApprove(order)}
+                              className="p-2 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 bg-white dark:bg-slate-800 border border-emerald-100 dark:border-emerald-500/20 rounded-lg shadow-sm transition-all"
+                            >
+                              <CheckCircle size={14} />
+                            </button>
+                          )}
+                        </RoleGuard>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -461,33 +387,23 @@ const OrderManagement: React.FC = () => {
               <div className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                      Customer Name <span className="text-red-500">*</span>
-                    </label>
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Customer Name</label>
                     <input 
                       type="text" required
                       value={newOrderData.customerName}
                       onChange={e => setNewOrderData({...newOrderData, customerName: e.target.value})}
                       placeholder="e.g. City Hospital"
-                      className={`w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-6 py-4 text-sm font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-brand outline-none transition-all ${formErrors.customerName ? 'ring-2 ring-red-500' : ''}`}
+                      className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-6 py-4 text-sm font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-brand outline-none transition-all"
                     />
-                    {formErrors.customerName && (
-                      <p className="text-xs text-red-500 font-medium">{formErrors.customerName}</p>
-                    )}
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                      Total Amount ({currencySymbol}) <span className="text-red-500">*</span>
-                    </label>
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Total Amount ({currencySymbol})</label>
                     <input 
-                      type="number" required min="0.01" step="0.01"
+                      type="number" required
                       value={isNaN(newOrderData.totalAmount) ? '' : newOrderData.totalAmount}
-                      onChange={e => setNewOrderData({...newOrderData, totalAmount: parseFloat(e.target.value) || 0})}
-                      className={`w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-6 py-4 text-sm font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-brand outline-none transition-all ${formErrors.totalAmount ? 'ring-2 ring-red-500' : ''}`}
+                      onChange={e => setNewOrderData({...newOrderData, totalAmount: parseInt(e.target.value) || 0})}
+                      className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-xl px-6 py-4 text-sm font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-brand outline-none transition-all"
                     />
-                    {formErrors.totalAmount && (
-                      <p className="text-xs text-red-500 font-medium">{formErrors.totalAmount}</p>
-                    )}
                   </div>
                 </div>
 
@@ -500,9 +416,7 @@ const OrderManagement: React.FC = () => {
                     {newOrderData.items.map((item, idx) => (
                       <div key={idx} className="flex gap-3 items-end bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
                         <div className="flex-1 space-y-1">
-                          <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
-                            Item Name <span className="text-red-500">*</span>
-                          </label>
+                          <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Item Name</label>
                           <input 
                             type="text"
                             value={item.name}
@@ -511,16 +425,11 @@ const OrderManagement: React.FC = () => {
                               items[idx].name = e.target.value;
                               setNewOrderData({...newOrderData, items});
                             }}
-                            className={`w-full bg-white dark:bg-slate-800 border-none rounded-lg px-3 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none ${formErrors[`item_${idx}_name`] ? 'ring-2 ring-red-500' : ''}`}
+                            className="w-full bg-white dark:bg-slate-800 border-none rounded-lg px-3 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none"
                           />
-                          {formErrors[`item_${idx}_name`] && (
-                            <p className="text-[8px] text-red-500">{formErrors[`item_${idx}_name`]}</p>
-                          )}
                         </div>
                         <div className="w-24 space-y-1">
-                          <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
-                            SKU <span className="text-red-500">*</span>
-                          </label>
+                          <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">SKU</label>
                           <input 
                             type="text"
                             value={item.sku}
@@ -529,30 +438,21 @@ const OrderManagement: React.FC = () => {
                               items[idx].sku = e.target.value;
                               setNewOrderData({...newOrderData, items});
                             }}
-                            className={`w-full bg-white dark:bg-slate-800 border-none rounded-lg px-3 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none ${formErrors[`item_${idx}_sku`] ? 'ring-2 ring-red-500' : ''}`}
+                            className="w-full bg-white dark:bg-slate-800 border-none rounded-lg px-3 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none"
                           />
-                          {formErrors[`item_${idx}_sku`] && (
-                            <p className="text-[8px] text-red-500">{formErrors[`item_${idx}_sku`]}</p>
-                          )}
                         </div>
                         <div className="w-16 space-y-1">
-                          <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
-                            Qty <span className="text-red-500">*</span>
-                          </label>
+                          <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Qty</label>
                           <input 
                             type="number"
-                            min="1"
                             value={isNaN(item.qty) ? '' : item.qty}
                             onChange={e => {
                               const items = [...newOrderData.items];
                               items[idx].qty = parseInt(e.target.value) || 0;
                               setNewOrderData({...newOrderData, items});
                             }}
-                            className={`w-full bg-white dark:bg-slate-800 border-none rounded-lg px-3 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none ${formErrors[`item_${idx}_qty`] ? 'ring-2 ring-red-500' : ''}`}
+                            className="w-full bg-white dark:bg-slate-800 border-none rounded-lg px-3 py-2 text-xs font-bold text-slate-900 dark:text-white outline-none"
                           />
-                          {formErrors[`item_${idx}_qty`] && (
-                            <p className="text-[8px] text-red-500">{formErrors[`item_${idx}_qty`]}</p>
-                          )}
                         </div>
                         <button 
                           type="button"
@@ -590,17 +490,9 @@ const OrderManagement: React.FC = () => {
                 <button type="button" onClick={() => setIsCreateModalOpen(false)} className="flex-1 py-4 text-xs font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors">Cancel</button>
                 <button 
                   type="submit"
-                  disabled={isSubmitting}
-                  className="flex-[2] bg-brand text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex-[2] bg-brand text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl hover:opacity-90 active:scale-95 transition-all"
                 >
-                  {isSubmitting ? (
-                    <>
-                      <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Creating Order...
-                    </>
-                  ) : (
-                    'Create Order'
-                  )}
+                  Create Order
                 </button>
               </div>
             </form>

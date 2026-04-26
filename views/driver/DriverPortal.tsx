@@ -170,7 +170,7 @@ const DriverPortal: React.FC = () => {
   
   // Audited GPS Telemetry: 15s interval configured in hooks
   const { syncing } = useTripTelemetry(currentDn?.id, step === 'EXECUTION' && isEnRouteStatus);
-  const { coords: currentCoords } = useGeolocation(step === 'EXECUTION' && (isEnRouteStatus || isAtSiteStatus), currentDn?.id);
+  const currentCoords = useGeolocation(step === 'EXECUTION' && (isEnRouteStatus || isAtSiteStatus), currentDn?.id);
 
   useEffect(() => {
     let interval: any;
@@ -198,6 +198,13 @@ const DriverPortal: React.FC = () => {
     }
     return () => clearInterval(interval);
   }, [step, isEnRouteStatus]);
+
+  // Auto-collapse panel when modals are open
+  useEffect(() => {
+    if (isPaymentModalOpen || isChatOpen || showAdvisoryModal) {
+      setIsPanelExpanded(false);
+    }
+  }, [isPaymentModalOpen, isChatOpen, showAdvisoryModal]);
 
   // Auto-collapse panel when modals are open
   useEffect(() => {

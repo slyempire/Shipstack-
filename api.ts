@@ -1934,37 +1934,28 @@ export const api = {
   
   async createOrder(data: Partial<Order>, tenantId: string = 'tenant-1', requestId?: string): Promise<Order> {
     if (!checkIdempotency(requestId)) {
-      // For idempotency, return the most recent order or find by external ID
-      const orders = getStore('orders', initialOrders);
-      const filtered = orders.filter(o => !o.tenantId || o.tenantId === tenantId);
-      return filtered[0] || orders[0];
+      const orders = await api.getOrders(tenantId);
+      return orders[0]; // Return last created or similar
     }
     clearCache('orders');
-    
+    const orders = await api.getOrders(tenantId);
     const newOrder: Order = {
       id: `ord-${Date.now()}`,
       externalId: `SO-${Math.floor(Math.random() * 9000) + 1000}`,
-      customerId: data.customerId || 'cust-new',
-      customerName: data.customerName || 'New Customer',
-      status: data.status || 'PENDING',
-      items: data.items || [],
-      totalAmount: data.totalAmount || 0,
-      currency: data.currency || 'KES',
+      customerId: 'cust-new',
+      customerName: 'New Customer',
+      status: 'PENDING',
+      items: [],
+      totalAmount: 0,
+      currency: 'KES',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      paymentStatus: data.paymentStatus || 'UNPAID',
-      fraudScore: data.fraudScore || Math.floor(Math.random() * 20),
+      paymentStatus: 'UNPAID',
+      fraudScore: 0,
       tenantId,
       ...data
     } as Order;
-    
-    const existingOrders = getStore('orders', initialOrders);
-    const updatedOrders = [newOrder, ...existingOrders];
-    setStore('orders', updatedOrders);
-    
-    // Log audit event
-    logAudit('ORDER_CREATED', { orderId: newOrder.id, customerName: newOrder.customerName, amount: newOrder.totalAmount }, 'System');
-    
+    setStore('orders', [newOrder, ...getStore('orders', initialOrders)]);
     return newOrder;
   },
 

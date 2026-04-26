@@ -118,7 +118,7 @@ export type ModuleId =
   | 'core-dashboard' | 'core-dispatch' | 'core-fleet' | 'core-trips' | 'core-invoicing'
   | 'vertical-healthcare' | 'vertical-agriculture' | 'vertical-ecommerce' | 'vertical-retail' 
   | 'vertical-coldchain' | 'vertical-construction' | 'addon-cortex-ai' | 'addon-advanced-analytics'
-  | 'addon-route-optimizer' | 'addon-customer-portal' | 'addon-driver-app-pro' | 'addon-fraud-guard'
+  | 'addon-route-optimizer' | 'addon-customer-portal' | 'addon-driver-app-pro' 
   | 'integration-frappe-erp' | 'integration-quickbooks' | 'integration-shopify' 
   | 'integration-mpesa' | 'integration-stripe' | 'compliance-gdpr-toolkit' | 'compliance-iso-28000';
 
@@ -132,35 +132,15 @@ export interface ModuleDefinition {
   slug: string;
   description: string;
   longDescription?: string;
-  benefits?: string[];
-  useCases?: string[];
   category: ModuleCategory;
   tier: ModuleTier;
   version: string;
   versions: Array<{ version: string; releaseDate: string; changelog: string }>;
   icon: any;
   tags: string[];
-  publisher: {
-    id: string;
-    name: string;
-    verified: boolean;
-    logo?: string;
-    website?: string;
-    supportEmail?: string;
-    supportPhone?: string;
-    description?: string;
-    reviewScore?: number;
-    totalReviews?: number;
-  };
-  pricing: {
-    model: string;
-    amount?: number;
-    currency?: string;
-    billingPeriod?: string;
-    trialDays?: number;
-    annualDiscount?: number;
-  };
-  dependencies: any[];
+  publisher: { id: string; name: string; verified: boolean; logo?: string };
+  pricing: { model: string; amount?: number; currency?: string; billingPeriod?: string; trialDays?: number };
+  dependencies: any[]; 
   conflicts: string[];
   permissionScope: { requiredPermissions: Permission[]; grantedPermissions: Permission[] };
   routes: string[];
@@ -173,65 +153,6 @@ export interface ModuleDefinition {
   rating?: number;
   installCount?: number;
   screenshots?: string[];
-  reviews?: ModuleReview[];
-  certifications?: string[];
-  setupComplexity?: 'Simple' | 'Moderate' | 'Complex';
-  setupTimeEstimate?: string;
-  documentationUrl?: string;
-  videoTutorialUrl?: string;
-  faqs?: Array<{ question: string; answer: string }>;
-  knownIssues?: string[];
-  relatedModules?: ModuleId[];
-  changelog?: string;
-  lastUpdated?: string;
-  installations?: ModuleInstallation[];
-  setupInstructions?: string;
-}
-
-export interface ModuleReview {
-  id: string;
-  userId: string;
-  userName: string;
-  userAvatar?: string;
-  rating: number;
-  title: string;
-  content: string;
-  createdAt: string;
-  helpful: number;
-  verified: boolean;
-  version?: string;
-}
-
-export interface ModuleInstallation {
-  id: string;
-  moduleId: ModuleId;
-  tenantId: string;
-  status: 'PENDING' | 'INSTALLING' | 'INSTALLED' | 'FAILED' | 'UNINSTALLING';
-  progress: number;
-  startedAt: string;
-  installedAt?: string;
-  completedAt?: string;
-  installedBy: string;
-  version: string;
-  errorMessage?: string;
-  logs?: string[];
-}
-
-export interface PublisherProfile {
-  id: string;
-  name: string;
-  description: string;
-  logo?: string;
-  website?: string;
-  supportEmail: string;
-  supportPhone?: string;
-  verified: boolean;
-  reviewScore: number;
-  totalReviews: number;
-  totalModules: number;
-  foundedYear?: number;
-  headquarters?: string;
-  certifications?: string[];
 }
 
 export interface TenantModule {
@@ -339,8 +260,6 @@ export interface DeliveryNote {
   plannedDeliveryDate?: string;
   lastTelemetryAt?: string;
   exceptionType?: ExceptionType;
-  totalAmount?: number;
-  currency?: string;
   exceptionStatus?: ExceptionStatus;
   exceptionReason?: string;
   phone?: string;
@@ -463,9 +382,6 @@ export interface Vehicle {
   // Missing properties
   nextServiceDate?: string;
   nextServiceOdometer?: number;
-  capacity?: { weight?: number; volume?: number; unit?: string };
-  currentLocation?: { lat: number; lng: number };
-  fuelEfficiency?: number;
   fuelLevel?: number;
   ntsaInspectionExpiry?: string;
   insuranceExpiry?: string;

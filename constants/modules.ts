@@ -133,191 +133,44 @@ export const MARKETPLACE_MODULES: ModuleDefinition[] = [
     name: 'Medical Logistics Pro',
     slug: 'healthcare',
     description: 'Cold chain compliance and pharmaceutical grade handling.',
-    longDescription: 'Complete medical logistics solution with temperature monitoring, compliance tracking, and pharmaceutical-grade handling protocols. Ensures regulatory compliance with KEMSA, WHO, and FDA standards.',
-    benefits: [
-      '100% cold chain compliance guarantee',
-      'Real-time temperature monitoring',
-      'Regulatory reporting automation',
-      'Emergency medical supply prioritization'
-    ],
-    useCases: [
-      'Pharmaceutical distribution',
-      'Medical equipment logistics',
-      'Vaccine cold chain management',
-      'Hospital supply chain'
-    ],
     category: 'industry_vertical',
     tier: 'professional',
     version: '1.0.5',
-    versions: [
-      { version: '1.0.5', releaseDate: '2026-04-15', changelog: 'Added emergency routing and enhanced compliance reporting.' },
-      { version: '1.0.0', releaseDate: '2025-12-01', changelog: 'Initial medical module release.' }
-    ],
+    versions: [{ version: '1.0.0', releaseDate: '2025-12-01', changelog: 'Initial medical module release.' }],
     icon: 'Stethoscope',
-    tags: ['medical', 'compliance', 'cold-chain', 'pharmaceutical'],
-    publisher: {
-      id: 'shipstack',
-      name: 'Shipstack Labs',
-      verified: true,
-      logo: '/logos/shipstack.png',
-      website: 'https://shipstack.com',
-      supportEmail: 'healthcare@shipstack.com',
-      supportPhone: '+254-700-000-001',
-      description: 'Leading logistics technology for African markets',
-      reviewScore: 4.8,
-      totalReviews: 1247
-    },
-    pricing: {
-      model: 'flat',
-      amount: 149,
-      currency: 'USD',
-      billingPeriod: 'monthly',
-      annualDiscount: 15
-    },
+    tags: ['medical', 'compliance', 'cold-chain'],
+    publisher: { id: 'shipstack', name: 'Shipstack Labs', verified: true },
+    pricing: { model: 'flat', amount: 149, currency: 'USD', billingPeriod: 'monthly' },
     dependencies: [],
     conflicts: ['vertical-agriculture'],
     permissionScope: { requiredPermissions: ['dashboard:view'], grantedPermissions: ['exceptions:view', 'tracking:view'] },
     routes: ['/admin/vertical/medical'],
     status: 'active',
     createdAt: '2025-12-01T00:00:00Z',
-    updatedAt: '2026-04-15T00:00:00Z',
-    hooks: {},
-    rating: 4.9,
-    installCount: 850,
-    screenshots: ['/screenshots/healthcare-1.png', '/screenshots/healthcare-2.png'],
-    reviews: [
-      {
-        id: 'review-1',
-        userId: 'user-1',
-        userName: 'Dr. Sarah Johnson',
-        userAvatar: '/avatars/sarah.jpg',
-        rating: 5,
-        title: 'Excellent for medical logistics',
-        content: 'This module has transformed our vaccine distribution. The cold chain monitoring is exceptional.',
-        createdAt: '2026-04-10T00:00:00Z',
-        helpful: 12,
-        verified: true,
-        version: '1.0.5'
-      },
-      {
-        id: 'review-2',
-        userId: 'user-2',
-        userName: 'Medical Logistics Manager',
-        rating: 4,
-        title: 'Good but needs more customization',
-        content: 'Solid foundation for medical logistics, but would like more temperature alert configurations.',
-        createdAt: '2026-04-05T00:00:00Z',
-        helpful: 8,
-        verified: true,
-        version: '1.0.4'
-      }
-    ],
-    certifications: ['HIPAA Compliant', 'WHO Certified', 'KEMSA Approved'],
-    setupComplexity: 'Moderate',
-    setupTimeEstimate: '2-3 hours',
-    documentationUrl: 'https://docs.shipstack.com/healthcare-module',
-    videoTutorialUrl: 'https://youtube.com/watch?v=healthcare-setup',
-    faqs: [
-      {
-        question: 'Does this support multiple temperature zones?',
-        answer: 'Yes, the module supports 2-8°C, 15-25°C, and frozen storage zones.'
-      },
-      {
-        question: 'Is it KEMSA compliant?',
-        answer: 'Yes, fully compliant with Kenyan Medical Supplies Agency requirements.'
-      }
-    ],
-    knownIssues: ['Temperature sensor calibration may require on-site technician'],
-    relatedModules: ['addon-fraud-guard', 'addon-advanced-analytics'],
-    changelog: 'Added emergency routing and enhanced compliance reporting.',
-    lastUpdated: '2026-04-15'
+    updatedAt: new Date().toISOString(),
+    hooks: {}
   },
   {
     id: 'vertical-agriculture',
     name: 'Agri-Supply Network',
     slug: 'agriculture',
     description: 'Farm-to-market visibility and harvest yield logistics.',
-    longDescription: 'Comprehensive agricultural supply chain management with real-time harvest tracking, perishability monitoring, and market demand forecasting. Optimized for fresh produce and bulk commodity logistics.',
-    benefits: [
-      'Reduce post-harvest losses by up to 40%',
-      'Real-time harvest-to-market visibility',
-      'Automated perishability alerts',
-      'Market price optimization'
-    ],
-    useCases: [
-      'Fresh produce distribution',
-      'Bulk grain logistics',
-      'Perishable goods transport',
-      'Farm cooperative management'
-    ],
     category: 'industry_vertical',
     tier: 'professional',
     version: '1.2.0',
-    versions: [
-      { version: '1.2.0', releaseDate: '2026-04-20', changelog: 'Added market price integration and enhanced perishability tracking.' },
-      { version: '1.0.0', releaseDate: '2026-01-10', changelog: 'Agriculture module launch.' }
-    ],
+    versions: [{ version: '1.0.0', releaseDate: '2026-01-10', changelog: 'Agriculture module launch.' }],
     icon: 'Sprout',
-    tags: ['agriculture', 'freshness', 'farm', 'perishable'],
-    publisher: {
-      id: 'shipstack',
-      name: 'Shipstack Labs',
-      verified: true,
-      logo: '/logos/shipstack.png',
-      website: 'https://shipstack.com',
-      supportEmail: 'agriculture@shipstack.com',
-      supportPhone: '+254-700-000-002',
-      description: 'Leading logistics technology for African markets',
-      reviewScore: 4.7,
-      totalReviews: 892
-    },
-    pricing: {
-      model: 'flat',
-      amount: 149,
-      currency: 'USD',
-      billingPeriod: 'monthly',
-      annualDiscount: 15
-    },
+    tags: ['agriculture', 'freshness', 'farm'],
+    publisher: { id: 'shipstack', name: 'Shipstack Labs', verified: true },
+    pricing: { model: 'flat', amount: 149, currency: 'USD', billingPeriod: 'monthly' },
     dependencies: [],
     conflicts: ['vertical-healthcare'],
     permissionScope: { requiredPermissions: ['dashboard:view'], grantedPermissions: ['tracking:view'] },
     routes: ['/admin/vertical/agriculture'],
     status: 'active',
     createdAt: '2026-01-10T00:00:00Z',
-    updatedAt: '2026-04-20T00:00:00Z',
-    hooks: {},
-    rating: 4.8,
-    installCount: 1200,
-    screenshots: ['/screenshots/agriculture-1.png', '/screenshots/agriculture-2.png'],
-    reviews: [
-      {
-        id: 'review-3',
-        userId: 'user-3',
-        userName: 'Farm Manager Ken',
-        userAvatar: '/avatars/ken.jpg',
-        rating: 5,
-        title: 'Game changer for our farm logistics',
-        content: 'The perishability tracking has helped us reduce losses significantly. Highly recommend!',
-        createdAt: '2026-04-18T00:00:00Z',
-        helpful: 15,
-        verified: true,
-        version: '1.2.0'
-      }
-    ],
-    certifications: ['HACCP Certified', 'Organic Compliance Ready'],
-    setupComplexity: 'Simple',
-    setupTimeEstimate: '1-2 hours',
-    documentationUrl: 'https://docs.shipstack.com/agriculture-module',
-    videoTutorialUrl: 'https://youtube.com/watch?v=agriculture-setup',
-    faqs: [
-      {
-        question: 'Does this work for bulk grains?',
-        answer: 'Yes, supports both fresh produce and bulk commodity logistics.'
-      }
-    ],
-    relatedModules: ['addon-advanced-analytics', 'addon-cortex-ai'],
-    changelog: 'Added market price integration and enhanced perishability tracking.',
-    lastUpdated: '2026-04-20'
+    updatedAt: new Date().toISOString(),
+    hooks: {}
   },
   {
     id: 'vertical-ecommerce',
@@ -412,193 +265,45 @@ export const MARKETPLACE_MODULES: ModuleDefinition[] = [
     name: 'Cortex AI Optimizer',
     slug: 'cortex-ai',
     description: 'ML-driven delay prediction and automated resource allocation.',
-    longDescription: 'Advanced artificial intelligence system that predicts delivery delays, optimizes routes in real-time, and automates resource allocation. Uses machine learning algorithms trained on millions of delivery data points.',
-    benefits: [
-      '94% accuracy in delay prediction',
-      'Up to 25% reduction in delivery times',
-      'Automated route optimization',
-      'Real-time traffic adaptation'
-    ],
-    useCases: [
-      'Urban delivery optimization',
-      'Long-haul route planning',
-      'Emergency delivery prioritization',
-      'Fleet utilization optimization'
-    ],
     category: 'ai_feature',
     tier: 'professional',
     version: '2.5.0',
-    versions: [
-      { version: '2.5.0', releaseDate: '2026-04-25', changelog: 'Enhanced real-time traffic integration and improved prediction accuracy.' },
-      { version: '2.0.0', releaseDate: '2026-03-01', changelog: 'Major AI model upgrade with 30% better predictions.' },
-      { version: '1.0.0', releaseDate: '2026-01-15', changelog: 'Initial AI optimizer release.' }
-    ],
+    versions: [],
     icon: 'Zap',
-    tags: ['ai', 'optimization', 'ml', 'automation', 'predictive'],
-    publisher: {
-      id: 'shipstack',
-      name: 'Shipstack Labs',
-      verified: true,
-      logo: '/logos/shipstack.png',
-      website: 'https://shipstack.com',
-      supportEmail: 'ai@shipstack.com',
-      supportPhone: '+254-700-000-003',
-      description: 'Leading AI-powered logistics technology',
-      reviewScore: 4.9,
-      totalReviews: 420
-    },
-    pricing: {
-      model: 'flat',
-      amount: 199,
-      currency: 'USD',
-      billingPeriod: 'monthly',
-      annualDiscount: 20
-    },
+    tags: ['ai', 'optimization', 'ml'],
+    publisher: { id: 'shipstack', name: 'Shipstack Labs', verified: true },
+    pricing: { model: 'flat', amount: 199, currency: 'USD', billingPeriod: 'monthly' },
     dependencies: ['core-dispatch'],
     conflicts: [],
     permissionScope: { requiredPermissions: ['dispatch:manage'], grantedPermissions: ['analytics:view'] },
     routes: [],
     isFeatured: true,
     status: 'active',
-    createdAt: '2026-01-15T00:00:00Z',
-    updatedAt: '2026-04-25T00:00:00Z',
-    hooks: {},
-    rating: 4.9,
-    installCount: 420,
-    screenshots: ['/screenshots/cortex-ai-1.png', '/screenshots/cortex-ai-2.png'],
-    reviews: [
-      {
-        id: 'review-4',
-        userId: 'user-4',
-        userName: 'Operations Director',
-        userAvatar: '/avatars/ops-director.jpg',
-        rating: 5,
-        title: 'Revolutionary AI optimization',
-        content: 'The AI predictions are incredibly accurate. We\'ve seen a 25% improvement in on-time deliveries.',
-        createdAt: '2026-04-22T00:00:00Z',
-        helpful: 23,
-        verified: true,
-        version: '2.5.0'
-      },
-      {
-        id: 'review-5',
-        userId: 'user-5',
-        userName: 'Logistics Manager',
-        rating: 5,
-        title: 'Game-changing technology',
-        content: 'The automated route optimization saves us hours every day. Highly recommend for any serious logistics operation.',
-        createdAt: '2026-04-20T00:00:00Z',
-        helpful: 18,
-        verified: true,
-        version: '2.5.0'
-      }
-    ],
-    certifications: ['ISO 27001', 'GDPR Compliant', 'AI Ethics Certified'],
-    setupComplexity: 'Complex',
-    setupTimeEstimate: '4-6 hours',
-    documentationUrl: 'https://docs.shipstack.com/cortex-ai',
-    videoTutorialUrl: 'https://youtube.com/watch?v=cortex-ai-setup',
-    faqs: [
-      {
-        question: 'How accurate are the predictions?',
-        answer: 'Our models achieve 94% accuracy in delay prediction based on historical data analysis.'
-      },
-      {
-        question: 'Does it work in real-time?',
-        answer: 'Yes, the system provides real-time route optimization and traffic adaptation.'
-      }
-    ],
-    knownIssues: ['Requires minimum 3 months of historical data for optimal performance'],
-    relatedModules: ['addon-advanced-analytics', 'vertical-ecommerce'],
-    changelog: 'Enhanced real-time traffic integration and improved prediction accuracy.',
-    lastUpdated: '2026-04-25'
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    hooks: {}
   },
   {
     id: 'addon-advanced-analytics',
     name: 'Insight Hub Pro',
     slug: 'advanced-analytics',
     description: 'Deep-dive reporting and custom BI dashboarding.',
-    longDescription: 'Advanced business intelligence platform with custom dashboards, predictive analytics, and comprehensive reporting. Transform your logistics data into actionable business insights.',
-    benefits: [
-      'Custom dashboard creation',
-      'Predictive analytics integration',
-      'Real-time KPI monitoring',
-      'Advanced data visualization'
-    ],
-    useCases: [
-      'Executive reporting',
-      'Performance analytics',
-      'Trend analysis',
-      'Custom metric tracking'
-    ],
     category: 'addon',
     tier: 'professional',
     version: '1.4.2',
-    versions: [
-      { version: '1.4.2', releaseDate: '2026-04-18', changelog: 'Added predictive analytics integration and enhanced dashboard customization.' },
-      { version: '1.0.0', releaseDate: '2026-02-01', changelog: 'Initial analytics platform release.' }
-    ],
+    versions: [],
     icon: 'Activity',
-    tags: ['analytics', 'bi', 'data', 'reporting', 'dashboards'],
-    publisher: {
-      id: 'shipstack',
-      name: 'Shipstack Core',
-      verified: true,
-      logo: '/logos/shipstack.png',
-      website: 'https://shipstack.com',
-      supportEmail: 'analytics@shipstack.com',
-      supportPhone: '+254-700-000-004',
-      description: 'Leading logistics analytics platform',
-      reviewScore: 4.6,
-      totalReviews: 387
-    },
-    pricing: {
-      model: 'flat',
-      amount: 99,
-      currency: 'USD',
-      billingPeriod: 'monthly',
-      annualDiscount: 10
-    },
+    tags: ['analytics', 'bi', 'data'],
+    publisher: { id: 'shipstack', name: 'Shipstack Core', verified: true },
+    pricing: { model: 'flat', amount: 99, currency: 'USD', billingPeriod: 'monthly' },
     dependencies: [],
     conflicts: [],
     permissionScope: { requiredPermissions: ['analytics:view'], grantedPermissions: ['analytics:all', 'analytics:export'] },
     routes: ['/admin/analytics/pro'],
     status: 'active',
-    createdAt: '2026-02-01T00:00:00Z',
-    updatedAt: '2026-04-18T00:00:00Z',
-    hooks: {},
-    rating: 4.7,
-    installCount: 650,
-    screenshots: ['/screenshots/analytics-1.png', '/screenshots/analytics-2.png'],
-    reviews: [
-      {
-        id: 'review-6',
-        userId: 'user-6',
-        userName: 'Data Analyst',
-        userAvatar: '/avatars/analyst.jpg',
-        rating: 4,
-        title: 'Powerful analytics capabilities',
-        content: 'The custom dashboards are excellent, but the learning curve is steep. Worth it for the insights.',
-        createdAt: '2026-04-15T00:00:00Z',
-        helpful: 9,
-        verified: true,
-        version: '1.4.2'
-      }
-    ],
-    certifications: ['SOC 2 Type II', 'GDPR Compliant'],
-    setupComplexity: 'Moderate',
-    setupTimeEstimate: '2-4 hours',
-    documentationUrl: 'https://docs.shipstack.com/analytics',
-    videoTutorialUrl: 'https://youtube.com/watch?v=analytics-setup',
-    faqs: [
-      {
-        question: 'Can I create custom dashboards?',
-        answer: 'Yes, the platform includes a drag-and-drop dashboard builder.'
-      }
-    ],
-    relatedModules: ['addon-cortex-ai', 'vertical-retail'],
-    changelog: 'Added predictive analytics integration and enhanced dashboard customization.',
-    lastUpdated: '2026-04-18'
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    hooks: {}
   },
   {
     id: 'addon-route-optimizer',

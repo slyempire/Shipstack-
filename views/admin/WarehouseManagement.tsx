@@ -646,7 +646,7 @@ const WarehouseManagement: React.FC = () => {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white w-full max-w-md rounded-[3rem] overflow-hidden shadow-2xl max-h-[90vh]"
+              className="bg-white w-full max-w-md rounded-[3rem] overflow-hidden shadow-2xl"
             >
               <div className="p-8 border-b border-slate-100 flex justify-between items-center">
                 <div>
@@ -666,7 +666,7 @@ const WarehouseManagement: React.FC = () => {
                 </button>
               </div>
               
-              <form onSubmit={handleAddItem} className="p-8 space-y-6 max-h-[72vh] overflow-y-auto no-scrollbar">
+              <form onSubmit={handleAddItem} className="p-8 space-y-6">
                 {importMode ? (
                   <div className="space-y-4">
                     <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
@@ -765,7 +765,7 @@ const WarehouseManagement: React.FC = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Expiry Date</label>
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Expiry Date (Optional)</label>
                       <input 
                         type="date"
                         value={newItemData.expiryDate}

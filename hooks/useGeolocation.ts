@@ -2,19 +2,17 @@ import { useEffect, useState, useCallback } from 'react';
 import { useAppStore } from '../store';
 
 export const useGeolocation = (shouldWatch: boolean = false, dnId?: string) => {
-  const {
-    setUserLocation,
-    setLocationPermission,
-    addNotification
+  const { 
+    setUserLocation, 
+    setLocationPermission, 
+    addNotification 
   } = useAppStore();
 
   const [coords, setCoords] = useState<{ lat: number; lng: number; accuracy: number | null } | null>(null);
-  const [permission, setPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
 
   const requestLocation = useCallback(() => {
     if (!navigator.geolocation) {
       setLocationPermission('denied');
-      setPermission('denied');
       addNotification('Geolocation is not supported by your browser.', 'error');
       return;
     }
@@ -26,12 +24,10 @@ export const useGeolocation = (shouldWatch: boolean = false, dnId?: string) => {
         setCoords(newCoords);
         setUserLocation({ lat: latitude, lng: longitude });
         setLocationPermission('granted');
-        setPermission('granted');
       },
       (error) => {
         console.error('Geolocation error:', error);
         setLocationPermission('denied');
-        setPermission('denied');
         addNotification('Location tracking is unavailable. Please enable location permissions.', 'info');
       },
       {
@@ -43,41 +39,11 @@ export const useGeolocation = (shouldWatch: boolean = false, dnId?: string) => {
   }, [setUserLocation, setLocationPermission, addNotification]);
 
   useEffect(() => {
-    let mounted = true;
-
-    const checkPermission = async () => {
-      if (!navigator.permissions) {
-        if (shouldWatch) requestLocation();
-        return;
-      }
-
-      try {
-        const status = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
-        if (!mounted) return;
-        setPermission(status.state as 'granted' | 'denied' | 'prompt');
-        setLocationPermission(status.state as 'granted' ? 'granted' : status.state === 'denied' ? 'denied' : 'prompt');
-
-        status.onchange = () => {
-          if (!mounted) return;
-          setPermission(status.state as 'granted' | 'denied' | 'prompt');
-          setLocationPermission(status.state as 'granted' ? 'granted' : status.state === 'denied' ? 'denied' : 'prompt');
-        };
-
-        if (shouldWatch && status.state === 'granted') {
-          requestLocation();
-        }
-      } catch (err) {
-        console.warn('Permission API unavailable for geolocation.', err);
-        if (shouldWatch) requestLocation();
-      }
-    };
-
+    // Initial request on mount if requested or if we should watch
     if (shouldWatch) {
-      checkPermission();
+      requestLocation();
     }
-
-    return () => { mounted = false; };
-  }, [shouldWatch, requestLocation, setLocationPermission]);
+  }, [shouldWatch, requestLocation]);
 
   useEffect(() => {
     if (!shouldWatch || !navigator.geolocation) return;
@@ -92,16 +58,21 @@ export const useGeolocation = (shouldWatch: boolean = false, dnId?: string) => {
       },
       (error) => {
         console.error('Geolocation watch error:', error);
-        setLocationPermission('denied');
-        setPermission('denied');
+        // We don't necessarily want to spam notifications on every watch error
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocationPermission('denied');
+        }
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
     );
 
-    return () => {
-      navigator.geolocation.clearWatch(watchId);
-    };
+    return () => navigator.geolocation.clearWatch(watchId);
   }, [shouldWatch, setUserLocation, setLocationPermission]);
 
-  return { coords, permission, requestLocation };
+  // Return coords directly to match previous usage in DriverPortal
+  return coords;
 };
