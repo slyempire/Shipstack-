@@ -79,16 +79,24 @@ const App: React.FC = () => {
   const [isInitializing, setIsInitializing] = React.useState(true);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
+    console.log('App initialization starting, isSupabaseConfigured:', isSupabaseConfigured, 'supabase:', !!supabase);
+    
+    if (!isSupabaseConfigured || !supabase) {
+      console.log('Supabase not configured or null, setting isInitializing to false');
       setIsInitializing(false);
       return;
     }
 
+    console.log('Supabase configured, checking session...');
     // Check initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Session check result:', !!session);
       if (session?.user) {
         handleAuthChange(session.user, session.access_token);
       }
+      setIsInitializing(false);
+    }).catch((error) => {
+      console.error('Error checking session:', error);
       setIsInitializing(false);
     });
 
