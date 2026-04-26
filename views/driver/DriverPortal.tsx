@@ -170,7 +170,7 @@ const DriverPortal: React.FC = () => {
   
   // Audited GPS Telemetry: 15s interval configured in hooks
   const { syncing } = useTripTelemetry(currentDn?.id, step === 'EXECUTION' && isEnRouteStatus);
-  const currentCoords = useGeolocation(step === 'EXECUTION' && (isEnRouteStatus || isAtSiteStatus), currentDn?.id);
+  const { coords: currentCoords } = useGeolocation(step === 'EXECUTION' && (isEnRouteStatus || isAtSiteStatus), currentDn?.id);
 
   useEffect(() => {
     let interval: any;

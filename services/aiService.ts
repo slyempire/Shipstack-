@@ -7,10 +7,37 @@ import { DeliveryNote, Vehicle, RouteOptimizationResult } from '../types';
  */
 
 // Configuration for AI microservices
+const getAiServiceBaseUrl = () => {
+  if (import.meta.env.VITE_AI_SERVICE_URL) {
+    return import.meta.env.VITE_AI_SERVICE_URL.replace(/\/$/, '');
+  }
+
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    return `${window.location.protocol}//${host}:8000`;
+  }
+
+  return 'http://localhost:8000';
+};
+
 const AI_SERVICE_CONFIG = {
-  baseUrl: process.env.AI_SERVICE_URL || 'http://localhost:8000',
+  baseUrl: getAiServiceBaseUrl(),
   timeout: 30000, // 30 seconds
   retries: 3
+};
+
+const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeout = AI_SERVICE_CONFIG.timeout) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    return response;
+  } finally {
+    clearTimeout(timer);
+  }
 };
 
 /**
@@ -19,16 +46,20 @@ const AI_SERVICE_CONFIG = {
 async function callAIService(endpoint: string, data: any, retries = AI_SERVICE_CONFIG.retries): Promise<any> {
   const url = `${AI_SERVICE_CONFIG.baseUrl}${endpoint}`;
 
+  if (typeof window !== 'undefined' && !navigator.onLine) {
+    console.warn('AI service request blocked because browser is offline. Using fallback.');
+    return null;
+  }
+
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const response = await fetch(url, {
+      const response = await fetchWithTimeout(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
-        signal: AbortSignal.timeout(AI_SERVICE_CONFIG.timeout)
-      });
+        body: JSON.stringify(data)
+      }, AI_SERVICE_CONFIG.timeout);
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -40,10 +71,9 @@ async function callAIService(endpoint: string, data: any, retries = AI_SERVICE_C
 
       if (attempt === retries) {
         console.error('All AI service retries exhausted, falling back to simulation');
-        return null; // Will trigger fallback
+        return null;
       }
 
-      // Exponential backoff
       await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
     }
   }
