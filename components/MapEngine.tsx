@@ -63,8 +63,7 @@ const MapEngine: React.FC<MapEngineProps> = ({
   const [showSearchResults, setShowSearchResults] = useState(false);
 
   // Geolocation tracking
-  const userLocation = useGeolocation(true);
-  const { locationPermission } = useAppStore();
+  const { coords: userLocation, permission: locationPermission, requestLocation } = useGeolocation(false);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -932,15 +931,22 @@ const MapEngine: React.FC<MapEngineProps> = ({
       </div>
 
       <div className="absolute bottom-10 right-6 z-[1000] flex flex-col gap-3">
-        {userLocation && (
+        {userLocation ? (
           <div className="bg-white/90 backdrop-blur-xl border border-white/20 rounded-2xl p-3 shadow-2xl flex flex-col items-center gap-1 animate-in fade-in slide-in-from-right-4">
             <div className={`h-2 w-2 rounded-full ${userLocation.accuracy && userLocation.accuracy < 20 ? 'bg-emerald-500' : 'bg-orange-500'} animate-pulse`} />
             <span className="text-[8px] font-black text-slate-900 uppercase tracking-widest">
               {userLocation.accuracy ? `±${Math.round(userLocation.accuracy)}m` : 'GPS'}
             </span>
           </div>
+        ) : (
+          <button
+            onClick={requestLocation}
+            className="bg-white/90 backdrop-blur-xl border border-white/20 rounded-2xl p-3 shadow-2xl flex items-center justify-center text-slate-900 uppercase tracking-widest text-[9px] font-black hover:bg-slate-100 transition-all"
+          >
+            Enable location
+          </button>
         )}
-        
+
         <button
           onClick={() => {
             if (userLocation && mapRef.current) {

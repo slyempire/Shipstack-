@@ -3,15 +3,31 @@ import { signPayload } from "../utils/security";
 
 let socket: Socket | null = null;
 
+const getTelemetrySocketUrl = () => {
+  if (import.meta.env.VITE_TELEMETRY_SOCKET_URL) {
+    return import.meta.env.VITE_TELEMETRY_SOCKET_URL;
+  }
+
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    return `${window.location.protocol}//${host}:3000`;
+  }
+
+  return 'http://localhost:3000';
+};
+
 export const telemetryService = {
   connect() {
     if (socket?.connected) return;
 
-    // Standard socket connection
-    socket = io({
+    const socketUrl = getTelemetrySocketUrl();
+
+    socket = io(socketUrl, {
+      transports: ['websocket'],
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
-      transports: ['polling', 'websocket'],
+      path: '/socket.io',
+      autoConnect: true
     });
 
     socket.on("connect", () => {
@@ -19,7 +35,19 @@ export const telemetryService = {
     });
 
     socket.on("connect_error", (err) => {
-      console.warn("Telemetry Socket Connection Error, falling back to HTTP:", err.message);
+      console.warn("Telemetry Socket Connection Error, falling back to HTTP:", err?.message || err);
+    });
+
+    socket.on('reconnect_attempt', (attempt) => {
+      console.log(`Telemetry reconnect attempt ${attempt}`);
+    });
+
+    socket.on('reconnect_failed', () => {
+      console.warn('Telemetry reconnect failed. Falling back to HTTP transport.');
+    });
+
+    socket.on('disconnect', (reason) => {
+      console.warn('Telemetry socket disconnected:', reason);
     });
   },
 
