@@ -189,34 +189,28 @@ const SettingsView: React.FC = () => {
   const handleSave = async () => {
     if (!user) return;
     try {
-      console.log('[Settings] Saving configurations...', { prefs, tenantModules, securitySettings, brandColor });
-      
-      if (!currentTenant) {
-        console.warn('[Settings] currentTenant is missing, fetching...');
-        const fetchedTenant = await api.getTenant('current');
-        if (!fetchedTenant) {
-          throw new Error('Could not resolve tenant for saving.');
-        }
-        updateTenant(fetchedTenant);
+      let tenant = currentTenant;
+      if (!tenant) {
+        tenant = await api.getTenant('current');
+        if (!tenant) throw new Error('Could not resolve tenant for saving.');
+        updateTenant(tenant);
       }
 
       const updatedUser = await api.updateUser(user.id, { preferences: prefs });
       login(updatedUser, 'mock-token');
-      
-      if (user.role === 'ADMIN') {
-        const tenantData = { 
+
+      if (user.role === 'ADMIN' || user.role === 'tenant_admin' || user.role === 'super_admin') {
+        const tenantData = {
           enabledModules: tenantModules,
           securitySettings: securitySettings,
           settings: {
-            ...currentTenant?.settings,
+            ...tenant?.settings,
             primaryColor: brandColor,
-            currency: currentTenant?.settings?.currency || 'KES',
-            timezone: currentTenant?.settings?.timezone || 'Africa/Nairobi'
+            currency: tenant?.settings?.currency || 'KES',
+            timezone: tenant?.settings?.timezone || 'Africa/Nairobi'
           }
         };
-        
-        console.log('[Settings] Updating tenant...', tenantData);
-        const savedTenant = await api.updateTenant(currentTenant?.id || 'tenant-1', tenantData);
+        const savedTenant = await api.updateTenant(tenant?.id || 'tenant-1', tenantData);
         updateTenant(savedTenant);
       }
       
@@ -482,7 +476,7 @@ const Toggle = React.memo(({ active, onClick }: { active: boolean, onClick: () =
                                 <m.icon size={16} className={userModules.includes(m.id as ModuleId) ? 'text-emerald-600' : 'text-slate-400'} />
                                 <span className={`text-[10px] font-black uppercase tracking-widest ${userModules.includes(m.id as ModuleId) ? 'text-emerald-900 dark:text-emerald-400' : 'text-slate-500'}`}>{m.name}</span>
                               </div>
-                              <Toggle active={userModules.includes(m.id as ModuleId)} onClick={() => {}} />
+                              <Toggle active={userModules.includes(m.id as ModuleId)} onClick={() => toggleUserModule(m.id as ModuleId)} />
                             </button>
                           ))}
                         </div>

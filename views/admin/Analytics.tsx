@@ -112,6 +112,30 @@ const Analytics: React.FC = () => {
     });
   };
 
+  const handleDownloadReport = (report: AnalyticsReport) => {
+    const rows = [
+      ['Report', report.title],
+      ['Generated', new Date().toISOString()],
+      ['Period', report.period ?? 'All time'],
+      [],
+      ['Metric', 'Value'],
+      ...(report.data ? Object.entries(report.data).map(([k, v]) => [k, String(v)]) : [
+        ['On-Time Rate', `${onTimeRate}%`],
+        ['Total Deliveries', String(allDns.length)],
+        ['Exceptions', String(allDns.filter(d => d.exceptionType).length)],
+        ['Drivers Active', String(drivers.length)]
+      ])
+    ];
+    const csv = rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${report.title.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleZoneClick = (data: any) => {
     if (!data || !data.activePayload) return;
     const zone = data.activePayload[0].payload;
@@ -414,9 +438,9 @@ const Analytics: React.FC = () => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {reports.map(report => (
-              <div 
-                key={report.id} 
-                onClick={() => alert(`Downloading ${report.title}...`)}
+              <div
+                key={report.id}
+                onClick={() => handleDownloadReport(report)}
                 className="p-6 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center justify-between group hover:border-brand transition-all cursor-pointer"
               >
                 <div className="flex items-center gap-4">

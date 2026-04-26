@@ -105,7 +105,7 @@ const OrderManagement: React.FC = () => {
         ...newOrderData,
         status: 'PENDING',
         paymentStatus: 'UNPAID',
-        fraudScore: Math.floor(Math.random() * 20)
+        fraudScore: 0
       }, tenant?.id || 'tenant-1', requestId);
       addNotification("New sales order created successfully.", "success");
       setIsCreateModalOpen(false);

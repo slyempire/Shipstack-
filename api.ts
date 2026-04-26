@@ -1000,7 +1000,7 @@ export const api = {
     const current = await api.getDeliveryNotes(tenantId);
     const newDn: DeliveryNote = {
       id: data.id || `dn-${Date.now()}`,
-      externalId: sanitizedData.externalId || `EXT-${Math.random().toString(36).substring(7).toUpperCase()}`,
+      externalId: sanitizedData.externalId || `EXT-${Date.now().toString(36).toUpperCase()}`,
       type: sanitizedData.type || LogisticsType.OUTBOUND,
       clientName: sanitizedData.clientName || '',
       address: sanitizedData.address || '',
@@ -1617,7 +1617,7 @@ export const api = {
     const dns = await api.getDeliveryNotes();
     const newDns = data.map((d, i) => ({
       id: `dn-imp-${Date.now()}-${i}`,
-      externalId: `IMP-${Math.random().toString(36).substring(7).toUpperCase()}`,
+      externalId: `IMP-${Date.now().toString(36).toUpperCase()}-${Math.trunc(performance.now()).toString(36).toUpperCase()}`,
       status: DNStatus.RECEIVED,
       createdAt: new Date().toISOString(),
       logs: [],
@@ -1649,7 +1649,7 @@ export const api = {
     const updated = dns.map(d => d.id === dnId ? { 
       ...d, 
       documents: [...(d.documents || []), { 
-        id: `doc-${Date.now()}`, type, status: LogisticsDocumentStatus.PENDING, issuedAt: new Date().toISOString(), verificationCode: Math.random().toString(36).substring(2, 8).toUpperCase() 
+        id: `doc-${Date.now()}`, type, status: LogisticsDocumentStatus.PENDING, issuedAt: new Date().toISOString(), verificationCode: Array.from(crypto.getRandomValues(new Uint8Array(3))).map(b => b.toString(16).padStart(2,'0')).join('').toUpperCase()
       }] 
     } : d);
     setStore('delivery_notes', updated);
@@ -1747,8 +1747,26 @@ export const api = {
   },
 
   async testConnector(id: string): Promise<{ success: boolean; latency: number; message: string }> {
-    await new Promise(r => setTimeout(r, 1500));
-    return { success: Math.random() > 0.2, latency: Math.floor(Math.random() * 200 + 50), message: "Handshake successful. Resource 'DeliveryNote' accessible." };
+    const start = Date.now();
+    const connectors = await api.getConnectors();
+    const connector = connectors.find(c => c.id === id);
+    if (!connector) return { success: false, latency: 0, message: 'Connector not found.' };
+    try {
+      const res = await fetch('/api/integrations/health', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ connectorId: id, provider: connector.provider }),
+        signal: AbortSignal.timeout(5000)
+      });
+      const latency = Date.now() - start;
+      if (res.ok) return { success: true, latency, message: `Handshake successful. Resource 'DeliveryNote' accessible.` };
+      return { success: false, latency, message: `Endpoint returned ${res.status}` };
+    } catch {
+      // Server not running or endpoint not implemented — connector status based on stored state
+      const latency = Date.now() - start;
+      const success = connector.status === 'CONNECTED';
+      return { success, latency: Math.max(latency, 50), message: success ? 'Using cached connection status.' : 'Connection could not be verified.' };
+    }
   },
 
   async getSyncLogs(connectorId?: string): Promise<SyncLog[]> {
@@ -1777,13 +1795,14 @@ export const api = {
 
   async createAPIKey(name: string, scopes: string[] = ['dn.read'], description?: string): Promise<APIKey> {
     const keys = await api.getAPIKeys();
+    const randHex = (bytes: number) => Array.from(crypto.getRandomValues(new Uint8Array(bytes))).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
     const newKey: APIKey = {
       id: `ak-${Date.now()}`,
       name,
       label: name,
       description,
-      key: `SS_PUB_${Math.random().toString(36).substring(7).toUpperCase()}`,
-      secret: `SS_SEC_${Math.random().toString(36).substring(2).toUpperCase()}${Math.random().toString(36).substring(2).toUpperCase()}`,
+      key: `SS_PUB_${randHex(12)}`,
+      secret: `SS_SEC_${randHex(24)}`,
       createdAt: new Date().toISOString(),
       status: 'ACTIVE',
       scopes
@@ -1796,6 +1815,11 @@ export const api = {
     const keys = await api.getAPIKeys();
     const updated = keys.map(k => k.id === id ? { ...k, status: 'REVOKED' as const } : k);
     setStore('api_keys', updated);
+  },
+
+  async deleteAPIKey(id: string): Promise<void> {
+    const keys = await api.getAPIKeys();
+    setStore('api_keys', keys.filter(k => k.id !== id));
   },
 
   async batchApproveOrders(ids: string[], requesterRole?: UserRole, requestId?: string): Promise<void> {
@@ -1842,35 +1866,77 @@ export const api = {
       events: data.events as any,
       status: 'ACTIVE',
       isActive: true,
-      secret: `wh_sec_${Math.random().toString(36).substring(7)}`,
+      secret: `wh_sec_${Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, '0')).join('')}`,
       lastDeliveryStatus: 'SUCCESS'
     };
     setStore('webhooks', [...hooks, newHook]);
     return newHook;
   },
 
-  // --- Imports ---
-  async validateImport(file: File): Promise<ImportPreviewRow[]> {
-    await new Promise(r => setTimeout(r, 1000));
-    return [
-      { id: 'ipr-1', index: 1, data: { externalId: 'INV-9001', clientName: 'City Gen', address: 'Plot 1' }, errors: {}, isValid: true },
-      { id: 'ipr-2', index: 2, data: { externalId: '', clientName: 'Bad Order', address: 'None' }, errors: { externalId: 'Reference ID is required' }, isValid: false },
-      { id: 'ipr-3', index: 3, data: { externalId: 'INV-9003', clientName: 'Central Health', address: 'Plot 45' }, errors: {}, isValid: true }
-    ];
+  async deleteWebhook(id: string): Promise<void> {
+    const hooks = await api.getWebhooks();
+    setStore('webhooks', hooks.filter(h => h.id !== id));
   },
 
-  async startImport(fileId: string): Promise<ImportBatch> {
+  async updateWebhook(id: string, data: Partial<WebhookSubscription>): Promise<WebhookSubscription> {
+    const hooks = await api.getWebhooks();
+    const updated = hooks.map(h => h.id === id ? { ...h, ...data } : h);
+    setStore('webhooks', updated);
+    return updated.find(h => h.id === id)!;
+  },
+
+  // --- Imports ---
+  async validateImport(file: File): Promise<ImportPreviewRow[]> {
+    const text = await file.text();
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) return [];
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/\s+/g, '_'));
+    const col = (row: string[], name: string) => row[headers.indexOf(name)]?.trim() || '';
+    return lines.slice(1).map((line, i) => {
+      const row = line.split(',');
+      const externalId = col(row, 'external_id') || col(row, 'id') || col(row, 'order_id');
+      const clientName = col(row, 'client_name') || col(row, 'customer') || col(row, 'recipient');
+      const address = col(row, 'address') || col(row, 'delivery_address') || col(row, 'drop_off');
+      const errors: Record<string, string> = {};
+      if (!externalId) errors.externalId = 'Reference ID is required';
+      if (!clientName) errors.clientName = 'Client name is required';
+      if (!address) errors.address = 'Delivery address is required';
+      return {
+        id: `ipr-${i + 1}`,
+        index: i + 1,
+        data: { externalId, clientName, address },
+        errors,
+        isValid: Object.keys(errors).length === 0
+      };
+    });
+  },
+
+  async startImport(fileId: string, rows?: ImportPreviewRow[]): Promise<ImportBatch> {
+    const validRows = rows?.filter(r => r.isValid) ?? [];
+    const errorRows = rows?.filter(r => !r.isValid) ?? [];
     const batch: ImportBatch = {
       id: `batch-${Date.now()}`,
-      filename: 'Manifest_Q1.csv',
+      filename: fileId,
       status: 'COMPLETED',
-      rowCount: 450,
-      totalRows: 450,
-      successCount: 442,
-      errorCount: 8,
+      rowCount: rows?.length ?? 0,
+      totalRows: rows?.length ?? 0,
+      successCount: validRows.length,
+      errorCount: errorRows.length,
       createdBy: 'Admin User',
       timestamp: new Date().toISOString()
     };
+    // Create delivery notes for valid rows
+    for (const row of validRows) {
+      const store = getStore('delivery_notes', []);
+      setStore('delivery_notes', [...store, {
+        id: `dn-imp-${Date.now()}-${row.index}`,
+        externalId: row.data.externalId,
+        clientName: row.data.clientName,
+        deliveryAddress: row.data.address,
+        status: 'PENDING',
+        createdAt: new Date().toISOString()
+      }]);
+    }
     const batches = await api.getImportBatches();
     setStore('import_batches', [batch, ...batches]);
     return batch;
@@ -2023,7 +2089,7 @@ export const api = {
     const orders = await api.getOrders(tenantId);
     const newOrder: Order = {
       id: `ord-${Date.now()}`,
-      externalId: `SO-${Math.floor(Math.random() * 9000) + 1000}`,
+      externalId: `SO-${Date.now().toString().slice(-6)}`,
       customerId: 'cust-new',
       customerName: 'New Customer',
       status: 'PENDING',
@@ -2160,7 +2226,7 @@ export const api = {
     const inventory = await api.getInventory();
     const newItem: InventoryItem = {
       id: `inv-${Date.now()}`,
-      sku: `SKU-${Math.random().toString(36).substring(7).toUpperCase()}`,
+      sku: `SKU-${Date.now().toString(36).toUpperCase()}`,
       name: '',
       category: 'GENERAL',
       qty: 0,
@@ -2334,16 +2400,8 @@ export const api = {
         body: JSON.stringify({ phone, amount, reference })
       });
       
-      // If endpoint doesn't exist (likely in this environment), we fallback to mock
-      if (!response.ok && response.status !== 404) throw new Error('M-Pesa initiation failed');
-      
-      const result = response.ok ? await response.json() : {
-        success: true,
-        status: 'SUCCESS',
-        message: 'STK Push initiated successfully. Please check your phone.',
-        checkoutRequestId: `ws_CO_${Date.now()}`,
-        receiptNumber: `MP-${Date.now()}`
-      };
+      if (!response.ok) throw new Error(`M-Pesa initiation failed: ${response.status}`);
+      const result = await response.json();
 
       await logAudit('MPESA_INITIATED', { phone, amount, reference, result });
       return result;
@@ -2355,20 +2413,34 @@ export const api = {
 
   // --- eTIMS Integration ---
   async generateEtimsInvoice(deliveryNoteId: string): Promise<{ success: boolean; invoiceNumber: string; cuInvoiceNumber: string; qrCodeUrl: string; kraResponse?: any }> {
-    console.log(`Generating eTIMS invoice for DN: ${deliveryNoteId}`);
-    
     try {
-      // Mock eTIMS generation logic
-      // In production, this would call the KRA VSCU/OSCU API or a middleware
-      const invoiceNumber = `KRA-ETIMS-${Math.random().toString(36).substring(7).toUpperCase()}`;
-      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://itax.kra.go.ke/KRA-Portal/invoiceVerify.htm?inv=${invoiceNumber}`;
+      // Try the server-side KRA middleware endpoint first
+      const serverRes = await fetch('/api/etims/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deliveryNoteId })
+      });
+      if (serverRes.ok) {
+        const result = await serverRes.json();
+        await api.updateDeliveryNote(deliveryNoteId, { paymentStatus: 'PENDING', invoiceUrl: result.qrCodeUrl });
+        await logAudit('ETIMS_GENERATED', { deliveryNoteId, result });
+        return result;
+      }
+    } catch { /* server not available, use deterministic local stub below */ }
 
-      // Provision for KRA API integration
+    // Local stub: deterministic invoice number derived from DN id + date (not a real KRA call)
+    const seq = deliveryNoteId.replace(/\D/g, '').slice(-6).padStart(6, '0');
+    const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const invoiceNumber = `ETIMS-${datePart}-${seq}`;
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://itax.kra.go.ke/KRA-Portal/invoiceVerify.htm?inv=${encodeURIComponent(invoiceNumber)}`;
+
+    try {
       const kraResponse = {
-        status: 'SUCCESS',
+        status: 'PENDING_SUBMISSION',
         vscu_id: 'VSCU001',
         invoice_num: invoiceNumber,
-        date_time: new Date().toISOString()
+        date_time: new Date().toISOString(),
+        note: 'Invoice queued — connect KRA middleware to submit.'
       };
 
       const result = {
@@ -2494,7 +2566,7 @@ export const api = {
     try {
       const newTask: Task = {
         ...task,
-        id: `TASK-${Math.random().toString(36).substr(2, 9).toUpperCase()}`
+        id: `TASK-${Date.now().toString(36).toUpperCase()}`
       };
       const tasks = JSON.parse(localStorage.getItem('shipstack_tasks') || '[]');
       tasks.push(newTask);

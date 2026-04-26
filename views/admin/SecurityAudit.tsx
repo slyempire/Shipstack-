@@ -45,6 +45,29 @@ const SecurityAudit: React.FC = () => {
     setPage(1);
   };
 
+  const handleExportCSV = () => {
+    const rows = [
+      ['Timestamp', 'Action', 'Resource', 'User', 'Severity', 'IP Address', 'Details'],
+      ...filteredLogs.map(log => [
+        log.timestamp,
+        log.action,
+        log.resource,
+        log.userEmail,
+        log.severity,
+        log.ipAddress ?? '',
+        JSON.stringify(log.metadata ?? {})
+      ])
+    ];
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `audit-log-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleSearch = (value: string) => {
     setSearchQuery(value);
     setPage(1);
@@ -116,7 +139,7 @@ const SecurityAudit: React.FC = () => {
                   </button>
                 ))}
              </div>
-             <button className="hidden lg:flex items-center gap-2 px-6 py-4 bg-emerald-50 text-emerald-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all">
+             <button onClick={handleExportCSV} className="hidden lg:flex items-center gap-2 px-6 py-4 bg-emerald-50 text-emerald-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all">
                 <Download size={16} /> Export CSV
              </button>
           </div>

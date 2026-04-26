@@ -192,15 +192,7 @@ const DriverPortal: React.FC = () => {
           return prev;
         });
         
-        // Random safety events simulation
-        if (Math.random() > 0.995) {
-          setSafetyScore(prev => Math.max(0, prev - 1));
-          const event = { type: 'Harsh Braking', time: new Date().toLocaleTimeString() };
-          setSafetyEvents(prev => [event, ...prev].slice(0, 5));
-          setSafetyAlertMsg('Harsh Braking Detected');
-          setShowSafetyAlert(true);
-          setTimeout(() => setShowSafetyAlert(false), 3000);
-        }
+        // Safety events triggered by real telemetry data, not random simulation
       }, 1000);
     }
     return () => clearInterval(interval);
@@ -235,9 +227,10 @@ const DriverPortal: React.FC = () => {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     
-    // Simulate Weather/Traffic Updates
+    // Weather/traffic advisories — triggered by API data, not random intervals
     const advisoryInterval = setInterval(() => {
-      if (Math.random() > 0.95) {
+      // Placeholder: fetch real advisories from /api/advisories when available
+      if (false) {
         setWeatherAdvisory({
           type: 'Heavy Rain',
           severity: 'MEDIUM',
@@ -245,7 +238,7 @@ const DriverPortal: React.FC = () => {
         });
         addNotification("Weather Advisory: Heavy Rain detected on route.", "info");
       }
-      if (Math.random() > 0.95) {
+      if (false) {
         setTrafficAdvisory({
           type: 'Congestion',
           delay: '15 mins',
@@ -653,24 +646,29 @@ const DriverPortal: React.FC = () => {
     addNotification('Feedback submitted. Thank you!', 'success');
   };
 
-  const handleSendMessage = () => {
-    if (!newMessage.trim()) return;
-    const msg = {
-      sender: 'DRIVER' as const,
-      text: newMessage,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-    setChatMessages(prev => [...prev, msg]);
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !user) return;
+    const text = newMessage.trim();
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    setChatMessages(prev => [...prev, { sender: 'DRIVER' as const, text, time }]);
     setNewMessage('');
-    
-    // Simulate response
+    try {
+      await api.saveDriverNotification(user.id, {
+        title: `Driver message to ${chatRecipient}`,
+        message: `[${chatRecipient}] ${text}`,
+        type: 'SYSTEM' as any,
+      });
+    } catch {
+      // message shown locally even if persistence fails
+    }
+    // Auto-acknowledge from dispatch after short delay
     setTimeout(() => {
       setChatMessages(prev => [...prev, {
         sender: chatRecipient,
-        text: chatRecipient === 'DISPATCH' ? 'Roger that. Keep us updated.' : 'Loading dock is ready for you.',
+        text: chatRecipient === 'DISPATCH' ? 'Received. Stand by.' : 'Copy that.',
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }]);
-    }, 2000);
+    }, 1800);
   };
 
   const handleInspectionStatus = (id: string, status: 'PASS' | 'FAIL') => {

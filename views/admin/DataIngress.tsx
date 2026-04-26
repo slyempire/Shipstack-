@@ -826,7 +826,40 @@ const ERPConnectorManager = () => {
               </div>
             </div>
             <div className="mt-10 pt-10 border-t border-white/10">
-              <button className="w-full py-4 bg-brand text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:bg-brand-accent transition-all">
+              <button
+                onClick={() => {
+                  const doc = [
+                    '# Shipstack API SDK — Quick Reference',
+                    '',
+                    '## Authentication',
+                    'All requests require an API key in the Authorization header:',
+                    '  Authorization: Bearer SS_PUB_<your-key>',
+                    '',
+                    '## Endpoints',
+                    'POST /api/dn          — Create delivery note',
+                    'GET  /api/dn/:id      — Get delivery note',
+                    'PUT  /api/dn/:id/status — Update delivery status',
+                    'POST /api/telemetry    — Submit driver telemetry',
+                    '',
+                    '## Webhook Events',
+                    'dn.created | dn.status_changed | dn.delivered | telemetry.ping',
+                    '',
+                    '## Request Signing',
+                    'Compute HMAC-SHA256 of the JSON body using your webhook secret.',
+                    'Include as header: X-Shipstack-Signature: <hex-digest>',
+                    '',
+                    '## Rate Limits',
+                    '100 req/min per API key. 429 returned when exceeded.',
+                  ].join('\n');
+                  const blob = new Blob([doc], { type: 'text/plain;charset=utf-8;' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'shipstack-sdk-docs.txt';
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="w-full py-4 bg-brand text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:bg-brand-accent transition-all">
                 Download SDK Docs
               </button>
             </div>

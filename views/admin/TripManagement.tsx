@@ -52,7 +52,7 @@ const TripManagement: React.FC = () => {
 
   // Form State
   const [formData, setFormData] = useState({
-    externalId: `TRP-${Math.floor(1000 + Math.random() * 9000)}`,
+    externalId: `TRP-${Date.now().toString().slice(-6)}`,
     driverId: '',
     vehicleId: '',
     routeTitle: '',
@@ -574,7 +574,7 @@ const TripManagement: React.FC = () => {
                                       type: 'DELIVERY_NOTE',
                                       status: 'ISSUED',
                                       issuedAt: new Date().toISOString(),
-                                      verificationCode: `MEDS-${dn.externalId}-${Math.floor(1000 + Math.random() * 9000)}`
+                                      verificationCode: `MEDS-${dn.externalId}-${Date.now().toString().slice(-4)}`
                                     });
                                   }}
                                   className="p-2 text-slate-300 hover:text-brand hover:bg-brand/5 rounded-lg transition-all"

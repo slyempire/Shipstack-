@@ -68,6 +68,31 @@ const WarehouseManagement: React.FC = () => {
     fetchData();
   }, [tenant?.id]);
 
+  const handleExportData = () => {
+    const rows = [
+      ['SKU', 'Name', 'Category', 'Qty', 'Unit', 'Min Stock', 'Bin', 'Expiry', 'Status'],
+      ...inventory.map(item => [
+        item.sku ?? '',
+        item.name,
+        item.category,
+        String(item.qty),
+        item.unit ?? '',
+        String(item.minThreshold ?? 0),
+        item.binLocation ?? '',
+        item.expiryDate ?? '',
+        item.qty <= (item.minThreshold ?? 0) ? 'LOW STOCK' : 'OK'
+      ])
+    ];
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `inventory-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const fetchData = async () => {
     if (!tenant?.id) return;
     setLoading(true);
@@ -238,7 +263,7 @@ const WarehouseManagement: React.FC = () => {
                 Add Bin
               </button>
             )}
-            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-600 uppercase tracking-tight hover:bg-slate-50 transition-colors">
+            <button onClick={handleExportData} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-600 uppercase tracking-tight hover:bg-slate-50 transition-colors">
               <Download size={14} />
               Export Data
             </button>

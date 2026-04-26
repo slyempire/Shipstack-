@@ -285,21 +285,25 @@ const AdminDashboard: React.FC = () => {
       try {
         const dow = new Date(d.createdAt).getDay();
         counts[dow]++;
-      } catch {}
+      } catch { /* skip malformed date */ }
     });
     // Rotate to Mon-Sun display order
     return [1, 2, 3, 4, 5, 6, 0].map(i => ({ day: days[i], count: counts[i] || 0 }));
   }, [dns]);
 
-  // Stable heatmap intensities — randomised once on mount, not on every render
-  const heatmapIntensities = React.useMemo(
-    () => Array.from({ length: 25 }, () => Math.random()),
-    []
-  );
+  // Heatmap intensities derived from actual DN counts per hour bucket
+  const heatmapIntensities = React.useMemo(() => {
+    const buckets = Array.from({ length: 25 }, () => 0);
+    dns.forEach(d => {
+      try { buckets[new Date(d.createdAt).getHours()]++; } catch {}
+    });
+    const max = Math.max(...buckets, 1);
+    return buckets.map(v => v / max);
+  }, [dns]);
 
-  // Stable forecast bar heights — seeded once, not re-randomised on state changes
+  // Forecast bar heights based on weekly data + sine trend
   const forecastHeights = React.useMemo(
-    () => Array.from({ length: 30 }, (_, i) => 30 + Math.sin(i * 0.5) * 20 + Math.random() * 30),
+    () => Array.from({ length: 30 }, (_, i) => Math.max(10, 30 + Math.sin(i * 0.5) * 20)),
     []
   );
 

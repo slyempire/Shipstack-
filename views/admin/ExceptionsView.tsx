@@ -320,7 +320,7 @@ const ExceptionsView: React.FC = () => {
                       const deadline = getSlaDeadline(dn);
                       const aiCategory = dn.exceptionType === ExceptionType.LATE ? 'Logistics Delay' : 'Data Integrity';
                       const aiSuggestion = dn.exceptionType === ExceptionType.LATE ? 'Re-route via Loresho' : 'Manual Address Validation';
-                      const confidence = 85 + Math.floor(Math.random() * 10);
+                      const confidence = dn.exceptionType === ExceptionType.LATE ? 92 : 87;
 
                       return (
                         <tr

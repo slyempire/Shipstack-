@@ -534,6 +534,7 @@ export interface AnalyticsReport {
   title: string;
   data: any;
   generatedAt?: string;
+  period?: string;
 }
 
 export type SafetyEventType = 'HARSH_BRAKING' | 'OVERSPEEDING' | 'DEVIATION' | 'GEOFENCE_EXIT' | 'SOS';
