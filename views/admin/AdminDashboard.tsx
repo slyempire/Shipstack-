@@ -158,7 +158,7 @@ const PredictiveInsights = () => {
   ];
 
   return (
-    <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl">
+    <div className="bg-slate-900 rounded-2xl p-8 text-white relative overflow-hidden shadow-2xl">
       <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none">
         <BrainCircuit size={160} className="text-brand-accent" />
       </div>
@@ -218,25 +218,26 @@ const PredictiveInsights = () => {
 };
 
 const StatCard = ({ title, value, icon: Icon, color, subValue, trend, index }: any) => (
-  <motion.div 
+  <motion.div
     initial={{ opacity: 0, scale: 0.9, y: 20 }}
     whileInView={{ opacity: 1, scale: 1, y: 0 }}
     viewport={{ once: true }}
     transition={{ delay: 0.05 * index, duration: 0.5, type: "spring", stiffness: 100 }}
-    whileHover={{ y: -8, boxShadow: "0 25px 50px -12px rgb(0 0 0 / 0.5)" }}
-    className="card-logistics flex flex-col justify-between group cursor-default"
+    whileHover={{ y: -4, boxShadow: "0 20px 40px -12px rgba(0,0,0,0.15)" }}
+    className="card-logistics flex flex-col gap-4 group cursor-default"
   >
-    <div className="flex items-start justify-between mb-6">
-      <div className={`p-4 rounded-xl transition-all group-hover:scale-110 shadow-sm ${color}`}>
-        <Icon size={24} />
-      </div>
-            <div className="text-right">
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{title}</p>
-        <h3 className="text-3xl font-bold text-gray-900 tracking-tight leading-none">{value}</h3>
+    {/* Header row: label + icon */}
+    <div className="flex items-center justify-between">
+      <p className="text-[10px] font-black uppercase tracking-widest text-muted">{title}</p>
+      <div className={`p-2.5 rounded-xl transition-all group-hover:scale-110 ${color}`}>
+        <Icon size={16} />
       </div>
     </div>
-    <div className="pt-6 border-t border-slate-50 flex items-center justify-between">
-      <span className="text-[10px] font-medium text-gray-400">{subValue}</span>
+    {/* Primary metric */}
+    <h3 className="text-[2rem] font-black text-ink tracking-tight leading-none">{value}</h3>
+    {/* Footer row: subtext + trend */}
+    <div className="pt-4 border-t border-line flex items-center justify-between">
+      <span className="text-[10px] font-medium text-muted">{subValue}</span>
       {trend && (
         <div className={`flex items-center gap-1 text-[10px] font-bold ${trend > 0 ? 'text-emerald' : 'text-red'}`}>
           {trend > 0 ? '↑' : '↓'} {Math.abs(trend)}%
@@ -412,26 +413,26 @@ const AdminDashboard: React.FC = () => {
         )}
         <div className="flex justify-between items-end pt-4">
            <div>
-              <h2 className="text-3xl font-bold tracking-tight text-gray-900 mb-1">Network health</h2>
-              <p className="text-sm text-gray-500 font-medium">Regional platform oversight & governance</p>
+              <h2 className="text-3xl font-black tracking-tight text-ink mb-1">Network health</h2>
+              <p className="text-sm text-muted font-medium">Regional platform oversight & governance</p>
            </div>
            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl border border-slate-200 mr-4">
-                <button 
+              <div className="flex items-center gap-1 p-1 bg-[var(--bg-input)] rounded-xl border border-[var(--border-header)] mr-4">
+                <button
                   onClick={() => setActiveTab('HEALTH')}
-                  className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'HEALTH' ? 'bg-white text-brand shadow-sm' : 'text-slate-400 hover:text-brand'}`}
+                  className={`px-5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'HEALTH' ? 'bg-[var(--bg-card)] text-brand shadow-sm' : 'text-muted hover:text-brand'}`}
                 >
                   System Health
                 </button>
-                <button 
+                <button
                   onClick={() => setActiveTab('DEMAND')}
-                  className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'DEMAND' ? 'bg-white text-brand shadow-sm' : 'text-slate-400 hover:text-brand'}`}
+                  className={`px-5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'DEMAND' ? 'bg-[var(--bg-card)] text-brand shadow-sm' : 'text-muted hover:text-brand'}`}
                 >
                   Demand Intelligence
                 </button>
-                <button 
+                <button
                   onClick={() => setActiveTab('VERTICAL')}
-                  className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'VERTICAL' ? 'bg-white text-brand shadow-sm' : 'text-slate-400 hover:text-brand'}`}
+                  className={`px-5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'VERTICAL' ? 'bg-[var(--bg-card)] text-brand shadow-sm' : 'text-muted hover:text-brand'}`}
                 >
                   {tenant?.industry || 'Vertical'} Hub
                 </button>

@@ -6,7 +6,6 @@ import {
   Truck,
   ShieldCheck,
   CheckCircle,
-  Zap,
   Globe,
   MapPin,
   Activity,
@@ -26,9 +25,6 @@ import {
   X,
   Target,
   BarChart3,
-  Smartphone,
-  Bell,
-  Users,
   Package
 } from 'lucide-react';
 
@@ -358,34 +354,36 @@ const LandingPage: React.FC = () => {
       >
         {/* Background */}
         <div className="absolute inset-0 z-0 bg-[#1A2B4D]">
-          <div className="absolute inset-0 pointer-events-none opacity-20"
+          {/* Subtle grid — depth without noise */}
+          <div className="absolute inset-0 pointer-events-none"
             style={{
-              backgroundImage: `linear-gradient(rgba(255,255,255,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.05) 1px,transparent 1px)`,
+              backgroundImage: `linear-gradient(rgba(255,255,255,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.04) 1px,transparent 1px)`,
               backgroundSize: '80px 80px'
             }}
           />
-          <div className="absolute inset-0 pointer-events-none opacity-10"
-            style={{
-              backgroundImage: `repeating-linear-gradient(45deg,transparent,transparent 120px,rgba(255,140,66,0.15) 120px,rgba(255,140,66,0.15) 121px),repeating-linear-gradient(-45deg,transparent,transparent 180px,rgba(255,140,66,0.1) 180px,rgba(255,140,66,0.1) 181px)`
-            }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#1A2B4D]/60 via-[#1A2B4D]/90 to-[#1A2B4D]" />
+          {/* Vignette: darkens edges so text pops */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#1A2B4D]/40 via-transparent to-[#1A2B4D]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,rgba(12,20,40,0.7)_100%)]" />
         </div>
 
-        {/* Pulsing glow rings — anti-gravity energy field */}
+        {/* Central focal glow — draws eye to headline */}
         <div className="absolute inset-0 z-[1] flex items-center justify-center pointer-events-none">
-          {[1, 2, 3].map((i) => (
+          <div className="w-[700px] h-[500px] rounded-full" style={{ background: 'radial-gradient(ellipse, rgba(255,140,66,0.07) 0%, transparent 70%)' }} />
+        </div>
+
+        {/* Pulsing rings — 2 rings, restrained opacity */}
+        <div className="absolute inset-0 z-[1] flex items-center justify-center pointer-events-none">
+          {[1, 2].map((i) => (
             <motion.div
               key={i}
               className="absolute rounded-full"
               style={{
-                width: i * 340,
-                height: i * 340,
-                border: `1px solid rgba(255,140,66,${0.12 - i * 0.03})`,
-                boxShadow: `0 0 ${i * 20}px rgba(255,140,66,${0.06 - i * 0.015})`,
+                width: i * 420,
+                height: i * 420,
+                border: `1px solid rgba(255,140,66,${0.07 - i * 0.02})`,
               }}
-              animate={{ scale: [1, 1.06, 1], opacity: [0.6, 1, 0.6] }}
-              transition={{ duration: 3 + i * 1.2, repeat: Infinity, ease: 'easeInOut', delay: i * 0.7 }}
+              animate={{ scale: [1, 1.04, 1], opacity: [0.3, 0.7, 0.3] }}
+              transition={{ duration: 4 + i * 1.8, repeat: Infinity, ease: 'easeInOut', delay: i * 1.2 }}
             />
           ))}
         </div>
@@ -396,26 +394,19 @@ const LandingPage: React.FC = () => {
           <div className="absolute bottom-[20%] right-[8%] w-80 h-80 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(255,140,66,0.08) 0%, transparent 70%)' }} />
         </motion.div>
 
-        {/* Cursor-parallax layer 2 — counter-orbs */}
+        {/* Cursor-parallax layer 2 — counter-orbs (brand tones only) */}
         <motion.div className="absolute inset-0 z-[1] pointer-events-none" style={{ x: layer2X, y: layer2Y }}>
-          <div className="absolute top-[40%] right-[15%] w-48 h-48 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.10) 0%, transparent 70%)' }} />
-          <div className="absolute bottom-[35%] left-[20%] w-40 h-40 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(255,140,66,0.09) 0%, transparent 70%)' }} />
+          <div className="absolute top-[40%] right-[15%] w-48 h-48 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(31,182,166,0.07) 0%, transparent 70%)' }} />
+          <div className="absolute bottom-[35%] left-[20%] w-40 h-40 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(255,140,66,0.07) 0%, transparent 70%)' }} />
         </motion.div>
 
-        {/* Floating logistics icons — anti-gravity style */}
+        {/* Floating logistics icons — 5 anchors, breathing room between them */}
         <div className="absolute inset-0 z-[2] pointer-events-none">
-          {/* Left column */}
-          <FloatingIcon icon={Truck}       size="lg"  delay={0}    duration={10}   style={{ top: '16%',  left: '6%'  }} />
-          <FloatingIcon icon={Package}     size="md"  delay={2.5}  duration={11}   style={{ top: '48%',  left: '9%'  }} />
-          <FloatingIcon icon={Zap}         size="sm"  delay={4.1}  duration={8.5}  style={{ bottom: '24%', left: '4%' }} />
-          {/* Right column */}
-          <FloatingIcon icon={MapPin}      size="md"  delay={1.2}  duration={9}    style={{ top: '22%',  right: '6%' }} />
-          <FloatingIcon icon={Activity}    size="lg"  delay={0.8}  duration={12}   style={{ top: '52%',  right: '9%' }} />
-          <FloatingIcon icon={Bell}        size="sm"  delay={3.1}  duration={8}    style={{ bottom: '20%', right: '5%' }} />
-          {/* Upper flanks — visible above the fold */}
-          <FloatingIcon icon={Users}       size="md"  delay={1.8}  duration={9.5}  style={{ top: '10%',  right: '20%' }} />
-          <FloatingIcon icon={Smartphone}  size="sm"  delay={5.0}  duration={11}   style={{ top: '8%',   left: '20%'  }} />
-          <FloatingIcon icon={TrendingUp}  size="sm"  delay={3.5}  duration={9}    style={{ bottom: '12%', right: '20%' }} />
+          <FloatingIcon icon={Truck}      size="lg"  delay={0}    duration={10}  style={{ top: '18%',    left: '7%'   }} />
+          <FloatingIcon icon={Package}    size="md"  delay={2.5}  duration={11}  style={{ top: '54%',    left: '9%'   }} />
+          <FloatingIcon icon={MapPin}     size="md"  delay={1.2}  duration={9}   style={{ top: '20%',    right: '7%'  }} />
+          <FloatingIcon icon={Activity}   size="lg"  delay={0.8}  duration={12}  style={{ top: '52%',    right: '9%'  }} />
+          <FloatingIcon icon={TrendingUp} size="sm"  delay={3.5}  duration={9}   style={{ bottom: '14%', right: '18%' }} />
         </div>
 
         <div className="container-responsive relative z-10 text-center">
@@ -719,9 +710,9 @@ const LandingPage: React.FC = () => {
                     <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mt-1">Cost Cut</p>
                     <p className="text-[9px] text-slate-400 font-medium mt-1">Fewer dispatch staff</p>
                   </div>
-                  <div className="px-6 py-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl">
+                  <div className="px-6 py-4 bg-brand-teal/10 border border-brand-teal/20 rounded-2xl">
                     <p className="text-2xl font-black text-white">250%</p>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-blue-500 mt-1">Revenue Growth</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-brand-teal mt-1">Revenue Growth</p>
                   </div>
                 </div>
               </div>
@@ -756,10 +747,10 @@ const LandingPage: React.FC = () => {
                     <div>
                       <div className="flex justify-between items-center mb-2">
                         <p className="text-sm font-bold text-white">Auto-Updates (SMS/WA)</p>
-                        <p className="text-xs text-blue-400 font-black">saves 6h/day</p>
+                        <p className="text-xs text-brand-teal font-black">saves 6h/day</p>
                       </div>
                       <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                        <div className="h-full bg-blue-500 rounded-full" style={{ width: '75%' }} />
+                        <div className="h-full bg-brand-teal rounded-full" style={{ width: '75%' }} />
                       </div>
                     </div>
 
@@ -833,8 +824,11 @@ const LandingPage: React.FC = () => {
         </div>
       </SectionWrapper>
 
+      {/* Dark → Light bridge: prevents jarring hard cut */}
+      <div className="h-28 bg-gradient-to-b from-[#121E36] to-slate-50" />
+
       {/* Testimonials section */}
-      <SectionWrapper className="py-32 bg-slate-50">
+      <SectionWrapper className="pt-4 pb-32 bg-slate-50">
         <div className="container-responsive">
           <div className="text-center mb-24">
             <h2 className="text-4xl md:text-7xl font-black uppercase tracking-tighter text-[#1A2B4D] mb-6">Success Stories.</h2>

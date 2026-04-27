@@ -74,6 +74,50 @@
     --app-height: 100%;
   }
 
+  /* ── Dark mode: activated by system preference ─────────────────────────── */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-page: #0E1621;
+      --bg-sidebar: #0B1120;
+      --bg-card: #152033;
+      --bg-header: #0B1120;
+      --bg-input: #1B2A3D;
+      --text-primary: #F1F5F9;
+      --text-secondary: #94A3B8;
+      --text-muted: #64748B;
+      --border-sidebar: rgba(255,255,255,0.06);
+      --border-header: rgba(255,255,255,0.06);
+      --border-input: rgba(255,255,255,0.10);
+      --border-card: rgba(255,255,255,0.04);
+      --sidebar-active-bg: rgba(255,140,66,0.15);
+      --sidebar-active-text: #FF8C42;
+      --sidebar-text: #94A3B8;
+      --shadow-card: 0 2px 12px rgba(0,0,0,0.5);
+      --shadow-brand: 0 8px 24px rgba(255,140,66,0.22);
+    }
+  }
+
+  /* ── Dark mode: manual override via .dark on <html> ───────────────────── */
+  .dark {
+    --bg-page: #0E1621;
+    --bg-sidebar: #0B1120;
+    --bg-card: #152033;
+    --bg-header: #0B1120;
+    --bg-input: #1B2A3D;
+    --text-primary: #F1F5F9;
+    --text-secondary: #94A3B8;
+    --text-muted: #64748B;
+    --border-sidebar: rgba(255,255,255,0.06);
+    --border-header: rgba(255,255,255,0.06);
+    --border-input: rgba(255,255,255,0.10);
+    --border-card: rgba(255,255,255,0.04);
+    --sidebar-active-bg: rgba(255,140,66,0.15);
+    --sidebar-active-text: #FF8C42;
+    --sidebar-text: #94A3B8;
+    --shadow-card: 0 2px 12px rgba(0,0,0,0.5);
+    --shadow-brand: 0 8px 24px rgba(255,140,66,0.22);
+  }
+
   html {
     font-family: var(--font-sans);
     background-color: var(--bg-page);
@@ -132,7 +176,10 @@
   .card-logistics-critical { border-left-color: var(--status-exception-text); }
   
   .card-tactical {
-    @apply bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 rounded-[2rem] p-8 shadow-xl transition-all;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-card, rgba(0,0,0,0.06));
+    box-shadow: var(--shadow-card);
+    @apply rounded-2xl p-8 transition-all;
   }
 
   .btn-primary {
@@ -157,7 +204,7 @@
     background-color: var(--bg-input);
     border: 1px solid var(--border-input);
     color: var(--text-primary);
-    @apply w-full rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand transition-all;
+    @apply w-full rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand transition-all placeholder:text-[var(--text-muted)];
   }
 
   .label-logistics {
