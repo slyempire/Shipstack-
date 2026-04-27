@@ -217,7 +217,7 @@ const PredictiveInsights = () => {
   );
 };
 
-const StatCard = ({ title, value, icon: Icon, color, subValue, trend, index }: any) => (
+const StatCard = ({ title, value, icon: Icon, color, subValue, trend, index, loading }: any) => (
   <motion.div
     initial={{ opacity: 0, scale: 0.9, y: 20 }}
     whileInView={{ opacity: 1, scale: 1, y: 0 }}
@@ -233,12 +233,20 @@ const StatCard = ({ title, value, icon: Icon, color, subValue, trend, index }: a
         <Icon size={16} />
       </div>
     </div>
-    {/* Primary metric */}
-    <h3 className="text-[2rem] font-black text-ink tracking-tight leading-none">{value}</h3>
+    {/* Primary metric — skeleton when loading */}
+    {loading ? (
+      <div className="h-8 w-24 bg-slate-100 rounded-lg animate-pulse" />
+    ) : (
+      <h3 className="text-[2rem] font-black text-ink tracking-tight leading-none">{value}</h3>
+    )}
     {/* Footer row: subtext + trend */}
     <div className="pt-4 border-t border-line flex items-center justify-between">
-      <span className="text-[10px] font-medium text-muted">{subValue}</span>
-      {trend && (
+      {loading ? (
+        <div className="h-3 w-32 bg-slate-100 rounded animate-pulse" />
+      ) : (
+        <span className="text-[10px] font-medium text-muted">{subValue}</span>
+      )}
+      {!loading && trend && (
         <div className={`flex items-center gap-1 text-[10px] font-bold ${trend > 0 ? 'text-emerald' : 'text-red'}`}>
           {trend > 0 ? '↑' : '↓'} {Math.abs(trend)}%
         </div>
@@ -369,12 +377,10 @@ const AdminDashboard: React.FC = () => {
       if (velsRes.status === 'fulfilled') setVehicles(Array.isArray(velsRes.value) ? velsRes.value : []);
       if (usrsRes.status === 'fulfilled') setUsers(Array.isArray(usrsRes.value) ? usrsRes.value : []);
 
-      // Log errors quietly
-      results.forEach((res, i) => {
-        if (res.status === 'rejected') {
-          console.warn(`Dashboard partial load failure (index ${i}):`, res.reason);
-        }
-      });
+      const failedCount = results.filter(r => r.status === 'rejected').length;
+      if (failedCount > 0) {
+        addNotification(`${failedCount} data source${failedCount > 1 ? 's' : ''} failed to load — some metrics may be stale.`, 'warning');
+      }
 
       setLoading(false);
     } catch (err) {
@@ -471,66 +477,53 @@ const AdminDashboard: React.FC = () => {
               exit={{ opacity: 0, y: -20 }}
               className="space-y-8"
             >
-              <div className="mb-8 relative">
-                {(api.getTenantPlan() === 'STARTER') && (
-                  <div className="absolute inset-0 z-50 bg-slate-900/40 backdrop-blur-[2px] rounded-[2.5rem] flex items-center justify-center p-8 text-center">
-                    <div className="bg-white rounded-[2rem] p-8 max-w-sm shadow-2xl animate-in zoom-in-95 duration-300 border border-slate-100">
-                      <div className="h-12 w-12 bg-slate-900 text-white rounded-xl flex items-center justify-center mx-auto mb-4">
-                        <BrainCircuit size={24} />
-                      </div>
-                      <h4 className="text-xl font-bold text-slate-900 tracking-tight mb-2">Recommendations</h4>
-                      <p className="text-sm text-slate-500 font-medium mb-6">
-                        Unlock real-time AI-assisted insights and operational predictions. Upgrade to GROWTH to enable operational insights.
-                      </p>
-                      <button 
-                        onClick={() => navigate('/admin/subscription')}
-                        className="w-full py-4 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all"
-                      >
-                        Upgrade to Growth
-                      </button>
+              <div className="mb-8">
+                {api.getTenantPlan() === 'STARTER' ? (
+                  <div className="bg-slate-900 rounded-2xl p-12 text-center shadow-2xl">
+                    <div className="h-14 w-14 bg-brand/20 text-brand rounded-2xl flex items-center justify-center mx-auto mb-5">
+                      <BrainCircuit size={28} />
                     </div>
+                    <h4 className="text-xl font-black text-white tracking-tight mb-2">AI Operational Insights</h4>
+                    <p className="text-sm text-white/50 font-medium mb-8 max-w-sm mx-auto leading-relaxed">
+                      Unlock real-time ML-powered insights and operational predictions. Available on the Growth plan and above.
+                    </p>
+                    <button
+                      onClick={() => navigate('/admin/subscription')}
+                      className="px-8 py-4 bg-brand text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-brand/20 active:scale-95 transition-all"
+                    >
+                      Upgrade to Growth
+                    </button>
                   </div>
+                ) : (
+                  <PredictiveInsights />
                 )}
-                <PredictiveInsights />
               </div>
 
               <div id="dashboard-kpis" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatCard 
-                  index={0}
-                  title={labels.stat1.label} 
-                  value={labels.stat1.value} 
-                  icon={Navigation} 
-                  color="bg-brand/10 text-brand" 
-                  subValue={labels.stat1.sub} 
-                  trend={labels.stat1.trend}
+                <StatCard
+                  index={0} loading={loading}
+                  title={labels.stat1.label} value={labels.stat1.value}
+                  icon={Navigation} color="bg-brand/10 text-brand"
+                  subValue={labels.stat1.sub} trend={labels.stat1.trend}
                 />
-                <StatCard 
-                  index={1}
-                  title={labels.stat2.label} 
-                  value={labels.stat2.value} 
-                  icon={CheckCircle} 
-                  color="bg-emerald/10 text-emerald" 
-                  subValue={labels.stat2.sub} 
-                  trend={labels.stat2.trend}
+                <StatCard
+                  index={1} loading={loading}
+                  title={labels.stat2.label} value={labels.stat2.value}
+                  icon={CheckCircle} color="bg-emerald/10 text-emerald"
+                  subValue={labels.stat2.sub} trend={labels.stat2.trend}
                 />
-                <StatCard 
-                  index={2}
-                  title={labels.stat3.label} 
-                  value={labels.stat3.value} 
-                  icon={DatabaseZap} 
-                  color="bg-amber/10 text-amber" 
-                  subValue={labels.stat3.sub} 
-                  trend={labels.stat3.trend}
+                <StatCard
+                  index={2} loading={loading}
+                  title={labels.stat3.label} value={labels.stat3.value}
+                  icon={DatabaseZap} color="bg-amber/10 text-amber"
+                  subValue={labels.stat3.sub} trend={labels.stat3.trend}
                 />
                 {isModuleEnabled('finance') && (
-                  <StatCard 
-                    index={3}
-                    title="Revenue (MTD)" 
-                    value={revenueDisplay} 
-                    icon={DollarSign} 
-                    color="bg-emerald/10 text-emerald" 
-                    subValue="Projected $18k" 
-                    trend={8}
+                  <StatCard
+                    index={3} loading={loading}
+                    title="Revenue (MTD)" value={revenueDisplay}
+                    icon={DollarSign} color="bg-emerald/10 text-emerald"
+                    subValue="Projected $18k" trend={8}
                   />
                 )}
               </div>

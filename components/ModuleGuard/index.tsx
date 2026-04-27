@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useModuleStore, useAuthStore } from '../../store';
-import { Lock, Zap, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Lock, Zap, ArrowRight, ShieldCheck, ShieldOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getModuleById } from '../../constants/modules';
 import { Permission } from '../../types';
@@ -71,7 +71,17 @@ export const ModuleGuard: React.FC<ModuleGuardProps> = ({
   }
 
   if (!isAuthorized) {
-    return null; // Let RoleGuard handle permission errors if wrapped
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[320px] text-center p-12">
+        <div className="h-14 w-14 bg-red/10 text-red rounded-2xl flex items-center justify-center mb-5">
+          <ShieldOff size={28} />
+        </div>
+        <h3 className="text-lg font-black uppercase tracking-tight text-ink mb-2">Access Denied</h3>
+        <p className="text-sm text-muted font-medium max-w-xs leading-relaxed">
+          Your role does not have permission to access this section. Contact your administrator to request access.
+        </p>
+      </div>
+    );
   }
 
   return (
