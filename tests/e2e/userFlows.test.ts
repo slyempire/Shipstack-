@@ -32,10 +32,9 @@ describe('E2E: Registration flow', () => {
   });
 
   it('validates password confirmation match', () => {
-    const pw = 'SecurePass1!';
-    const confirm = 'SecurePass1!';
-    expect(pw === confirm).toBe(true);
-    expect(pw === 'DifferentPass1!').toBe(false);
+    const passwordsMatch = (a: string, b: string) => a === b;
+    expect(passwordsMatch('SecurePass1!', 'SecurePass1!')).toBe(true);
+    expect(passwordsMatch('SecurePass1!', 'DifferentPass1!')).toBe(false);
   });
 
   it('constructs correct registration payload', () => {

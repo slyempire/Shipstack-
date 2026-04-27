@@ -3,7 +3,6 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { fireEvent } from '@testing-library/react';
 
 // Mock stores before importing component
 vi.mock('../../store', () => ({
