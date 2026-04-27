@@ -42,8 +42,8 @@
     --border-input: #CBD5E1;
     --border-card: transparent;
     
-    --sidebar-active-bg: #EFF6FF;
-    --sidebar-active-text: #0066FF;
+    --sidebar-active-bg: #FFF4ED;
+    --sidebar-active-text: #FF8C42;
     --sidebar-text: #475569;
     
     --brand-primary: #FF8C42;
@@ -60,7 +60,7 @@
     --status-exception-text: #DC2626;
 
     --shadow-card: 0 2px 8px rgba(0,0,0,0.08);
-    --shadow-brand: 0 8px 24px rgba(0,102,255,0.35);
+    --shadow-brand: 0 8px 24px rgba(255,140,66,0.35);
 
     /* Typography Variables */
     --font-size-label: 11px;

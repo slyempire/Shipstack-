@@ -524,17 +524,17 @@ const NavItem = ({ item, collapsed, location }: any) => {
     }
   };
 
-  const navItemClasses = `flex-1 flex items-center gap-4 px-5 py-3.5 rounded-[1.25rem] transition-all duration-300 text-[11px] font-black uppercase tracking-widest group relative overflow-hidden ${isActive ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-200 hover:bg-slate-800 hover:text-white'}`;
+  const navItemClasses = `flex-1 flex items-center gap-4 px-5 py-3.5 rounded-[1.25rem] transition-all duration-300 text-[11px] font-black uppercase tracking-widest group relative overflow-hidden ${isActive ? 'bg-brand/20 text-brand' : 'text-slate-200 hover:bg-slate-800 hover:text-white'}`;
 
   const renderContent = () => (
     <>
-      {isActive && !hasChildren && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-emerald-500" />}
-      <div className={`shrink-0 transition-all duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110 group-hover:text-emerald-400'}`}>
+      {isActive && !hasChildren && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-brand" />}
+      <div className={`shrink-0 transition-all duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110 group-hover:text-brand'}`}>
         <Icon size={18} strokeWidth={ isActive ? 2.5 : 2 } />
       </div>
       {!collapsed && <span className="flex-1 text-left truncate italic">{item.name}</span>}
       {!collapsed && hasChildren && (
-        <ChevronRight size={14} className={`transition-transform duration-300 ${isOpen ? 'rotate-90 text-emerald-400' : 'text-slate-600'}`} />
+        <ChevronRight size={14} className={`transition-transform duration-300 ${isOpen ? 'rotate-90 text-brand' : 'text-slate-600'}`} />
       )}
       
       {collapsed && (
@@ -577,9 +577,9 @@ const NavItem = ({ item, collapsed, location }: any) => {
                 <Link 
                   key={child.path}
                   to={child.path}
-                  className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all text-[10px] font-black uppercase tracking-widest ${isChildActive ? 'text-emerald-400 bg-emerald-500/5' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'}`}
+                  className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all text-[10px] font-black uppercase tracking-widest ${isChildActive ? 'text-brand bg-brand/5' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'}`}
                 >
-                  <ChildIcon size={14} className={isChildActive ? 'text-emerald-400' : 'text-slate-500'} />
+                  <ChildIcon size={14} className={isChildActive ? 'text-brand' : 'text-slate-500'} />
                   <span className="truncate italic">{child.name}</span>
                 </Link>
               );
