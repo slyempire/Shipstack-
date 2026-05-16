@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
-import * as maplibregl from 'maplibre-gl';
+import { Map, Popup } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { DeliveryNote, Facility, DNStatus } from '../types';
 import { Layers, Map as MapIcon, Globe, Loader2, Satellite, Mountain, Search, X, Navigation } from 'lucide-react';
@@ -19,9 +19,6 @@ interface MapEngineProps {
 
 type MapLayer = 'streets' | 'satellite' | 'terrain' | 'dark';
 
-const MapConstructor = (maplibregl as any).Map || (maplibregl as any).default?.Map;
-const PopupConstructor = (maplibregl as any).Popup || (maplibregl as any).default?.Popup;
-
 const MapEngine: React.FC<MapEngineProps> = ({ 
   dns = [], 
   facilities = [], 
@@ -31,11 +28,11 @@ const MapEngine: React.FC<MapEngineProps> = ({
   showTraffic = true
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<any>(null);
+  const mapRef = useRef<Map | null>(null);
   const isMounted = useRef(true);
   const styles: Record<MapLayer, string> = {
     streets: 'https://tiles.openfreemap.org/styles/liberty',
-    satellite: 'https://tiles.openfreemap.org/styles/bright', // OpenFreeMap doesn't have native satellite, using bright as fallback
+    satellite: 'https://tiles.openfreemap.org/styles/bright', 
     terrain: 'https://tiles.openfreemap.org/styles/bright',
     dark: 'https://tiles.openfreemap.org/styles/dark'
   };
@@ -545,7 +542,7 @@ const MapEngine: React.FC<MapEngineProps> = ({
 
     try {
       // Standard MapLibre GL JS v5 robust initialization
-      const map = new MapConstructor({
+      const map = new Map({
         container: containerRef.current,
         style: styles[activeLayer],
         center: [36.817223, -1.286389],
@@ -595,7 +592,7 @@ const MapEngine: React.FC<MapEngineProps> = ({
           const coordinates = (e.features[0].geometry as any).coordinates;
           if (!coordinates) return;
 
-          new PopupConstructor({ className: 'modern-popup', closeButton: false })
+          new Popup({ className: 'modern-popup', closeButton: false })
             .setLngLat(coordinates)
             .setHTML(`
               <div class="p-4 min-w-[200px]">

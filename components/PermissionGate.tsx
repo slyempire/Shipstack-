@@ -18,7 +18,7 @@ export const PermissionGate: React.FC<PermissionGateProps> = ({
   fallback = null, 
   children 
 }) => {
-  const { hasPermission } = useAuthStore();
+  const hasPermission = useAuthStore(state => state.hasPermission);
   
   if (!hasPermission(permission)) {
     return <>{fallback}</>;

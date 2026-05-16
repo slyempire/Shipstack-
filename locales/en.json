@@ -1,0 +1,28 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success"
+  },
+  "settings": {
+    "title": "User Preferences",
+    "subtitle": "Configure your tactical terminal environment",
+    "theme": "Interface Theme",
+    "language": "System Language",
+    "notifications": "Notification Channels",
+    "apply": "Apply Preferences",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "notifications": {
+    "email": "Email Alerts",
+    "push": "Push Notifications",
+    "sms": "SMS Alerts",
+    "email_desc": "Critical operational digests",
+    "push_desc": "In-app real-time events",
+    "sms_desc": "Urgent protocol updates"
+  }
+}

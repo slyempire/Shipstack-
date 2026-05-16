@@ -9,9 +9,21 @@ import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
 import CryptoJS from 'crypto-js';
+import { Redis } from "@upstash/redis";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// --- AI & Redis Initialization ---
+const redis = (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN)
+  ? new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    })
+  : null;
+
+const genAI = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null;
 
 // --- Validation Schemas ---
 const IngestSchema = z.object({
@@ -38,7 +50,7 @@ const TelemetrySchema = z.object({
 });
 
 // Shared secret - must match frontend
-const SECURITY_SECRET = process.env.SECURITY_SECRET || 'shipstack-default-secret-key-2026';
+const SECURITY_SECRET = process.env.VITE_SECURITY_SECRET || process.env.SECURITY_SECRET || 'shipstack-default-secret-key-2026';
 
 /**
  * Verifies the HMAC signature of a telemetry payload.
@@ -122,6 +134,41 @@ async function startServer() {
   // API Routes
   app.get("/api/health", cacheMiddleware(60), (req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
+  // Redis Cache Routes (Internal only or protected) - Moved higher
+  app.get("/api/cache/:cacheKey", async (req, res) => {
+    if (!redis) return res.status(503).json({ error: "Cache Unavailable" });
+    try {
+      const value = await redis.get(req.params.cacheKey);
+      res.json({ value });
+    } catch (err) {
+      console.error(`[CACHE] GET failed for ${req.params.cacheKey}:`, err);
+      res.status(500).json({ error: "Cache GET Failed" });
+    }
+  });
+
+  app.post("/api/cache/:cacheKey", async (req, res) => {
+    if (!redis) return res.status(503).json({ error: "Cache Unavailable" });
+    try {
+      const { value, ttl } = req.body;
+      await redis.set(req.params.cacheKey, value, { ex: ttl || 3600 });
+      res.json({ success: true });
+    } catch (err) {
+      console.error(`[CACHE] SET failed for ${req.params.cacheKey}:`, err);
+      res.status(500).json({ error: "Cache SET Failed" });
+    }
+  });
+
+  app.delete("/api/cache/:cacheKey", async (req, res) => {
+    if (!redis) return res.status(503).json({ error: "Cache Unavailable" });
+    try {
+      await redis.del(req.params.cacheKey);
+      res.json({ success: true });
+    } catch (err) {
+      console.error(`[CACHE] DELETE failed for ${req.params.cacheKey}:`, err);
+      res.status(500).json({ error: "Cache DELETE Failed" });
+    }
   });
 
   /**
@@ -217,6 +264,107 @@ async function startServer() {
     });
   });
 
+  // AI Orchestration Routes
+  app.post("/api/ai/prioritize", async (req, res) => {
+    if (!genAI) return res.status(503).json({ error: "AI Service Unavailable", message: "Gemini API key not configured." });
+    
+    const { dns } = req.body;
+    if (!dns || !Array.isArray(dns)) return res.status(400).json({ error: "Bad Request", message: "Missing 'dns' array in payload." });
+
+    try {
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const prompt = `
+        Context: Shipstack Logistics Orchestrator.
+        Task: Prioritize the following shipment queue for maximum operational efficiency.
+        Criteria:
+        1. Medical/Perishable industry = Highest Priority.
+        2. Customer Priority (HIGH/MEDIUM/LOW).
+        3. Weight vs Capacity optimization.
+        4. Geographical proximity (addresses).
+        
+        Queue Data:
+        ${JSON.stringify(dns.map(d => ({ 
+          id: d.id, 
+          customer: d.clientName, 
+          priority: d.priority, 
+          industry: d.industry, 
+          address: d.address,
+          weight: d.weightKg,
+          perishable: d.isPerishable 
+        })))}
+        
+        Return exactly a JSON array of objects: [{"id": "dn-id", "aiPriority": "HIGH"|"MEDIUM"|"LOW", "reason": "concise explanation"}]
+      `;
+
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      const cleanJson = text.match(/\[.*\]/s)?.[0] || text;
+      const parsed = JSON.parse(cleanJson);
+      
+      res.json(parsed);
+    } catch (err) {
+      console.error("[AI] Prioritization Failed:", err);
+      res.status(500).json({ error: "AI Processing Failed" });
+    }
+  });
+
+  app.post("/api/ai/suggest-dispatch", async (req, res) => {
+    if (!genAI) return res.status(503).json({ error: "AI Service Unavailable" });
+    
+    const { dns, vehicles } = req.body;
+    
+    try {
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const prompt = `
+        You are an logistics dispatch expert. 
+        Analyze these current shipments and available vehicles to suggest optimal pairings (Dispatch Patterns).
+        
+        Shipments: ${JSON.stringify(dns.map(d => ({ id: d.id, weight: d.weightKg, address: d.address, industry: d.industry })))}
+        Vehicles: ${JSON.stringify(vehicles.map(v => ({ id: v.id, type: v.type, capacity: v.capacityKg })))}
+        
+        Output format (JSON): {"suggestions": [{"vehicleId": "v-1", "dnIds": ["dn-1", "dn-2"], "reason": "why"}]}
+      `;
+
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      const cleanJson = text.match(/\{.*\}/s)?.[0] || text;
+      res.json(JSON.parse(cleanJson));
+    } catch (err) {
+      res.status(500).json({ error: "Dispatch Suggestion Failed" });
+    }
+  });
+
+  app.post("/api/ai/suggest-resolution", async (req, res) => {
+    if (!genAI) return res.status(503).json({ error: "AI Service Unavailable" });
+    
+    const { exception } = req.body;
+    
+    try {
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const prompt = `
+        You are a logistics exception resolution expert. 
+        Analyze this incident and suggest 3 possible resolution strategies.
+        
+        Incident:
+        Type: ${exception.type}
+        Severity: ${exception.severity}
+        Description: ${exception.description}
+        DN Reference: ${exception.dnId}
+        
+        Return a JSON object: {"recommendations": [{"action": "Action name", "explanation": "Why this is a good idea", "impact": "LOW|MEDIUM|HIGH"}]}
+      `;
+
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      const cleanJson = text.match(/\{.*\}/s)?.[0] || text;
+      res.json(JSON.parse(cleanJson));
+    } catch (err) {
+      res.status(500).json({ error: "Resolution Suggestion Failed" });
+    }
+  });
+
+
+
   // Global Error Handler
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
     console.error(`[ERROR] ${req.method} ${req.url}:`, err);
@@ -224,6 +372,11 @@ async function startServer() {
       error: "Internal Server Error",
       message: process.env.NODE_ENV === 'production' ? "An unexpected error occurred." : err.message
     });
+  });
+
+  // API Fallback (prevent HTML responses for missing API routes)
+  app.all("/api/*all", (req, res) => {
+    res.status(404).json({ error: "API Route Not Found", path: req.url });
   });
 
   // Socket.io Logic

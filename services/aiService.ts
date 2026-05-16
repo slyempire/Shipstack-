@@ -1,16 +1,79 @@
 
-import { DeliveryNote, Vehicle, RouteOptimizationResult } from '../types';
+import { DeliveryNote, Vehicle, RouteOptimizationResult, Priority, LogisticsException } from '../types';
 
 /**
  * Cortex AI Service
- * Simulates advanced ML models for logistics optimization
+ * Advanced AI-driven orchestration for logistics
  */
 export const aiService = {
+  /**
+   * Leverages Gemini (via backend proxy) to prioritize the shipment queue.
+   */
+  prioritizeShipmentQueue: async (dns: DeliveryNote[]): Promise<{ id: string, aiPriority: Priority, reason: string }[]> => {
+    try {
+      const response = await fetch('/api/ai/prioritize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dns })
+      });
+      
+      if (!response.ok) throw new Error('AI prioritization request failed');
+      return await response.json();
+    } catch (err) {
+      console.error("AI prioritization failed:", err);
+      // Fallback to basic logic
+      return dns.map(dn => ({
+        id: dn.id,
+        aiPriority: dn.priority as Priority || 'MEDIUM',
+        reason: "Local heuristic fallback"
+      }));
+    }
+  },
+
+  /**
+   * Suggests efficient dispatch patterns by pairing vehicles and shipments.
+   */
+  suggestDispatchPatterns: async (dns: DeliveryNote[], vehicles: Vehicle[]): Promise<{ suggestions: { vehicleId: string, dnIds: string[], reason: string }[] }> => {
+    try {
+      const response = await fetch('/api/ai/suggest-dispatch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dns, vehicles })
+      });
+      
+      if (!response.ok) throw new Error('AI dispatch suggestion request failed');
+      return await response.json();
+    } catch (err) {
+      console.error("AI dispatch suggestion failed:", err);
+      return { suggestions: [] };
+    }
+  },
+
+  /**
+   * Suggests resolution strategies for a logistics exception.
+   */
+  suggestResolution: async (exception: LogisticsException): Promise<{ recommendations: { action: string, explanation: string, impact: string }[] }> => {
+    try {
+      const response = await fetch('/api/ai/suggest-resolution', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ exception })
+      });
+      
+      if (!response.ok) throw new Error('AI resolution suggestion request failed');
+      return await response.json();
+    } catch (err) {
+      console.error("AI resolution suggestion failed:", err);
+      return { recommendations: [] };
+    }
+  },
+
   /**
    * Simulates a Route Optimization Engine
    * Uses a simulated Genetic Algorithm to find the most efficient path
    */
   optimizeRoute: async (dns: DeliveryNote[], vehicle: Vehicle): Promise<RouteOptimizationResult> => {
+    // ... rest of the existing simulation logic ...
     // Simulate API latency for "ML processing"
     await new Promise(resolve => setTimeout(resolve, 2000));
 

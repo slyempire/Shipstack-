@@ -9,9 +9,15 @@ export class SyncService {
     if (this.isSyncing) return;
     
     const isOnline = navigator.onLine;
+    const pendingUpdates = await offlineDb.pendingUpdates.count();
+    
+    // Update store with current count even if offline
+    useAppStore.getState().setSyncStatus({ pendingCount: pendingUpdates });
+
     if (!isOnline) return;
 
     this.isSyncing = true;
+    useAppStore.getState().setSyncStatus({ isSyncing: true });
     console.log('Starting background sync...');
 
     try {
@@ -21,18 +27,22 @@ export class SyncService {
         try {
           await this.processUpdate(update);
           if (update.id) await offlineDb.pendingUpdates.delete(update.id);
+          
+          // Incrementally update pending count
+          const currentCount = await offlineDb.pendingUpdates.count();
+          useAppStore.getState().setSyncStatus({ pendingCount: currentCount });
         } catch (error) {
           console.error(`Failed to sync update ${update.id}:`, error);
-          // If it's a permanent error, we might want to discard it, 
-          // but for now we'll keep it to retry later.
         }
       }
       
       if (updates.length > 0) {
         useAppStore.getState().addNotification(`Synchronized ${updates.length} offline updates.`, 'success');
+        useAppStore.getState().setSyncStatus({ lastSyncTime: new Date().toISOString() });
       }
     } finally {
       this.isSyncing = false;
+      useAppStore.getState().setSyncStatus({ isSyncing: false });
     }
   }
 

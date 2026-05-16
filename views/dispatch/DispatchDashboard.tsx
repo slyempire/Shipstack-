@@ -309,13 +309,13 @@ const DispatchDashboard: React.FC = () => {
         <div className="flex justify-between items-center">
            <div>
               <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Operational Overview</h2>
-              <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Real-time logistics flow monitoring</p>
+              <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Real-time logistics control</p>
            </div>
            <button 
              onClick={() => navigate('/admin/dispatch')}
-             className="btn-primary h-10 px-6"
+             className="btn-primary h-12 px-8 shadow-xl shadow-brand/20"
            >
-             <Plus size={16} /> New Run
+             <Plus size={20} /> Create New Dispatch
            </button>
         </div>
 
@@ -467,12 +467,12 @@ const DispatchDashboard: React.FC = () => {
               </div>
 
               <div className="bg-navy rounded-2xl p-8 text-white shadow-2xl border border-white/5">
-                 <h4 className="text-lg font-black uppercase tracking-tighter mb-6">Dispatcher Toolkit</h4>
+                 <h4 className="text-lg font-black uppercase tracking-tighter mb-6">Operations Toolkit</h4>
                  <div className="grid grid-cols-2 gap-4">
                     {isModuleEnabled('dispatch') && <ActionButton icon={RouteIcon} label="Optimize Routes" onClick={() => navigate('/admin/dispatch')} />}
-                    {isModuleEnabled('fleet') && <ActionButton icon={Truck} label="Fleet Status" onClick={() => navigate('/admin/fleet')} />}
+                    {isModuleEnabled('fleet') && <ActionButton icon={Truck} label="Fleet Registry" onClick={() => navigate('/admin/fleet')} />}
                     {isModuleEnabled('dispatch') && <ActionButton icon={Navigation} label="Live Map" onClick={() => navigate('/admin/tracking')} />}
-                    {isModuleEnabled('dispatch') && <ActionButton icon={AlertTriangle} label="Resolve Alerts" onClick={() => navigate('/admin/exceptions')} />}
+                    {isModuleEnabled('dispatch') && <ActionButton icon={AlertTriangle} label="Report Issue" onClick={() => navigate('/admin/exceptions')} />}
                  </div>
               </div>
 

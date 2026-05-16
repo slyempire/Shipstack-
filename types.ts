@@ -37,7 +37,8 @@ export type Permission =
   | 'marketplace:publish' | 'marketplace:review'
   | 'crm:view' | 'crm:manage'
   | 'exceptions:view' | 'exceptions:resolve'
-  | 'recruitment:all' | 'tracking:view';
+  | 'recruitment:all' | 'tracking:view'
+  | 'tasks:view' | 'tasks:manage';
 
 export interface RoleDefinition {
   role: SystemRole;
@@ -120,10 +121,11 @@ export type ModuleId =
   | 'vertical-coldchain' | 'vertical-construction' | 'addon-cortex-ai' | 'addon-advanced-analytics'
   | 'addon-route-optimizer' | 'addon-customer-portal' | 'addon-driver-app-pro' 
   | 'integration-frappe-erp' | 'integration-quickbooks' | 'integration-shopify' 
-  | 'integration-mpesa' | 'integration-stripe' | 'compliance-gdpr-toolkit' | 'compliance-iso-28000';
+  | 'integration-mpesa' | 'integration-stripe' | 'compliance-gdpr-toolkit' | 'compliance-iso-28000'
+  | 'hardware-obd-pro' | 'hardware-asset-tag' | 'hardware-vision-ai';
 
 export type ModuleStatus = 'active' | 'inactive' | 'trial' | 'suspended' | 'deprecated' | 'pending_review' | 'ACTIVE' | 'SUSPENDED' | 'TRIAL';
-export type ModuleCategory = 'core' | 'industry_vertical' | 'integration' | 'addon' | 'ai_feature' | 'compliance' | 'CORE' | 'ADD-ON' | 'PORTAL';
+export type ModuleCategory = 'core' | 'industry_vertical' | 'integration' | 'addon' | 'ai_feature' | 'compliance' | 'hardware' | 'CORE' | 'ADD-ON' | 'PORTAL';
 export type ModuleTier = 'free' | 'starter' | 'professional' | 'enterprise' | 'custom';
 
 export interface ModuleDefinition {
@@ -243,6 +245,8 @@ export interface DeliveryNote {
   isDeviated?: boolean;
   lastLat?: number;
   lastLng?: number;
+  speed?: number;
+  heading?: number;
   routeGeometry?: any;
   logs?: Array<{ id?: string; timestamp: string; action: string; user?: string; notes?: string }>;
   zoneId?: string;
@@ -271,6 +275,7 @@ export interface DeliveryNote {
 export interface Trip {
   id: string;
   externalId: string;
+  tenantId?: string;
   routeTitle?: string;
   dnIds: string[];
   driverId: string;
@@ -354,6 +359,7 @@ export interface InventoryItem {
 export interface Zone {
   id: string;
   name: string;
+  tenantId?: string;
   description?: string;
   color?: string;
 }
@@ -460,6 +466,11 @@ export interface User {
   idNumber?: string;
   kraPin?: string;
   licenseNumber?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  nationality?: string;
+  emergencyContact?: string;
+  emergencyPhone?: string;
   onDuty?: boolean;
   transporterId?: string;
   enabledModules?: ModuleId[];
@@ -487,6 +498,8 @@ export interface DriverApplication {
   requirements?: Record<string, boolean>;
   experienceYears?: number;
   vehicleType?: VehicleType;
+  industry?: IndustryType;
+  region?: string;
 }
 
 // --- DATA INGRESS & INTEGRATIONS ---
@@ -609,7 +622,37 @@ export enum LogisticsDocumentStatus {
   REJECTED = 'REJECTED'
 }
 
-export interface Task { id: string; title: string; status: string; priority: string; userId: string; tenantId: string; completed?: boolean; dueDate?: string; description?: string };
+export interface LogisticsException {
+  id: string;
+  tenantId: string;
+  dnId?: string;
+  dnNumber?: string;
+  type: ExceptionType;
+  severity: Priority | 'CRITICAL';
+  status: ExceptionStatus;
+  description: string;
+  reportedBy: string; // User ID
+  reportedAt: string;
+  resolvedBy?: string; // User ID
+  resolvedAt?: string;
+  resolutionNotes?: string;
+  metadata?: any;
+}
+
+export interface Task { 
+  id: string; 
+  title: string; 
+  description?: string;
+  status: 'TODO' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'; 
+  priority: Priority; 
+  userId: string; 
+  assignedTo?: string; 
+  tenantId: string; 
+  completed?: boolean; 
+  dueDate?: string; 
+  createdAt?: string;
+  updatedAt?: string;
+};
 
 export type RouteOptimizationResult = { id: string; optimizedOrder: string[]; savings: number; metrics?: any; confidence?: number; processingTimeMs?: number };
 

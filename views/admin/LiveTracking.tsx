@@ -31,6 +31,7 @@ import {
   Bell
 } from 'lucide-react';
 import { useTenant } from '../../hooks/useTenant';
+import { telemetryService } from '../../services/socket';
 
 const LiveTracking: React.FC = () => {
   const { tenant } = useTenant();
@@ -40,6 +41,7 @@ const LiveTracking: React.FC = () => {
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [drivers, setDrivers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [permissionState, setPermissionState] = useState<'prompt' | 'granted' | 'denied'>('prompt');
   const [focusedDnId, setFocusedDnId] = useState<string | undefined>();
   const [search, setSearch] = useState('');
@@ -54,10 +56,55 @@ const LiveTracking: React.FC = () => {
 
   useEffect(() => {
     checkPermissions();
-    loadBaseData();
+    const init = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        // We attempt to load data even if tenant is resolving, defaulting to current context
+        // Adding a 10s safety timeout to prevent permanent loading screens
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Operational link timed out (10s)")), 10000)
+        );
+        
+        await Promise.race([
+          loadBaseData(tenant?.id),
+          timeoutPromise
+        ]);
+      } catch (err: any) {
+        console.error("Failed to initialize live tracking base data", err);
+        setError(err.message || "Archive synchronization failure");
+        setLoading(false);
+      }
+    };
+    
+    init();
+    
+    // Subscribe to real-time telemetry updates via Socket.IO
+    telemetryService.onTelemetryUpdate((data) => {
+      setDns(prevDns => {
+        return prevDns.map(dn => {
+          if (dn.id === data.dnId || dn.id === data.tripId) {
+            const updated = {
+              ...dn,
+              lastLat: data.lat,
+              lastLng: data.lng,
+              lastTelemetryAt: data.timestamp
+            };
+            // Re-check deviation
+            if (updated.status === DNStatus.IN_TRANSIT && updated.routeGeometry) {
+              const pos: LatLngTuple = [updated.lastLat, updated.lastLng];
+              updated.isDeviated = isDeviated(pos, updated.routeGeometry.coordinates);
+            }
+            return updated;
+          }
+          return dn;
+        });
+      });
+    });
+
     const interval = setInterval(pollTelemetry, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [tenant?.id]);
 
   const checkPermissions = async () => {
     if ("permissions" in navigator) {
@@ -80,17 +127,22 @@ const LiveTracking: React.FC = () => {
     );
   };
 
-  const loadBaseData = async () => {
-    if (!tenant?.id) return;
-    const [facs, allDns, allDrivers] = await Promise.all([
-      api.getFacilities(tenant.id), 
-      api.getDeliveryNotes(tenant.id),
-      api.getUsers(tenant.id).then(users => users.filter(u => u.role === 'DRIVER'))
-    ]);
-    setFacilities(facs);
-    setDns(processDnsForUI(allDns));
-    setDrivers(allDrivers);
-    setLoading(false);
+  const loadBaseData = async (tenantId?: string) => {
+    const tid = tenantId || 'tenant-1';
+    try {
+      const [facs, allDns, allDrivers] = await Promise.all([
+        api.getFacilities(tid).catch(() => []), 
+        api.getDeliveryNotes(tid).catch(() => []),
+        api.getUsers(tid).then(users => users.filter(u => 
+          u.role.toUpperCase() === 'DRIVER' || u.role.toLowerCase() === 'driver'
+        )).catch(() => [])
+      ]);
+      setFacilities(facs);
+      setDns(processDnsForUI(allDns));
+      setDrivers(allDrivers);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const processDnsForUI = (items: DeliveryNote[]) => {
@@ -166,14 +218,33 @@ const LiveTracking: React.FC = () => {
   if (loading) {
     return (
       <Layout title="Tracking">
-        <div className="flex h-[60vh] flex-col items-center justify-center gap-6 text-center animate-in fade-in duration-700">
-           <div className="h-20 w-20 rounded-3xl bg-slate-50 border border-slate-100 flex items-center justify-center shadow-xl">
-              <RotateCw className="animate-spin text-brand" size={32} />
-           </div>
-           <div>
-              <h3 className="text-xl font-bold tracking-tight text-gray-900 mb-2">Syncing telemetry</h3>
-              <p className="text-sm text-gray-400 font-medium">Establishing secure link with regional assets...</p>
-           </div>
+        <div className="flex h-[80vh] flex-col items-center justify-center bg-slate-950 p-12 text-center rounded-[3rem] border border-white/5 mx-4 my-8">
+          <div className="relative mb-12">
+            <div className="absolute inset-0 bg-brand blur-[100px] opacity-20 animate-pulse" />
+            <div className="h-40 w-40 bg-white/5 rounded-[2.5rem] border border-white/10 flex items-center justify-center relative backdrop-blur-3xl overflow-hidden group">
+               <div className="absolute inset-0 bg-gradient-to-tr from-brand/20 to-transparent" />
+               <Truck size={64} className="text-white relative z-10 animate-transition animate-bounce" />
+               <div className="absolute -bottom-2 w-20 h-2 bg-brand/40 blur-xl animate-pulse" />
+            </div>
+            <div className="absolute -top-4 -right-4 h-12 w-12 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.4)] animate-in zoom-in-50 duration-500">
+               <Zap size={20} className="text-white" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-black text-white uppercase tracking-tighter mb-4 animate-pulse">Syncing telemetry</h2>
+            <p className="text-[11px] font-medium text-white/40 uppercase tracking-widest max-w-[200px] mx-auto leading-relaxed">Establishing secure link with regional assets...</p>
+          </div>
+          {error && (
+            <div className="mt-8 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl max-w-sm">
+               <p className="text-red-400 text-[10px] font-black uppercase tracking-widest mb-4">{error}</p>
+               <button 
+                 onClick={() => window.location.reload()}
+                 className="px-6 py-2 bg-white text-slate-950 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-brand hover:text-white transition-all shadow-xl"
+               >
+                 Re-establish Link
+               </button>
+            </div>
+          )}
         </div>
       </Layout>
     );

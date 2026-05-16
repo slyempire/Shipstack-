@@ -27,25 +27,33 @@ import {
   History as HistoryIcon,
   AlertCircle,
   HelpCircle,
-  ShieldAlert
+  ShieldAlert,
+  Radio,
+  Sun,
+  Camera
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import RoleGuard from '../../components/RoleGuard';
 import PermissionGate from '../../components/PermissionGate';
+import Icon from '../../components/Icon';
 import { ModuleDefinition, ModuleCategory, ModuleTier } from '../../types';
+import { Badge } from '../../packages/ui/Badge';
 
 const MarketplaceView: React.FC = () => {
   const { 
-    installedModules, 
     installModule, 
     uninstallModule, 
     isModuleInstalled, 
-    isModuleActive,
     pendingInstalls
-  } = useModuleStore();
-  const { currentTenant } = useTenantStore();
-  const { addNotification } = useAppStore();
-  const { logAction } = useAuditStore();
+  } = useModuleStore(state => ({
+    installModule: state.installModule,
+    uninstallModule: state.uninstallModule,
+    isModuleInstalled: state.isModuleInstalled,
+    pendingInstalls: state.pendingInstalls
+  }));
+  const currentTenant = useTenantStore(state => state.currentTenant);
+  const addNotification = useAppStore(state => state.addNotification);
+  const logAction = useAuditStore(state => state.logAction);
   
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<ModuleCategory | 'ALL'>('ALL');
@@ -116,7 +124,7 @@ const MarketplaceView: React.FC = () => {
                <div className="space-y-4">
                   <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2">Category</h4>
                   <div className="space-y-1">
-                    {['ALL', 'industry_vertical', 'ai_feature', 'integration', 'addon', 'compliance'].map(cat => (
+                    {['ALL', 'industry_vertical', 'ai_feature', 'integration', 'addon', 'compliance', 'hardware'].map(cat => (
                       <button
                         key={cat}
                         onClick={() => setSelectedCategory(cat as any)}
@@ -230,6 +238,89 @@ const MarketplaceView: React.FC = () => {
               </section>
             )}
 
+            {/* Special Offers / Brokerage Spotlight */}
+            {selectedCategory === 'ALL' && !searchQuery && (
+              <section className="space-y-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                   <div className="bg-gradient-to-br from-brand to-indigo-600 rounded-[2.5rem] p-8 text-white relative overflow-hidden group shadow-xl">
+                      <Radio size={120} className="absolute -bottom-10 -right-10 opacity-10 group-hover:scale-110 transition-transform" />
+                      <div className="relative z-10 space-y-4">
+                         <span className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-[8px] font-black uppercase tracking-widest border border-white/20">Telemetry Brokerage</span>
+                         <h3 className="text-2xl font-black uppercase tracking-tight leading-none">Ultra-High Freq<br/>Hardware</h3>
+                         <p className="text-[11px] font-medium text-white/70 max-w-xs">
+                            Competitive wholesale pricing on OBD-II and Solar Asset tags. Direct brokerage with global manufacturers for ShipStack users.
+                         </p>
+                         <div className="flex items-center gap-4 pt-2">
+                            <button 
+                              onClick={() => setSelectedCategory('hardware')}
+                              className="px-6 py-3 bg-white text-brand rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all font-sans"
+                            >
+                               View Hardware
+                            </button>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-white/50">Starts at $12/unit</span>
+                         </div>
+                      </div>
+                   </div>
+
+                   <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden group shadow-xl">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-brand-accent/20 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2" />
+                      <div className="relative z-10 space-y-4">
+                         <div className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-brand-accent animate-pulse" />
+                            <span className="text-[8px] font-black uppercase tracking-widest text-brand-accent">Brokerage Spotlight</span>
+                         </div>
+                         <h3 className="text-2xl font-black uppercase tracking-tight leading-none">Global Device<br/>Sourcing</h3>
+                         <p className="text-[11px] font-medium text-white/60 max-w-xs">
+                            Access our network of certified hardware partners. Reduced customs clearing and bulk-acquisition financing.
+                         </p>
+                         <button 
+                           onClick={() => addNotification({ title: 'Brokerage Inquiry', message: 'A sourcing specialist will contact you with a custom quote.', type: 'info', category: 'MODULES' })}
+                           className="px-6 py-3 bg-slate-800 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-700 border border-white/5 transition-all font-sans"
+                         >
+                            Request Quote
+                         </button>
+                      </div>
+                   </div>
+                </div>
+
+                <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
+                   <div className="flex items-center justify-between mb-8">
+                      <div>
+                         <h3 className="text-lg font-black uppercase tracking-tight text-slate-900">Competitive Hardware Offers</h3>
+                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Direct-from-manufacturer pricing via ShipStack Brokerage</p>
+                      </div>
+                      <Badge variant="loaded" className="bg-indigo-50 text-indigo-600 border-none">Wholesale Partners</Badge>
+                   </div>
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {[
+                        { name: 'OBD-II Pro', price: '$45', promo: '-15% Bulk', desc: 'Real-time vehicle health & 10Hz GPS.', icon: Camera, color: 'text-brand' },
+                        { name: 'Solar Tag Alpha', price: '$89', promo: 'Free Shipping', desc: '5-year battery life, IP67 waterproof.', icon: Sun, color: 'text-amber-500' },
+                        { name: 'Cortex Gateway', price: '$120', promo: 'First 3mo Free', desc: 'LoRaWAN Edge gateway for huge facilities.', icon: Zap, color: 'text-indigo-600' }
+                      ].map((offer) => (
+                        <div key={offer.name} className="p-6 bg-slate-50 rounded-3xl border border-slate-100 group hover:border-brand transition-all relative overflow-hidden">
+                           <div className={`p-4 rounded-2xl bg-white shadow-sm mb-4 w-fit ${offer.color}`}>
+                              <offer.icon size={24} />
+                           </div>
+                           <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight mb-2">{offer.name}</h4>
+                           <p className="text-[10px] font-medium text-slate-500 mb-4 leading-relaxed">{offer.desc}</p>
+                           <div className="flex items-center justify-between mt-4">
+                              <div>
+                                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Price</p>
+                                 <p className="text-lg font-black text-slate-900">{offer.price}</p>
+                              </div>
+                              <div className="text-right">
+                                 <span className="px-2 py-1 bg-emerald-50 text-emerald-600 text-[8px] font-black uppercase rounded shadow-sm">
+                                    {offer.promo}
+                                 </span>
+                              </div>
+                           </div>
+                        </div>
+                      ))}
+                   </div>
+                </div>
+              </section>
+            )}
+
             {/* Module Grid */}
             <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
                {filteredModules.map(mod => (
@@ -310,7 +401,7 @@ const ModuleCard = ({ module, isInstalled, isPending, onClick }: {
       <div className="p-8 flex-1 flex flex-col">
          <div className="flex items-center gap-3 mb-4">
             <div className="h-10 w-10 bg-slate-50 text-slate-400 rounded-xl flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-all">
-               <Zap size={20} />
+               <Icon name={module.icon} size={20} />
             </div>
             <div>
                <h4 className="text-[13px] font-black uppercase tracking-tight text-slate-900 leading-none mb-1">{module.name}</h4>
@@ -398,7 +489,7 @@ const ModuleDetailPanel = ({ module, onClose, onInstall, onUninstall, isInstalle
                       {module.publisher.logo ? (
                         <img src={module.publisher.logo} className="h-full w-full object-cover" />
                       ) : (
-                        <Boxes size={32} className="text-brand" />
+                        <Icon name={module.icon} size={32} className="text-brand" />
                       )}
                    </div>
                    <div className="pt-2">

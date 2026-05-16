@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import { api } from '../../api';
-import { DeliveryNote, DNStatus, ExceptionStatus, ExceptionType } from '../../types';
+import { DeliveryNote, DNStatus, ExceptionStatus, ExceptionType, LogisticsException, Priority } from '../../types';
 import { Badge } from '../../packages/ui/Badge';
 import { useAuthStore, useAppStore } from '../../store';
 import { 
@@ -31,22 +31,47 @@ import {
 const ExceptionsView: React.FC = () => {
   const { user } = useAuthStore();
   const { addNotification } = useAppStore();
-  const [dns, setDns] = useState<DeliveryNote[]>([]);
+  const [exceptions, setExceptions] = useState<LogisticsException[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<ExceptionStatus | 'ALL'>(ExceptionStatus.REPORTED);
-  const [selectedException, setSelectedException] = useState<DeliveryNote | null>(null);
+  const [selectedException, setSelectedException] = useState<LogisticsException | null>(null);
   const [resolutionNote, setResolutionNote] = useState('');
   const [isResolving, setIsResolving] = useState(false);
+  const [aiRecommendations, setAiRecommendations] = useState<{ action: string, explanation: string, impact: string }[]>([]);
+  const [isAiLoading, setIsAiLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => { loadData(); }, [user?.id]);
+  
+  useEffect(() => {
+    if (selectedException) {
+      getAiResolution();
+    } else {
+      setAiRecommendations([]);
+    }
+  }, [selectedException]);
+
+  const getAiResolution = async () => {
+    if (!selectedException) return;
+    setIsAiLoading(true);
+    try {
+      const { aiService } = await import('../../services/aiService');
+      const result = await aiService.suggestResolution(selectedException);
+      setAiRecommendations(result.recommendations);
+    } catch (err) {
+      console.error('AI suggestion failed:', err);
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
 
   const loadData = async () => {
+    if (!user) return;
     setLoading(true);
     try {
-      const data = await api.getDeliveryNotes();
-      setDns(data.filter(d => d.status === DNStatus.EXCEPTION));
+      const data = await api.getExceptions(user.tenantId || 'tenant-1');
+      setExceptions(data);
     } catch (err) {
       console.error('Failed to load exceptions:', err);
       addNotification('Failed to sync exception data', 'error');
@@ -55,20 +80,38 @@ const ExceptionsView: React.FC = () => {
     }
   };
 
-  const handleEscalate = (dn: DeliveryNote) => {
-    addNotification(`Incident REF-${dn.externalId} escalated to Senior Management.`, 'info');
-    // Mocking state update
-    loadData();
+  const handleEscalate = async (ex: LogisticsException) => {
+    try {
+      await api.updateException(ex.id, {
+        severity: 'CRITICAL',
+        description: `${ex.description} [ESCALATED]`
+      });
+      addNotification(`Incident REF-${ex.dnNumber || ex.id.slice(0, 8)} escalated to Senior Management.`, 'info');
+      loadData();
+    } catch (e) {
+      addNotification("Escalation failed", "error");
+    }
   };
 
   const handleResolve = async () => {
-    if (!selectedException || !resolutionNote) return;
+    if (!selectedException || !resolutionNote || !user) return;
     setIsResolving(true);
     try {
-      await api.updateDNStatus(selectedException.id, DNStatus.COMPLETED, {
-        exceptionStatus: ExceptionStatus.RESOLVED,
-        notes: `RESOLVED: ${resolutionNote}`
-      }, user?.name);
+      await api.updateException(selectedException.id, {
+        status: ExceptionStatus.RESOLVED,
+        resolutionNotes: resolutionNote,
+        resolvedBy: user.id,
+        resolvedAt: new Date().toISOString()
+      });
+      
+      // Also update DN status if linked
+      if (selectedException.dnId) {
+        await api.updateDNStatus(selectedException.dnId, DNStatus.COMPLETED, {
+          exceptionStatus: ExceptionStatus.RESOLVED,
+          notes: `RESOLVED: ${resolutionNote}`
+        }, user?.name);
+      }
+
       addNotification("Exception cleared. Records updated.", "success");
       setSelectedException(null);
       setResolutionNote('');
@@ -80,10 +123,10 @@ const ExceptionsView: React.FC = () => {
     }
   };
 
-  const filteredDns = dns.filter(dn => {
-    const matchesSearch = dn.externalId.toLowerCase().includes(search.toLowerCase()) || 
-                         dn.clientName.toLowerCase().includes(search.toLowerCase());
-    const matchesTab = activeTab === 'ALL' || dn.exceptionStatus === activeTab;
+  const filteredExceptions = exceptions.filter(ex => {
+    const matchesSearch = (ex.dnNumber || '').toLowerCase().includes(search.toLowerCase()) || 
+                         (ex.description || '').toLowerCase().includes(search.toLowerCase());
+    const matchesTab = activeTab === 'ALL' || ex.status === activeTab;
     return matchesSearch && matchesTab;
   });
 
@@ -106,7 +149,7 @@ const ExceptionsView: React.FC = () => {
         <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
            <p className="label-logistics text-slate-400 mb-2">Auto-Classified</p>
            <div className="flex items-center justify-between">
-              <h3 className="text-4xl font-black text-slate-900">{dns.length}</h3>
+              <h3 className="text-4xl font-black text-slate-900">{exceptions.length}</h3>
               <div className="p-4 bg-brand/10 text-brand rounded-2xl"><BrainCircuit size={24} /></div>
            </div>
            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-4">92% Accuracy Rating</p>
@@ -130,27 +173,7 @@ const ExceptionsView: React.FC = () => {
         </div>
       </div>
 
-      {/* FEATURE 3: AI Classification & Smart Resolution */}
       <div className="bg-white rounded-[3rem] border border-slate-200 shadow-sm overflow-hidden min-h-[600px] flex flex-col mb-12 relative">
-        {(!api.getTenantPlan() || api.getTenantPlan() === 'STARTER' || api.getTenantPlan() === 'GROWTH') && (
-          <div className="absolute inset-0 z-50 bg-slate-50/60 backdrop-blur-[2px] flex items-center justify-center p-8 text-center">
-            <div className="bg-white rounded-[2rem] p-8 max-w-md shadow-2xl animate-in zoom-in-95 duration-300 border border-slate-100">
-              <div className="h-12 w-12 bg-slate-900 text-white rounded-xl flex items-center justify-center mx-auto mb-4">
-                <BrainCircuit size={24} />
-              </div>
-              <h4 className="text-xl font-black text-slate-900 uppercase tracking-tighter mb-2">Automate Exception Solving</h4>
-              <p className="text-sm text-slate-500 font-medium mb-6">
-                Cortex AI automatically classifies anomalies and suggests instant fixes based on historical integrity. Upgrade to SCALE to enable Smart Resolution.
-              </p>
-              <button 
-                onClick={() => navigate('/admin/subscription')}
-                className="w-full py-4 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all"
-              >
-                View Scale Intelligence
-              </button>
-            </div>
-          </div>
-        )}
          <div className="p-8 border-b border-slate-100 bg-slate-50/50 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
             <div className="flex items-center gap-4">
                <div className="h-12 w-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center shadow-xl">
@@ -192,7 +215,7 @@ const ExceptionsView: React.FC = () => {
                <tbody className="divide-y divide-slate-50">
                   {loading ? (
                     <tr><td colSpan={5} className="p-20 text-center animate-pulse text-[10px] font-black uppercase text-slate-300 tracking-[0.2em]">Cortex AI Analyzing Logs...</td></tr>
-                  ) : filteredDns.length === 0 ? (
+                  ) : filteredExceptions.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="p-20 text-center">
                          <ShieldAlert className="mx-auto text-slate-200 mb-4" size={48} />
@@ -200,27 +223,27 @@ const ExceptionsView: React.FC = () => {
                       </td>
                     </tr>
                   ) : (
-                    filteredDns.map(dn => {
-                      const aiCategory = dn.exceptionType === ExceptionType.LATE ? 'Logistics Delay' : 'Data Integrity';
-                      const aiSuggestion = dn.exceptionType === ExceptionType.LATE ? 'Re-route via Loresho' : 'Manual Address Validation';
+                    filteredExceptions.map(ex => {
+                      const aiCategory = ex.type === ExceptionType.LATE ? 'Logistics Delay' : 'Data Integrity';
+                      const aiSuggestion = ex.type === ExceptionType.LATE ? 'Re-route via Loresho' : 'Manual Address Validation';
                       const confidence = 85 + Math.floor(Math.random() * 10);
                       
                       return (
-                        <tr key={dn.id} className="hover:bg-slate-50 transition-colors group cursor-pointer" onClick={() => setSelectedException(dn)}>
+                        <tr key={ex.id} className="hover:bg-slate-50 transition-colors group cursor-pointer" onClick={() => setSelectedException(ex)}>
                            <td className="px-10 py-8">
                               <div className="flex items-center gap-4">
-                                 <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${dn.exceptionType === ExceptionType.LATE ? 'bg-red-50 text-red-500' : 'bg-orange-50 text-orange-500'}`}>
-                                    {dn.exceptionType === ExceptionType.LATE ? <Clock size={20} /> : <AlertCircle size={20} />}
+                                 <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${ex.type === ExceptionType.LATE ? 'bg-red-50 text-red-500' : 'bg-orange-50 text-orange-500'}`}>
+                                    {ex.type === ExceptionType.LATE ? <Clock size={20} /> : <AlertCircle size={20} />}
                                  </div>
                                  <div>
-                                    <Badge variant={dn.exceptionType === ExceptionType.LATE ? 'failed' : 'exception'} className="mb-1.5">{aiCategory}</Badge>
-                                    <p className="text-[10px] font-black text-slate-900 uppercase tracking-tight">REF-{dn.externalId}</p>
+                                    <Badge variant={ex.type === ExceptionType.LATE ? 'failed' : 'exception'} className="mb-1.5">{aiCategory}</Badge>
+                                    <p className="text-[10px] font-black text-slate-900 uppercase tracking-tight">REF-{ex.dnNumber || ex.id.slice(0, 8)}</p>
                                  </div>
                               </div>
                            </td>
                            <td className="px-10 py-8">
-                              <p className="body-value truncate-name max-w-[250px] mb-1">{dn.clientName}</p>
-                              <p className="text-[10px] font-bold text-slate-400 italic line-clamp-1">"{dn.exceptionReason || 'Root cause analysis pending'}"</p>
+                              <p className="body-value truncate-name max-w-[250px] mb-1">{ex.description}</p>
+                              <p className="text-[10px] font-bold text-slate-400 italic line-clamp-1">"{ex.resolutionNotes || 'Root cause analysis pending'}"</p>
                            </td>
                            <td className="px-10 py-8">
                               <div className="flex items-center gap-3">
@@ -266,7 +289,7 @@ const ExceptionsView: React.FC = () => {
                     </div>
                     <div>
                        <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Incident Resolution</h3>
-                       <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">REF-{selectedException.externalId}</p>
+                       <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">REF-{selectedException.dnNumber || selectedException.id.slice(0, 8)}</p>
                     </div>
                  </div>
                  <button onClick={() => setSelectedException(null)} className="text-slate-400 hover:text-brand"><X size={24} /></button>
@@ -275,7 +298,42 @@ const ExceptionsView: React.FC = () => {
               <div className="p-10 space-y-8">
                  <div className="p-6 bg-red-50 border border-red-100 rounded-2xl">
                     <p className="text-[10px] font-black text-red-500 uppercase tracking-widest mb-2">Original Exception Flag</p>
-                    <p className="text-xs font-bold text-slate-900 leading-relaxed italic">"{selectedException.exceptionReason}"</p>
+                    <p className="text-xs font-bold text-slate-900 leading-relaxed italic">"{selectedException.description}"</p>
+                 </div>
+
+                 {/* AI Recommendations */}
+                 <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Cortex AI Recommendations</label>
+                      {isAiLoading && <RefreshCw size={12} className="animate-spin text-brand" />}
+                    </div>
+                    <div className="grid gap-3">
+                      {isAiLoading ? (
+                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 animate-pulse text-[9px] font-bold text-slate-400 uppercase tracking-widest text-center">
+                          Analyzing logistics topology...
+                        </div>
+                      ) : aiRecommendations.length > 0 ? (
+                        aiRecommendations.map((rec, i) => (
+                          <div 
+                            key={i} 
+                            onClick={() => setResolutionNote(rec.action + ': ' + rec.explanation)}
+                            className="group p-4 bg-white border border-slate-200 rounded-2xl hover:border-brand hover:bg-brand/5 cursor-pointer transition-all"
+                          >
+                            <div className="flex items-start justify-between gap-3 mb-1">
+                              <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-tight group-hover:text-brand">{rec.action}</h4>
+                              <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full ${rec.impact === 'HIGH' ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                                {rec.impact} IMPACT
+                              </span>
+                            </div>
+                            <p className="text-[10px] font-medium text-slate-500 leading-normal">{rec.explanation}</p>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-[9px] font-bold text-slate-400 uppercase tracking-widest text-center">
+                          No smart resolutions available for this type.
+                        </div>
+                      )}
+                    </div>
                  </div>
 
                  <div className="space-y-3">

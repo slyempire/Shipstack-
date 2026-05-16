@@ -42,12 +42,16 @@ import {
   DriverApplication,
   Priority,
   IndustryType,
-  Task
+  Task,
+  LogisticsException,
+  ExceptionType,
+  ExceptionStatus
 } from './types';
 import { telemetryService } from './services/socket';
 import { supabase, isSupabaseConfigured } from './supabase';
 import { sanitize, sanitizeObject, encryptData, decryptData } from './utils/security';
 import { FrappeService } from './services/frappe';
+import { cacheService } from './services/redis';
 
 const useFrappe = !!import.meta.env.VITE_FRAPPE_BASE_URL;
 let isFrappeHealthy = true;
@@ -197,7 +201,55 @@ const setStore = <T>(key: string, data: T) => {
   localStorage.setItem(`shipstack_int_${key}`, encrypted);
 };
 
+const initialTenants: Tenant[] = [
+  {
+    id: 'tenant-1',
+    name: 'Shipstack HQ',
+    slug: 'shipstack-hq',
+    subdomain: 'app',
+    plan: 'ENTERPRISE',
+    status: 'ACTIVE',
+    industry: 'GENERAL',
+    settings: {
+      currency: 'KES',
+      timezone: 'Africa/Nairobi',
+      primaryColor: '#0F2A44',
+      onboardingCompleted: true
+    },
+    enabledModules: ['dashboard', 'dispatch', 'warehouse', 'orders', 'fleet', 'finance', 'analytics', 'integrations'],
+    securitySettings: {
+      auditLogging: true,
+      twoFactorAuth: false,
+      requireNTSAVerification: true
+    },
+    createdAt: new Date(Date.now() - 31536000000).toISOString()
+  },
+  {
+    id: 'tenant-2',
+    name: 'Alpha Transporters',
+    slug: 'alpha-transporters',
+    subdomain: 'alpha',
+    plan: 'GROWTH',
+    status: 'ACTIVE',
+    industry: 'GENERAL',
+    settings: {
+      currency: 'KES',
+      timezone: 'Africa/Nairobi',
+      primaryColor: '#1e293b',
+      onboardingCompleted: true
+    },
+    enabledModules: ['dispatch', 'fleet', 'orders'],
+    securitySettings: {
+      auditLogging: true,
+      twoFactorAuth: false,
+      requireNTSAVerification: true
+    },
+    createdAt: new Date(Date.now() - 15552000000).toISOString()
+  }
+];
+
 const initialUsers: User[] = [
+  { id: 'u-admin-root', name: 'Joe Mugoh', email: 'joemugoh215@gmail.com', role: 'super_admin', company: 'Shipstack HQ', password: 'password', verificationStatus: 'VERIFIED', isOnboarded: true, tenantId: 'tenant-1' },
   { id: 'u-1', name: 'Admin User', email: 'admin@shipstack.com', role: 'super_admin', company: 'Shipstack HQ', password: 'password', verificationStatus: 'VERIFIED', isOnboarded: true, tenantId: 'tenant-1' },
   { id: 'd-1', name: 'Driver John', email: 'pilot@shipstack.com', role: 'driver', company: 'Alpha Transporters', idNumber: '12345678', kraPin: 'A001234567Z', licenseNumber: 'DL-99221', onDuty: true, password: 'password', verificationStatus: 'VERIFIED', isOnboarded: true, tenantId: 'tenant-1' },
   { id: 'd-2', name: 'Driver Sarah', email: 'sarah@shipstack.com', role: 'driver', company: 'Beta Logistics', idNumber: '87654321', kraPin: 'B008765432X', licenseNumber: 'DL-88112', onDuty: false, password: 'password', verificationStatus: 'PENDING', isOnboarded: true, tenantId: 'tenant-1' },
@@ -418,6 +470,26 @@ const initialBinLocations: BinLocation[] = [
 // --- Idempotency & Request Tracking ---
 const PROCESSED_REQUESTS = new Set<string>();
 
+// --- Utility Helpers ---
+const toSnakeCase = (obj: any) => {
+  const snakeObj: any = {};
+  for (const key in obj) {
+    const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+    snakeObj[snakeKey] = obj[key];
+  }
+  return snakeObj;
+};
+
+const toCamelCase = (obj: any) => {
+  if (!obj) return obj;
+  const camelObj: any = {};
+  for (const key in obj) {
+    const camelKey = key.replace(/([-_][a-z])/g, group => group.toUpperCase().replace('-', '').replace('_', ''));
+    camelObj[camelKey] = obj[key];
+  }
+  return camelObj;
+};
+
 /**
  * Ensures an operation is only performed once for a given request ID.
  * Returns true if the request is new, false if it has already been processed.
@@ -455,12 +527,13 @@ export const api = {
         console.warn('Frappe login failed, disabling Frappe integration', error);
         isFrappeHealthy = false;
         // If it's a network error, we don't throw, we let it fallback to demo/supabase
-        if (error.message !== 'Failed to fetch') throw error;
+        const isNetworkError = error.message?.toLowerCase().includes('failed to fetch');
+        if (!isNetworkError) throw error;
       }
     }
 
     // Demo bypass logic
-    if (password === 'password' && (sanitizedEmail.includes('shipstack.com') || sanitizedEmail === 'admin@shipstack.com')) {
+    if (password === 'password' && (sanitizedEmail.includes('shipstack.com') || sanitizedEmail === 'admin@shipstack.com' || sanitizedEmail === 'joemugoh215@gmail.com')) {
       const users = initialUsers;
       const user = users.find(u => u.email.toLowerCase() === sanitizedEmail.toLowerCase());
       if (user) {
@@ -501,10 +574,17 @@ export const api = {
         return { user, token: data.session?.access_token || '' };
       } catch (error: any) {
         console.error('Supabase Auth Error:', error);
-        if (error.message !== 'Failed to fetch') {
+        
+        // Handle common connectivity errors gracefully
+        const isConnectivityError = error.message?.toLowerCase().includes('failed to fetch') || 
+                                   error.message?.toLowerCase().includes('network error') ||
+                                   error.status === 0;
+                                   
+        if (isConnectivityError) {
+          console.warn('Supabase unreachable, falling back to mock auth for demo stability');
+        } else {
           throw new Error(error.message || 'Authentication failed');
         }
-        console.warn('Supabase unreachable, falling back to mock auth');
       }
     }
 
@@ -562,6 +642,44 @@ export const api = {
     }
   },
 
+  async resetPassword(email: string): Promise<void> {
+    const sanitizedEmail = sanitize(email);
+    
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase.auth.resetPasswordForEmail(sanitizedEmail, {
+          redirectTo: `${window.location.origin}/#/reset-password`,
+        });
+        if (error) throw error;
+        await logAudit('PASSWORD_RESET_REQUESTED', { email: sanitizedEmail });
+      } catch (error: any) {
+        console.error('Supabase Reset Password Error:', error);
+        throw new Error(error.message || 'Failed to send reset password email');
+      }
+    } else {
+      // Mock reset password
+      await logAudit('DEMO_PASSWORD_RESET_MOCK', { email: sanitizedEmail });
+      console.log(`[MOCK] Password reset link sent to ${sanitizedEmail}`);
+    }
+  },
+
+  async updatePassword(password: string): Promise<void> {
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase.auth.updateUser({ password });
+        if (error) throw error;
+        await logAudit('PASSWORD_UPDATED', {});
+      } catch (error: any) {
+        console.error('Supabase Update Password Error:', error);
+        throw new Error(error.message || 'Failed to update password');
+      }
+    } else {
+      // Mock update password
+      await logAudit('DEMO_PASSWORD_UPDATE_MOCK', {});
+      console.log('[MOCK] Password updated successfully');
+    }
+  },
+
   async logout(): Promise<void> {
     if (isSupabaseConfigured) {
       try {
@@ -585,17 +703,40 @@ export const api = {
         if (error) throw error;
         if (!authData.user) throw new Error('Registration failed');
 
+        const tenantId = `tenant-${Date.now()}`;
         const user: User = { 
           id: authData.user.id, 
           ...sanitizedData, 
-          role: 'tenant_admin', // Automatically set as tenant_admin
+          role: sanitizedData.role || 'tenant_admin',
+          tenantId,
           isOnboarded: false, 
           onboardingStep: 1 
         };
 
+        // Create profile in Supabase
+        try {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert([{
+              id: authData.user.id,
+              tenant_id: tenantId,
+              email: sanitizedData.email,
+              name: sanitizedData.name || sanitizedData.email.split('@')[0],
+              role: sanitizedData.role || 'tenant_admin',
+              company: sanitizedData.company,
+              is_onboarded: false,
+              onboarding_step: 1
+            }]);
+          
+          if (profileError) throw profileError;
+        } catch (dbErr) {
+          console.error('Supabase Profile Creation Error:', dbErr);
+          // We continue because the auth user is created, but this is a major issue
+        }
+
         // Initialize a tenant for the new user
         const newTenant: Tenant = {
-          id: `tenant-${Date.now()}`,
+          id: tenantId,
           name: sanitizedData.company || 'New Organization',
           slug: (sanitizedData.company || 'org').toLowerCase().replace(/\s+/g, '-'),
           subdomain: (sanitizedData.company || 'org').toLowerCase().replace(/\s+/g, '-'),
@@ -625,10 +766,17 @@ export const api = {
         return { user, token: authData.session?.access_token || '' };
       } catch (error: any) {
         console.error('Supabase Registration Error:', error);
-        if (error.message !== 'Failed to fetch') {
+        
+        // Handle common connectivity errors gracefully
+        const isConnectivityError = error.message?.toLowerCase().includes('failed to fetch') || 
+                                   error.message?.toLowerCase().includes('network error') ||
+                                   error.status === 0;
+
+        if (isConnectivityError) {
+          console.warn('Supabase unreachable during registration, falling back to mock registration for demo stability');
+        } else {
           throw new Error(error.message || 'Registration failed');
         }
-        console.warn('Supabase unreachable, falling back to mock registration');
       }
     }
 
@@ -675,8 +823,33 @@ export const api = {
   async getUsers(tenantId: string = 'tenant-1', requesterRole?: UserRole): Promise<User[]> {
     if (requesterRole) checkRole(requesterRole, ['ADMIN', 'DISPATCHER', 'FINANCE']);
     const cacheKey = `users_all_${tenantId}`;
+
+    // 1. Try Redis Hot Cache
+    const redisCache = await cacheService.get<User[]>(`hot_users_${tenantId}`);
+    if (redisCache) return redisCache;
+
     const cached = getCached(cacheKey);
     if (cached) return cached;
+
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('tenant_id', tenantId);
+
+        if (error) throw error;
+        if (data && data.length > 0) {
+          const users = data.map(u => toCamelCase(u));
+          setCached(cacheKey, users);
+          // Populate Redis Hot Cache (300s TTL)
+          await cacheService.set(`hot_users_${tenantId}`, users, 300);
+          return users;
+        }
+      } catch (err) {
+        console.warn('Supabase getUsers failed, falling back to local store', err);
+      }
+    }
 
     if (canUseFrappe()) {
       try {
@@ -700,6 +873,24 @@ export const api = {
     const cacheKey = `user_${id}`;
     const cached = getCached(cacheKey);
     if (cached) return cached;
+
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', id)
+          .single();
+
+        if (!error && data) {
+          const user = toCamelCase(data);
+          setCached(cacheKey, user);
+          return user;
+        }
+      } catch (err) {
+        console.warn('Supabase getUserById failed', err);
+      }
+    }
 
     const users = await api.getUsers();
     const user = users.find(u => u.id === id) || null;
@@ -770,6 +961,48 @@ export const api = {
     }
     const sanitizedData = { ...sanitizeObject(data), tenantId };
     clearCache('users');
+
+    if (isSupabaseConfigured) {
+      try {
+        const { data: newUser, error } = await supabase
+          .from('profiles')
+          .insert([{
+            id: sanitizedData.id || undefined,
+            tenant_id: tenantId,
+            name: sanitizedData.name,
+            email: sanitizedData.email,
+            role: sanitizedData.role,
+            company: sanitizedData.company,
+            phone: sanitizedData.phone,
+            id_number: sanitizedData.idNumber,
+            kra_pin: sanitizedData.kraPin,
+            license_number: sanitizedData.licenseNumber,
+            date_of_birth: sanitizedData.dateOfBirth,
+            gender: sanitizedData.gender,
+            nationality: sanitizedData.nationality,
+            emergency_contact: sanitizedData.emergencyContact,
+            emergency_phone: sanitizedData.emergencyPhone,
+            address: sanitizedData.address,
+            preferences: sanitizedData.preferences || {}
+          }])
+          .select()
+          .single();
+
+        if (error) throw error;
+        return {
+          ...newUser,
+          idNumber: newUser.id_number,
+          kraPin: newUser.kra_pin,
+          licenseNumber: newUser.license_number,
+          isOnboarded: newUser.is_onboarded,
+          onboardingStep: newUser.onboarding_step,
+          verificationStatus: newUser.verification_status
+        };
+      } catch (err) {
+        console.warn('Supabase createUser failed, falling back to local store', err);
+      }
+    }
+
     if (canUseFrappe()) {
       try {
         const newUser = await FrappeService.createDoc<User>('User', sanitizedData);
@@ -791,6 +1024,56 @@ export const api = {
       const users = await api.getUsers(tenantId);
       return users.find(u => u.id === id) || { id, ...data } as User;
     }
+    
+    const sanitizedData = sanitizeObject(data);
+
+    if (isSupabaseConfigured) {
+      try {
+        const snakeUpdates: any = {
+          updated_at: new Date().toISOString()
+        };
+
+        if (sanitizedData.name) snakeUpdates.name = sanitizedData.name;
+        if (sanitizedData.email) snakeUpdates.email = sanitizedData.email;
+        if (sanitizedData.role) snakeUpdates.role = sanitizedData.role;
+        if (sanitizedData.company) snakeUpdates.company = sanitizedData.company;
+        if (sanitizedData.phone) snakeUpdates.phone = sanitizedData.phone;
+        if (sanitizedData.idNumber) snakeUpdates.id_number = sanitizedData.idNumber;
+        if (sanitizedData.kraPin) snakeUpdates.kra_pin = sanitizedData.kraPin;
+        if (sanitizedData.licenseNumber) snakeUpdates.license_number = sanitizedData.licenseNumber;
+        if (sanitizedData.dateOfBirth) snakeUpdates.date_of_birth = sanitizedData.dateOfBirth;
+        if (sanitizedData.gender) snakeUpdates.gender = sanitizedData.gender;
+        if (sanitizedData.nationality) snakeUpdates.nationality = sanitizedData.nationality;
+        if (sanitizedData.emergencyContact) snakeUpdates.emergency_contact = sanitizedData.emergencyContact;
+        if (sanitizedData.emergencyPhone) snakeUpdates.emergency_phone = sanitizedData.emergencyPhone;
+        if (sanitizedData.address) snakeUpdates.address = sanitizedData.address;
+        if (sanitizedData.onDuty !== undefined) snakeUpdates.on_duty = sanitizedData.onDuty;
+        if (sanitizedData.verificationStatus) snakeUpdates.verification_status = sanitizedData.verificationStatus;
+        if (sanitizedData.isOnboarded !== undefined) snakeUpdates.is_onboarded = sanitizedData.isOnboarded;
+        if (sanitizedData.preferences) snakeUpdates.preferences = sanitizedData.preferences;
+
+        const { data: updatedUser, error } = await supabase
+          .from('profiles')
+          .update(snakeUpdates)
+          .eq('id', id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        return {
+          ...updatedUser,
+          idNumber: updatedUser.id_number,
+          kraPin: updatedUser.kra_pin,
+          licenseNumber: updatedUser.license_number,
+          isOnboarded: updatedUser.is_onboarded,
+          onboardingStep: updatedUser.onboarding_step,
+          verificationStatus: updatedUser.verification_status
+        };
+      } catch (err) {
+        console.warn('Supabase updateUser failed, falling back to local store', err);
+      }
+    }
+
     if (!id) {
       console.warn('updateUser called with undefined ID, attempting recovery...', data);
       const users = getStore('users', initialUsers);
@@ -803,8 +1086,6 @@ export const api = {
         throw new Error('Cannot update user: ID is undefined and no users found in store');
       }
     }
-    
-    const sanitizedData = sanitizeObject(data);
     if (canUseFrappe()) {
       try {
         const updated = await FrappeService.updateDoc<User>('User', id, sanitizedData);
@@ -815,16 +1096,31 @@ export const api = {
         isFrappeHealthy = false;
       }
     }
-    const users = await api.getUsers(tenantId);
-    const updated = users.map(u => u.id === id ? { ...u, ...sanitizedData } : u);
-    setStore('users', [...getStore('users', initialUsers).filter(u => u.tenantId !== tenantId), ...updated]);
+    const allUsers = getStore('users', initialUsers);
+    const updatedAll = allUsers.map(u => u.id === id ? { ...u, ...sanitizedData } : u);
+    setStore('users', updatedAll);
     clearCache(`users_all_${tenantId}`);
     clearCache(`user_${id}`);
-    return updated.find(u => u.id === id) || { id, ...sanitizedData } as User;
+    return updatedAll.find(u => u.id === id) || { id, ...sanitizedData } as User;
   },
 
   async deleteUser(id: string, tenantId: string = 'tenant-1'): Promise<void> {
     clearCache(`users_all_${tenantId}`);
+    
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase
+          .from('profiles')
+          .delete()
+          .eq('id', id);
+
+        if (error) throw error;
+        return;
+      } catch (err) {
+        console.warn('Supabase deleteUser failed, falling back to local store', err);
+      }
+    }
+
     if (canUseFrappe()) {
       try {
         await FrappeService.deleteDoc('User', id);
@@ -887,6 +1183,36 @@ export const api = {
     const cached = getCached(cacheKey);
     if (cached) return cached;
 
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('delivery_notes')
+          .select('*')
+          .eq('tenant_id', tenantId);
+
+        if (error) throw error;
+        
+        const mapped = (data || []).map(dn => ({
+          ...dn,
+          externalId: dn.dn_number,
+          clientName: dn.customer_name,
+          address: dn.delivery_address,
+          routeGeometry: dn.route_geometry,
+          lastLat: dn.last_lat,
+          lastLng: dn.last_lng,
+          lastTelemetryAt: dn.last_telemetry_at,
+          scheduledDate: dn.scheduled_date,
+          createdAt: dn.created_at,
+          updatedAt: dn.updated_at
+        }));
+
+        setCached(cacheKey, mapped);
+        return mapped;
+      } catch (err) {
+        console.warn('Supabase getDeliveryNotes failed, falling back to other stores', err);
+      }
+    }
+
     if (canUseFrappe()) {
       try {
         const data = await FrappeService.getList<DeliveryNote>('Delivery Note', {
@@ -916,6 +1242,46 @@ export const api = {
     const cached = getCached(cacheKey);
     if (cached) return cached;
 
+    if (isSupabaseConfigured) {
+      try {
+        let query = supabase
+          .from('delivery_notes')
+          .select('*', { count: 'exact' })
+          .eq('tenant_id', tenantId);
+
+        if (filters?.search) {
+          query = query.or(`dn_number.ilike.%${filters.search}%,customer_name.ilike.%${filters.search}%`);
+        }
+
+        const start = (page - 1) * limit;
+        const { data, error, count } = await query
+          .range(start, start + limit - 1)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        const mapped = (data || []).map(dn => ({
+          ...dn,
+          externalId: dn.dn_number,
+          clientName: dn.customer_name,
+          address: dn.delivery_address,
+          routeGeometry: dn.route_geometry,
+          lastLat: dn.last_lat,
+          lastLng: dn.last_lng,
+          lastTelemetryAt: dn.last_telemetry_at,
+          scheduledDate: dn.scheduled_date,
+          createdAt: dn.created_at,
+          updatedAt: dn.updated_at
+        }));
+
+        const result = { data: mapped, total: count || 0 };
+        setCached(cacheKey, result);
+        return result;
+      } catch (err) {
+        console.warn('Supabase getDeliveryNotesPaged failed, falling back to local store', err);
+      }
+    }
+
     let all: DeliveryNote[] = getStore('delivery_notes', initialDeliveryNotes);
     
     // Enforce tenant isolation
@@ -943,6 +1309,41 @@ export const api = {
     }
     const sanitizedData = { ...sanitizeObject(data), tenantId };
     clearCache(`dns_all_${tenantId}`);
+
+    if (isSupabaseConfigured) {
+      try {
+        const { data: newDn, error } = await supabase
+          .from('delivery_notes')
+          .insert([{
+            tenant_id: tenantId,
+            dn_number: sanitizedData.externalId || `EXT-${Math.random().toString(36).substring(7).toUpperCase()}`,
+            customer_name: sanitizedData.clientName,
+            delivery_address: sanitizedData.address,
+            status: sanitizedData.status || DNStatus.RECEIVED,
+            priority: sanitizedData.priority || 'MEDIUM',
+            items: sanitizedData.items || [],
+            loading_point: sanitizedData.originAddress,
+            destination: sanitizedData.address,
+            scheduled_date: sanitizedData.plannedDeliveryDate,
+            lat: sanitizedData.lat,
+            lng: sanitizedData.lng,
+            route_geometry: sanitizedData.routeGeometry
+          }])
+          .select()
+          .single();
+
+        if (error) throw error;
+        return {
+          ...newDn,
+          externalId: newDn.dn_number,
+          clientName: newDn.customer_name,
+          address: newDn.delivery_address,
+          routeGeometry: newDn.route_geometry
+        };
+      } catch (err) {
+        console.warn('Supabase createDeliveryNote failed, falling back to other stores', err);
+      }
+    }
     
     if (canUseFrappe()) {
       try {
@@ -984,6 +1385,42 @@ export const api = {
     }
     const sanitizedData = sanitizeObject(data);
     
+    if (isSupabaseConfigured) {
+      try {
+        const updates: any = {
+          updated_at: new Date().toISOString()
+        };
+        if (sanitizedData.externalId) updates.dn_number = sanitizedData.externalId;
+        if (sanitizedData.clientName) updates.customer_name = sanitizedData.clientName;
+        if (sanitizedData.address) updates.delivery_address = sanitizedData.address;
+        if (sanitizedData.status) updates.status = sanitizedData.status;
+        if (sanitizedData.priority) updates.priority = sanitizedData.priority;
+        if (sanitizedData.items) updates.items = sanitizedData.items;
+        if (sanitizedData.routeGeometry !== undefined) updates.route_geometry = sanitizedData.routeGeometry;
+        if (sanitizedData.lastLat !== undefined) updates.last_lat = sanitizedData.lastLat;
+        if (sanitizedData.lastLng !== undefined) updates.last_lng = sanitizedData.lastLng;
+        if (sanitizedData.lastTelemetryAt !== undefined) updates.last_telemetry_at = sanitizedData.lastTelemetryAt;
+
+        const { data: updatedDn, error } = await supabase
+          .from('delivery_notes')
+          .update(updates)
+          .eq('id', id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        return {
+          ...updatedDn,
+          externalId: updatedDn.dn_number,
+          clientName: updatedDn.customer_name,
+          address: updatedDn.delivery_address,
+          routeGeometry: updatedDn.route_geometry
+        };
+      } catch (err) {
+        console.warn('Supabase updateDeliveryNote failed, falling back to other stores', err);
+      }
+    }
+
     if (canUseFrappe()) {
       try {
         const updated = await FrappeService.updateDoc<DeliveryNote>('Delivery Note', id, sanitizedData);
@@ -999,24 +1436,6 @@ export const api = {
     const updated = dns.map(d => d.id === id ? { ...d, ...sanitizedData } : d);
     setStore('delivery_notes', updated);
     return updated.find(u => u.id === id)!;
-  },
-
-  async generateSampleData(): Promise<void> {
-    await logAudit('GENERATE_SAMPLE_DATA', { timestamp: new Date().toISOString() });
-    
-    // Clear existing data to avoid duplicates in demo mode
-    clearCache();
-    
-    // Populate with initial data sets
-    setStore('delivery_notes', initialDeliveryNotes);
-    setStore('vehicles', initialVehicles);
-    setStore('facilities', initialFacilities);
-    setStore('users', initialUsers);
-    setStore('inventory', initialInventory);
-    setStore('zones', initialZones);
-    setStore('orders', initialOrders);
-    
-    return new Promise(resolve => setTimeout(resolve, 1500)); // Simulate processing
   },
 
   async updateDNItems(id: string, items: DeliveryItem[], user: string): Promise<void> {
@@ -1062,16 +1481,38 @@ export const api = {
     setStore('delivery_notes', updated);
   },
 
-  async updateDNStatus(id: string, status: DNStatus, metadata: any = {}, user?: string): Promise<void> {
+  async updateDNStatus(id: string, status: DNStatus, metadata: any = {}, user?: string, tenantId: string = 'tenant-1'): Promise<void> {
+    if (isSupabaseConfigured) {
+      try {
+        const updates: any = {
+          status,
+          updated_at: new Date().toISOString()
+        };
+        if (metadata.routeGeometry) updates.route_geometry = metadata.routeGeometry;
+        if (metadata.notes) updates.notes = metadata.notes;
+
+        const { error } = await supabase
+          .from('delivery_notes')
+          .update(updates)
+          .eq('id', id)
+          .eq('tenant_id', tenantId);
+
+        if (error) throw error;
+      } catch (err) {
+        console.warn('Supabase updateDNStatus failed, falling back to other stores', err);
+      }
+    }
+
     if (canUseFrappe()) {
       try {
         await FrappeService.callMethod('shipstack.api.update_dn_status', {
           id,
           status,
           metadata,
-          user
+          user,
+          tenantId
         });
-        await logAudit('UPDATE_DN_STATUS', { id, status, metadata }, user);
+        await logAudit('UPDATE_DN_STATUS', { id, status, metadata, tenantId }, user);
         return;
       } catch (err) {
         console.warn('Frappe updateDNStatus failed, falling back to local store', err);
@@ -1079,8 +1520,8 @@ export const api = {
       }
     }
 
-    const dns = await api.getDeliveryNotes();
-    const updated = dns.map(d => {
+    const dns = await api.getDeliveryNotes(tenantId);
+    const updated = getStore('delivery_notes', initialDeliveryNotes).map(d => {
       if (d.id === id) {
         let routeData = metadata.routeGeometry;
         // Generate mock route if initializing trip
@@ -1128,9 +1569,9 @@ export const api = {
     await logAudit('SAFETY_EVENT', event);
   },
 
-  async batchUpdateStatus(ids: string[], status: DNStatus, metadata: any = {}, user?: string): Promise<void> {
+  async batchUpdateStatus(ids: string[], status: DNStatus, metadata: any = {}, user?: string, tenantId: string = 'tenant-1'): Promise<void> {
     for (const id of ids) {
-      await api.updateDNStatus(id, status, metadata, user);
+      await api.updateDNStatus(id, status, metadata, user, tenantId);
     }
   },
 
@@ -1143,6 +1584,23 @@ export const api = {
     const cacheKey = `facilities_all_${tenantId}`;
     const cached = getCached(cacheKey);
     if (cached) return cached;
+
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('facilities')
+          .select('*')
+          .eq('tenant_id', tenantId);
+
+        if (!error && data) {
+          const facilities = data.map(f => toCamelCase(f));
+          setCached(cacheKey, facilities);
+          return facilities;
+        }
+      } catch (err) {
+        console.warn('Supabase getFacilities failed', err);
+      }
+    }
 
     if (canUseFrappe()) {
       try {
@@ -1224,28 +1682,89 @@ export const api = {
   },
 
   // --- Tenant Management ---
+  async getTenants(): Promise<Tenant[]> {
+    return getStore('tenants_list', initialTenants);
+  },
+
   async getTenant(id: string): Promise<Tenant | null> {
-    return getStore('tenant', null);
+    const tenants = await api.getTenants();
+    return tenants.find(t => t.id === id) || (id === 'tenant-1' ? getStore('tenant', initialTenants[0]) : null);
+  },
+
+  async createTenant(data: Partial<Tenant>): Promise<Tenant> {
+    const tenants = await api.getTenants();
+    const newTenant: Tenant = {
+      id: `tenant-${Date.now()}`,
+      name: data.name || 'New Tenant',
+      slug: (data.name || 'New Tenant').toLowerCase().replace(/\s+/g, '-'),
+      plan: data.plan || 'GROWTH',
+      status: 'ACTIVE',
+      industry: data.industry || 'GENERAL',
+      settings: data.settings || {
+        currency: 'KES',
+        timezone: 'Africa/Nairobi',
+        primaryColor: '#0F2A44',
+        onboardingCompleted: false
+      },
+      enabledModules: data.enabledModules || ['dispatch', 'fleet', 'finance', 'orders'],
+      securitySettings: data.securitySettings || {
+        auditLogging: true,
+        twoFactorAuth: false,
+        requireNTSAVerification: true
+      },
+      createdAt: new Date().toISOString(),
+      ...data
+    } as Tenant;
+    
+    setStore('tenants_list', [newTenant, ...tenants]);
+    await logAudit('CREATE_TENANT', { id: newTenant.id, name: newTenant.name });
+    return newTenant;
   },
 
   async updateTenant(id: string, data: Partial<Tenant>): Promise<Tenant> {
     try {
       const sanitizedData = sanitizeObject(data);
-      const current = await api.getTenant(id);
-      const updated = { ...(current || {}), ...sanitizedData } as Tenant;
+      const tenants = await api.getTenants();
+      const index = tenants.findIndex(t => t.id === id);
+      
+      let updated: Tenant;
+      if (index !== -1) {
+        updated = { ...tenants[index], ...sanitizedData } as Tenant;
+        const newTenants = [...tenants];
+        newTenants[index] = updated;
+        setStore('tenants_list', newTenants);
+      } else {
+        // Fallback for current tenant store
+        const current = getStore('tenant', initialTenants[0]);
+        updated = { ...(current || {}), ...sanitizedData } as Tenant;
+      }
       
       // Ensure enabledModules is always an array
       if (!Array.isArray(updated.enabledModules)) {
         updated.enabledModules = ['dispatch', 'fleet', 'finance', 'orders'];
       }
       
-      setStore('tenant', updated);
+      // Also update the single "current" tenant store if it matches
+      const currentTenant = getStore<Tenant | null>('tenant', null);
+      if (currentTenant?.id === id) {
+        setStore('tenant', updated);
+      } else if (id === 'tenant-1' && !currentTenant) {
+        setStore('tenant', updated);
+      }
+      
       await logAudit('UPDATE_TENANT', { id, modules: updated.enabledModules });
       return updated;
     } catch (err) {
       console.error('api.updateTenant failed:', err);
       throw err;
     }
+  },
+
+  async deleteTenant(id: string): Promise<void> {
+    const tenants = await api.getTenants();
+    const filtered = tenants.filter(t => t.id !== id);
+    setStore('tenants_list', filtered);
+    await logAudit('DELETE_TENANT', { id });
   },
 
   async getDrivers(tenantId: string = 'tenant-1'): Promise<User[]> {
@@ -1257,6 +1776,23 @@ export const api = {
     const cacheKey = `vehicles_all_${tenantId}`;
     const cached = getCached(cacheKey);
     if (cached) return cached;
+
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('vehicles')
+          .select('*')
+          .eq('tenant_id', tenantId);
+
+        if (!error && data) {
+          const vehicles = data.map(v => toCamelCase(v));
+          setCached(cacheKey, vehicles);
+          return vehicles;
+        }
+      } catch (err) {
+        console.warn('Supabase getVehicles failed', err);
+      }
+    }
 
     if (canUseFrappe()) {
       try {
@@ -1316,10 +1852,10 @@ export const api = {
         isFrappeHealthy = false;
       }
     }
-    const current = await api.getVehicles(tenantId);
-    const updated = current.map(v => v.id === id ? { ...v, ...sanitizedData } : v);
-    setStore('vehicles', updated);
-    return updated.find(v => v.id === id)!;
+    const allVehicles = getStore('vehicles', initialVehicles);
+    const updatedAll = allVehicles.map(v => v.id === id ? { ...v, ...sanitizedData } : v);
+    setStore('vehicles', updatedAll);
+    return updatedAll.find(v => v.id === id)!;
   },
 
   async deleteVehicle(id: string, tenantId: string = 'tenant-1'): Promise<void> {
@@ -1339,14 +1875,31 @@ export const api = {
     setStore('vehicles', [...getStore('vehicles', initialVehicles).filter(v => v.tenantId !== tenantId), ...updated]);
   },
 
-  async getTrips(): Promise<Trip[]> {
-    const cacheKey = 'trips_all';
+  async getTrips(tenantId: string = 'tenant-1'): Promise<Trip[]> {
+    const cacheKey = `trips_all_${tenantId}`;
     const cached = getCached(cacheKey);
     if (cached) return cached;
 
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('trips')
+          .select('*')
+          .eq('tenant_id', tenantId);
+
+        if (!error && data) {
+          const trips = data.map(t => toCamelCase(t));
+          setCached(cacheKey, trips);
+          return trips;
+        }
+      } catch (err) {
+        console.warn('Supabase getTrips failed', err);
+      }
+    }
+
     if (canUseFrappe()) {
       try {
-        const data = await FrappeService.getList<Trip>('Trip');
+        const data = await FrappeService.getList<Trip>('Trip', { tenant_id: tenantId });
         setCached(cacheKey, data);
         return data;
       } catch (err) {
@@ -1356,9 +1909,10 @@ export const api = {
     }
     const raw = getStore('trips', []);
     const rawArray = Array.isArray(raw) ? raw : [];
-    const data = Array.from(new Map(rawArray.map(t => [t.id, t])).values());
-    setCached(cacheKey, data);
-    return data;
+    const all = Array.from(new Map(rawArray.map(t => [t.id, t])).values()) as Trip[];
+    const filtered = all.filter(t => !t.tenantId || t.tenantId === tenantId);
+    setCached(cacheKey, filtered);
+    return filtered;
   },
 
   async reconcileTrip(tripId: string, data: { codCollected: number, returnedItemsCount: number }): Promise<void> {
@@ -1369,21 +1923,45 @@ export const api = {
   },
 
   async clockIn(userId: string): Promise<void> {
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase
+          .from('profiles')
+          .update({ on_duty: true })
+          .eq('id', userId);
+        if (error) throw error;
+      } catch (err) {
+        console.warn('Supabase clockIn failed', err);
+      }
+    }
+
     const users = await api.getUsers();
     const updated = users.map(u => u.id === userId ? { ...u, onDuty: true } : u);
     setStore('users', updated);
   },
 
   async clockOut(userId: string): Promise<void> {
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase
+          .from('profiles')
+          .update({ on_duty: false })
+          .eq('id', userId);
+        if (error) throw error;
+      } catch (err) {
+        console.warn('Supabase clockOut failed', err);
+      }
+    }
+
     const users = await api.getUsers();
     const updated = users.map(u => u.id === userId ? { ...u, onDuty: false } : u);
     setStore('users', updated);
   },
 
-  async createTrip(data: Omit<Trip, 'id' | 'status'>): Promise<Trip> {
-    const sanitizedData = sanitizeObject(data);
-    clearCache('trips');
-    clearCache('dns');
+  async createTrip(data: Omit<Trip, 'id' | 'status'>, tenantId: string = 'tenant-1'): Promise<Trip> {
+    const sanitizedData = { ...sanitizeObject(data), tenantId };
+    clearCache(`trips_all_${tenantId}`);
+    clearCache(`dns_all_${tenantId}`);
     if (canUseFrappe()) {
       try {
         const newTrip = await FrappeService.callMethod<Trip>('shipstack.api.create_trip', sanitizedData);
@@ -1424,9 +2002,33 @@ export const api = {
     }
   },
 
-  async deleteTrip(id: string): Promise<void> {
-    clearCache('trips');
-    clearCache('dns');
+  async updateTrip(id: string, data: Partial<Trip>, tenantId: string = 'tenant-1'): Promise<Trip> {
+    const sanitizedData = sanitizeObject(data);
+    clearCache(`trips_all_${tenantId}`);
+    clearCache(`dns_all_${tenantId}`);
+    if (canUseFrappe()) {
+      try {
+        const updated = await FrappeService.updateDoc<Trip>('Trip', id, sanitizedData);
+        await logAudit('UPDATE_TRIP', { id, data: sanitizedData });
+        return updated;
+      } catch (err) {
+        console.warn('Frappe updateTrip failed, falling back to local store', err);
+        isFrappeHealthy = false;
+      }
+    }
+    const trips = await api.getTrips();
+    const updated = trips.map(t => t.id === id ? { ...t, ...sanitizedData } : t);
+    setStore('trips', updated);
+    
+    // If dnIds changed, we might need to update DN status, but for simplicity in this mock
+    // we assume the caller handles DN status updates if needed or we just keep them as DISPATCHED.
+    
+    return updated.find(t => t.id === id)!;
+  },
+
+  async deleteTrip(id: string, tenantId: string = 'tenant-1'): Promise<void> {
+    clearCache(`trips_all_${tenantId}`);
+    clearCache(`dns_all_${tenantId}`);
     if (canUseFrappe()) {
       try {
         await FrappeService.callMethod('shipstack.api.delete_trip', { id });
@@ -1475,6 +2077,30 @@ export const api = {
     return getStore('import_logs', [
       { id: 'il-1', filename: 'Manifest_Q1.csv', status: 'COMPLETED', recordsProcessed: 450, successCount: 442, errorCount: 8, timestamp: new Date().toISOString(), severity: 'info', message: 'Import completed successfully' }
     ]);
+  },
+
+  exportToCSV(data: any[], filename: string) {
+    if (!data || data.length === 0) return;
+    const headers = Object.keys(data[0]);
+    const csvContent = [
+      headers.join(','),
+      ...data.map(row => headers.map(header => {
+        const val = row[header];
+        return typeof val === 'string' ? `"${val.replace(/"/g, '""')}"` : val;
+      }).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${filename}_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   },
 
   async processFrappeStockImport(data: any[]): Promise<{ success: number; failed: number; errors: any[] }> {
@@ -1530,18 +2156,19 @@ export const api = {
     return { success, failed, errors };
   },
 
-  async processImport(data: any[]): Promise<void> {
-    const dns = await api.getDeliveryNotes();
+  async processImport(data: any[], tenantId: string = 'tenant-1'): Promise<void> {
+    const dns = await api.getDeliveryNotes(tenantId);
     const newDns = data.map((d, i) => ({
       id: `dn-imp-${Date.now()}-${i}`,
       externalId: `IMP-${Math.random().toString(36).substring(7).toUpperCase()}`,
       status: DNStatus.RECEIVED,
       createdAt: new Date().toISOString(),
+      tenantId,
       logs: [],
       documents: [],
       ...d
     }));
-    setStore('delivery_notes', [...dns, ...newDns]);
+    setStore('delivery_notes', [...getStore('delivery_notes', initialDeliveryNotes), ...newDns]);
   },
 
   async getRoute(start: [number, number], end: [number, number]): Promise<any> {
@@ -1549,12 +2176,32 @@ export const api = {
   },
 
   async updateTelemetry(dnId: string, lat: number, lng: number): Promise<void> {
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase
+          .from('delivery_notes')
+          .update({
+            last_lat: lat,
+            last_lng: lng,
+            last_telemetry_at: new Date().toISOString()
+          })
+          .eq('id', dnId);
+
+        if (error) throw error;
+      } catch (err) {
+        console.warn('Supabase updateTelemetry failed', err);
+      }
+    }
+
     const dns = await api.getDeliveryNotes();
     const updated = dns.map(d => d.id === dnId ? { ...d, lastLat: lat, lastLng: lng, lastTelemetryAt: new Date().toISOString() } : d);
     setStore('delivery_notes', updated);
     
     // Emit real-time telemetry via Socket.io
     telemetryService.emitTelemetry(dnId, lat, lng);
+    
+    // Cache hot telemetry in Redis for high-speed retrieval (10 min TTL)
+    await cacheService.set(`telemetry_${dnId}`, { lat, lng, timestamp: new Date().toISOString() }, 600);
   },
 
   async syncOfflineTelemetry(): Promise<void> {
@@ -1579,14 +2226,32 @@ export const api = {
   },
 
   // --- Zones ---
-  async getZones(): Promise<Zone[]> {
-    const cacheKey = 'zones_all';
+  async getZones(tenantId: string = 'tenant-1'): Promise<Zone[]> {
+    const cacheKey = `zones_all_${tenantId}`;
     const cached = getCached(cacheKey);
     if (cached) return cached;
 
-    const data = getStore('zones', initialZones);
-    setCached(cacheKey, data);
-    return data;
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('zones')
+          .select('*')
+          .eq('tenant_id', tenantId);
+
+        if (!error && data) {
+          const zones = data.map(z => toCamelCase(z));
+          setCached(cacheKey, zones);
+          return zones;
+        }
+      } catch (err) {
+        console.warn('Supabase getZones failed', err);
+      }
+    }
+
+    const all = getStore('zones', initialZones);
+    const filtered = all.filter(z => !z.tenantId || z.tenantId === tenantId);
+    setCached(cacheKey, filtered);
+    return filtered;
   },
 
   async createZone(data: Partial<Zone>): Promise<Zone> {
@@ -1715,35 +2380,35 @@ export const api = {
     setStore('api_keys', updated);
   },
 
-  async batchApproveOrders(ids: string[], requesterRole?: UserRole, requestId?: string): Promise<void> {
+  async batchApproveOrders(ids: string[], requesterRole?: UserRole, tenantId: string = 'tenant-1', requestId?: string): Promise<void> {
     if (requesterRole) checkRole(requesterRole, ['ADMIN', 'DISPATCHER']);
     if (!checkIdempotency(requestId)) return;
-    const orders = await api.getOrders();
-    const updated = orders.map(o => ids.includes(o.id) ? { ...o, status: 'APPROVED' as const, updatedAt: new Date().toISOString() } : o);
+    const allOrders = getStore('orders', initialOrders);
+    const updated = allOrders.map(o => ids.includes(o.id) ? { ...o, status: 'APPROVED' as const, updatedAt: new Date().toISOString() } : o);
     setStore('orders', updated);
     
     // Automatically create DNs for approved orders
     for (const id of ids) {
-      const order = orders.find(o => o.id === id);
+      const order = allOrders.find(o => o.id === id);
       if (order) {
         await api.createDeliveryNote({
           externalId: order.externalId,
           clientName: order.customerName,
           status: DNStatus.RECEIVED,
           items: order.items,
-          tenantId: order.tenantId
-        }, order.tenantId, `dn-auto-${order.id}`);
+          tenantId: order.tenantId || tenantId
+        }, order.tenantId || tenantId, `dn-auto-${order.id}`);
       }
     }
   },
 
-  async batchDisburseCommission(tripIds: string[], requesterRole?: UserRole, requestId?: string): Promise<void> {
+  async batchDisburseCommission(tripIds: string[], requesterRole?: UserRole, tenantId: string = 'tenant-1', requestId?: string): Promise<void> {
     if (requesterRole) checkRole(requesterRole, ['ADMIN', 'FINANCE']);
     if (!checkIdempotency(requestId)) return;
-    const trips = await api.getTrips();
-    const updated = trips.map(t => tripIds.includes(t.id) ? { ...t, commissionStatus: 'DISBURSED' as const } : t);
+    const allTrips = getStore('trips', initialTrips);
+    const updated = allTrips.map(t => tripIds.includes(t.id) ? { ...t, commissionStatus: 'DISBURSED' as const } : t);
     setStore('trips', updated);
-    await logAudit('BATCH_PAYOUT', { count: tripIds.length, tripIds });
+    await logAudit('BATCH_PAYOUT', { count: tripIds.length, tripIds, tenantId });
   },
 
   // --- Webhooks ---
@@ -1809,7 +2474,7 @@ export const api = {
   async checkSupabaseHealth(): Promise<boolean> {
     if (!isSupabaseConfigured) return false;
     try {
-      const { error } = await supabase.from('_health_check').select('id').limit(1);
+      const { error } = await supabase.from('health_check').select('id').limit(1);
       // If error is 404 (table not found), it still means Supabase is reachable
       if (error && error.code !== 'PGRST116' && error.code !== '42P01') {
         console.error('Supabase Health Check Failed:', error);
@@ -1832,12 +2497,12 @@ export const api = {
       if (connError) {
         if (connError.code === 'PGRST116' || connError.code === '42P01') {
           // Table doesn't exist, this is actually "healthy" in terms of connectivity
-          return { success: true, message: 'Supabase is reachable, but health_check table is missing (normal).' };
+          return { success: true, message: 'Supabase is reachable, but some tables are missing. See SUPABASE_SETUP.md for SQL commands to initialize your database.' };
         }
-        return { success: false, message: `Supabase error: ${connError.message}` };
+        return { success: false, message: `Supabase error: ${connError.message}. Check if your project URL and Anon Key are correct.` };
       }
 
-      return { success: true, message: 'Supabase connection is healthy.' };
+      return { success: true, message: 'Supabase connection is healthy and tables are initialized.' };
     } catch (err) {
       return { success: false, message: `Troubleshooting failed: ${err instanceof Error ? err.message : String(err)}` };
     }
@@ -1977,12 +2642,12 @@ export const api = {
     return all.filter(m => !m.tenantId || m.tenantId === tenantId);
   },
   
-  async addMaintenanceLog(log: Partial<MaintenanceLog>, requestId?: string): Promise<MaintenanceLog> {
+  async addMaintenanceLog(log: Partial<MaintenanceLog>, tenantId: string = 'tenant-1', requestId?: string): Promise<MaintenanceLog> {
     if (!checkIdempotency(requestId)) {
-      const logs = await api.getMaintenanceLogs();
+      const logs = await api.getMaintenanceLogs(tenantId);
       return logs[0];
     }
-    const logs = await api.getMaintenanceLogs();
+    const logs = await api.getMaintenanceLogs(tenantId);
     const newLog: MaintenanceLog = {
       id: `maint-${Date.now()}`,
       vehicleId: '',
@@ -1993,13 +2658,14 @@ export const api = {
       odometerReading: 0,
       performedBy: '',
       status: 'PENDING',
+      tenantId,
       ...log
     } as MaintenanceLog;
-    setStore('maintenance_logs', [newLog, ...logs]);
+    setStore('maintenance_logs', [newLog, ...getStore('maintenance_logs', [])]);
     
     // Update vehicle odometer and service dates if completed
     if (newLog.status === 'COMPLETED' && newLog.vehicleId) {
-      const vehicles = await api.getVehicles();
+      const vehicles = await api.getVehicles(tenantId);
       const vehicle = vehicles.find(v => v.id === newLog.vehicleId);
       if (vehicle) {
         await api.updateVehicle(vehicle.id, {
@@ -2020,12 +2686,12 @@ export const api = {
     return all.filter(f => !f.tenantId || f.tenantId === tenantId);
   },
 
-  async addFuelLog(log: Partial<FuelLog>, requestId?: string): Promise<FuelLog> {
+  async addFuelLog(log: Partial<FuelLog>, tenantId: string = 'tenant-1', requestId?: string): Promise<FuelLog> {
     if (!checkIdempotency(requestId)) {
-      const logs = await api.getFuelLogs();
+      const logs = await api.getFuelLogs(tenantId);
       return logs[0];
     }
-    const logs = await api.getFuelLogs();
+    const logs = await api.getFuelLogs(tenantId);
     const newLog: FuelLog = {
       id: `fuel-${Date.now()}`,
       vehicleId: '',
@@ -2034,13 +2700,14 @@ export const api = {
       amount: 0,
       cost: 0,
       odometerReading: 0,
+      tenantId,
       ...log
     } as FuelLog;
-    setStore('fuel_logs', [newLog, ...logs]);
+    setStore('fuel_logs', [newLog, ...getStore('fuel_logs', [])]);
 
     // Update vehicle odometer
     if (newLog.vehicleId) {
-      const vehicles = await api.getVehicles();
+      const vehicles = await api.getVehicles(tenantId);
       const vehicle = vehicles.find(v => v.id === newLog.vehicleId);
       if (vehicle) {
         await api.updateVehicle(vehicle.id, {
@@ -2395,29 +3062,68 @@ export const api = {
   },
 
   // --- Task Management ---
-  async getTasks(): Promise<Task[]> {
-    const cached = getCached('tasks');
+  async getTasks(tenantId: string = 'tenant-1'): Promise<Task[]> {
+    // 1. Try Redis Hot Cache
+    const redisCache = await cacheService.get<Task[]>(`hot_tasks_${tenantId}`);
+    if (redisCache) return redisCache;
+
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('tasks')
+          .select('*')
+          .eq('tenant_id', tenantId);
+
+        if (error) throw error;
+        const tasks = (data || []).map(t => toCamelCase(t));
+        // Populate Redis Hot Cache (300s TTL)
+        await cacheService.set(`hot_tasks_${tenantId}`, tasks, 300);
+        return tasks;
+      } catch (err) {
+        console.warn('Supabase getTasks failed, falling back to local store', err);
+      }
+    }
+
+    const cached = getCached(`tasks_${tenantId}`);
     if (cached) return cached;
 
     try {
-      const tasks: Task[] = JSON.parse(localStorage.getItem('shipstack_tasks') || '[]');
-      setCached('tasks', tasks);
-      return tasks;
+      const allTasks: Task[] = JSON.parse(localStorage.getItem('shipstack_tasks') || '[]');
+      const filtered = allTasks.filter(t => !t.tenantId || t.tenantId === tenantId);
+      setCached(`tasks_${tenantId}`, filtered);
+      return filtered;
     } catch (err) {
       return handleApiError(err, 'getTasks');
     }
   },
 
-  async createTask(task: Omit<Task, 'id'>): Promise<Task> {
+  async createTask(task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>): Promise<Task> {
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('tasks')
+          .insert([toSnakeCase(task)])
+          .select()
+          .single();
+
+        if (error) throw error;
+        return toCamelCase(data);
+      } catch (err) {
+        console.warn('Supabase createTask failed', err);
+      }
+    }
+
     try {
       const newTask: Task = {
         ...task,
-        id: `TASK-${Math.random().toString(36).substr(2, 9).toUpperCase()}`
+        id: `TASK-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       };
       const tasks = JSON.parse(localStorage.getItem('shipstack_tasks') || '[]');
       tasks.push(newTask);
       localStorage.setItem('shipstack_tasks', JSON.stringify(tasks));
-      clearCache('tasks');
+      clearCache(`tasks_${task.tenantId}`);
       return newTask;
     } catch (err) {
       return handleApiError(err, 'createTask');
@@ -2425,18 +3131,181 @@ export const api = {
   },
 
   async updateTask(id: string, updates: Partial<Task>): Promise<Task> {
+    if (isSupabaseConfigured) {
+      try {
+        const snakeUpdates: any = toSnakeCase(updates);
+        snakeUpdates.updated_at = new Date().toISOString();
+        
+        const { data, error } = await supabase
+          .from('tasks')
+          .update(snakeUpdates)
+          .eq('id', id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        return toCamelCase(data);
+      } catch (err) {
+        console.warn('Supabase updateTask failed', err);
+      }
+    }
+
     try {
       const tasks = JSON.parse(localStorage.getItem('shipstack_tasks') || '[]');
       const index = tasks.findIndex((t: Task) => t.id === id);
       if (index === -1) throw new Error('Task not found');
       
-      tasks[index] = { ...tasks[index], ...updates };
+      const tenantId = tasks[index].tenantId;
+      tasks[index] = { 
+        ...tasks[index], 
+        ...updates,
+        updatedAt: new Date().toISOString()
+      };
+      
       localStorage.setItem('shipstack_tasks', JSON.stringify(tasks));
-      clearCache('tasks');
+      clearCache(`tasks_${tenantId}`);
       return tasks[index];
     } catch (err) {
       return handleApiError(err, 'updateTask');
     }
+  },
+
+  async deleteTask(id: string, tenantId: string): Promise<void> {
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase
+          .from('tasks')
+          .delete()
+          .eq('id', id);
+
+        if (error) throw error;
+        return;
+      } catch (err) {
+        console.warn('Supabase deleteTask failed, falling back to local store', err);
+      }
+    }
+
+    try {
+      const tasks = JSON.parse(localStorage.getItem('shipstack_tasks') || '[]');
+      const filtered = tasks.filter((t: Task) => t.id !== id);
+      localStorage.setItem('shipstack_tasks', JSON.stringify(filtered));
+      clearCache(`tasks_${tenantId}`);
+    } catch (err) {
+      return handleApiError(err, 'deleteTask');
+    }
+  },
+
+  // --- Exception Management ---
+  async getExceptions(tenantId: string = 'tenant-1'): Promise<LogisticsException[]> {
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('exceptions')
+          .select('*')
+          .eq('tenant_id', tenantId)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return (data || []).map(e => ({
+          ...e,
+          dnId: e.dn_id,
+          reportedBy: e.reported_by,
+          reportedAt: e.created_at,
+          resolvedBy: e.resolved_by,
+          resolvedAt: e.resolved_at,
+          resolutionNotes: e.resolution_notes
+        }));
+      } catch (err) {
+        console.warn('Supabase getExceptions failed, falling back to local store', err);
+      }
+    }
+    return getStore('exceptions', []);
+  },
+
+  async createException(data: Partial<LogisticsException>, requestId?: string): Promise<LogisticsException> {
+    if (!checkIdempotency(requestId)) {
+      const exs = await api.getExceptions(data.tenantId);
+      return exs[0];
+    }
+    const sanitizedData = sanitizeObject(data);
+    
+    if (isSupabaseConfigured) {
+      try {
+        const { data: newEx, error } = await supabase
+          .from('exceptions')
+          .insert([{
+            tenant_id: sanitizedData.tenantId,
+            dn_id: sanitizedData.dnId,
+            type: sanitizedData.type,
+            severity: sanitizedData.severity || 'MEDIUM',
+            status: sanitizedData.status || 'PENDING',
+            description: sanitizedData.description,
+            reported_by: sanitizedData.reportedBy,
+          }])
+          .select()
+          .single();
+
+        if (error) throw error;
+        return {
+          ...newEx,
+          dnId: newEx.dn_id,
+          reportedBy: newEx.reported_by,
+          reportedAt: newEx.created_at
+        };
+      } catch (err) {
+        console.warn('Supabase createException failed, falling back to local store', err);
+      }
+    }
+
+    const ex: LogisticsException = {
+      id: `ex-${Date.now()}`,
+      reportedAt: new Date().toISOString(),
+      status: ExceptionStatus.REPORTED,
+      ...sanitizedData
+    } as LogisticsException;
+    
+    const existing = getStore('exceptions', [] as LogisticsException[]);
+    setStore('exceptions', [ex, ...existing]);
+    return ex;
+  },
+
+  async updateException(id: string, data: Partial<LogisticsException>): Promise<LogisticsException> {
+    const sanitizedData = sanitizeObject(data);
+
+    if (isSupabaseConfigured) {
+      try {
+        const { data: updatedEx, error } = await supabase
+          .from('exceptions')
+          .update({
+            status: sanitizedData.status,
+            resolution_notes: sanitizedData.resolutionNotes,
+            resolved_by: sanitizedData.resolvedBy,
+            resolved_at: sanitizedData.resolvedAt || new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        return {
+          ...updatedEx,
+          dnId: updatedEx.dn_id,
+          reportedBy: updatedEx.reported_by,
+          reportedAt: updatedEx.created_at,
+          resolvedBy: updatedEx.resolved_by,
+          resolvedAt: updatedEx.resolved_at,
+          resolutionNotes: updatedEx.resolution_notes
+        };
+      } catch (err) {
+        console.warn('Supabase updateException failed, falling back to local store', err);
+      }
+    }
+
+    const exs = getStore('exceptions', [] as LogisticsException[]);
+    const updated = exs.map(e => e.id === id ? { ...e, ...sanitizedData } : e);
+    setStore('exceptions', updated);
+    return updated.find(e => e.id === id)!;
   },
 
   async resetData(): Promise<void> {

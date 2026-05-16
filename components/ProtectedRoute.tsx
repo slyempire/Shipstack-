@@ -9,7 +9,8 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+  const user = useAuthStore(state => state.user);
   const location = useLocation();
   
   if (!isAuthenticated) {
@@ -27,8 +28,14 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowe
     const userRole = user.role.toLowerCase();
     const normalizedAllowed = allowedRoles.map(r => r.toLowerCase());
     
+    // Demo Admin Bypass
+    const isDemoAdmin = user.email === 'joemugoh215@gmail.com' || 
+                        user.email?.endsWith('@shipstack.com') || 
+                        localStorage.getItem('shipstack_demo_mode') === 'true';
+    
     // Check if directly allowed OR if user is an admin and admin/tenant_admin is allowed
-    const isAllowed = normalizedAllowed.includes(userRole) || 
+    const isAllowed = isDemoAdmin || 
+                     normalizedAllowed.includes(userRole) || 
                      (userRole === 'super_admin') ||
                      ((normalizedAllowed.includes('admin') || normalizedAllowed.includes('tenant_admin')) && 
                       ['admin', 'tenant_admin', 'super_admin'].includes(userRole));

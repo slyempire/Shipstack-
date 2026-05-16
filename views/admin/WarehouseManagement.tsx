@@ -227,7 +227,7 @@ const WarehouseManagement: React.FC = () => {
           <h1 className="text-3xl font-bold tracking-tight text-gray-900 mb-1">Warehouse management</h1>
           <p className="text-sm text-gray-500 font-medium">Inventory, bin locations & stock movements</p>
         </div>
-        <RoleGuard allowedRoles={['ADMIN', 'WAREHOUSE', 'DISPATCHER']}>
+        <RoleGuard allowedRoles={['super_admin', 'tenant_admin', 'facility_operator']}>
           <div className="flex items-center gap-2">
             {activeTab === 'bins' && (
               <button 

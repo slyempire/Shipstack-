@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
-import { useAuditStore, useAuthStore } from '../../store';
+import { useAuditStore, useAuthStore, useAppStore } from '../../store';
 import { 
   Users, 
   Search, 
@@ -18,58 +18,136 @@ import {
   Smartphone,
   ShieldCheck,
   Lock,
-  ArrowRight
+  ArrowRight,
+  X,
+  CreditCard,
+  Hash,
+  MapPin,
+  Briefcase
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import RoleGuard from '../../components/RoleGuard';
 import { ROLE_DEFINITIONS } from '../../constants/rbac';
-import { SystemRole } from '../../types';
-
-interface ManagedUser {
-  id: string;
-  name: string;
-  email: string;
-  role: SystemRole;
-  status: 'active' | 'suspended';
-  lastActive: string;
-  phone?: string;
-  avatar?: string;
-}
-
-const MOCK_USERS: ManagedUser[] = [
-  { id: '1', name: 'Joe Mugoh', email: 'joemugoh215@gmail.com', role: 'tenant_admin', status: 'active', lastActive: new Date().toISOString() },
-  { id: '2', name: 'Sarah Wambui', email: 'sarah.w@farmcare.com', role: 'operations_manager', status: 'active', lastActive: '2026-04-18T14:30:00Z' },
-  { id: '3', name: 'James Kimani', email: 'james.k@farmcare.com', role: 'dispatcher', status: 'active', lastActive: '2026-04-19T08:15:00Z' },
-  { id: '4', name: 'Alice Mutua', email: 'alice.m@farmcare.com', role: 'finance_manager', status: 'suspended', lastActive: '2026-04-10T12:00:00Z' },
-];
+import { User, SystemRole, UserRole } from '../../types';
+import { api } from '../../api';
 
 const UserManagement: React.FC = () => {
-  const [users, setUsers] = useState<ManagedUser[]>(MOCK_USERS);
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isAddingUser, setIsAddingUser] = useState(false);
-  const { logAction } = useAuditStore();
-  const { currentUserRole } = useAuthStore();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [formData, setFormData] = useState<Partial<User>>({
+    name: '',
+    email: '',
+    role: 'dispatcher' as UserRole,
+    phone: '',
+    idNumber: '',
+    kraPin: '',
+    licenseNumber: '',
+    dateOfBirth: '',
+    gender: '',
+    nationality: '',
+    emergencyContact: '',
+    emergencyPhone: '',
+    address: '',
+    verificationStatus: 'PENDING'
+  });
 
-  const filteredUsers = users.filter(u => 
-    u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    u.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const logAction = useAuditStore(state => state.logAction);
+  const { currentTenant } = useAuthStore(state => ({ currentTenant: state.user?.tenantId }));
+  const { addNotification } = useAppStore();
 
-  const handleStatusToggle = (userId: string) => {
-    setUsers(prev => prev.map(u => {
-      if (u.id === userId) {
-        const newStatus = u.status === 'active' ? 'suspended' : 'active';
-        logAction('update_user_status', 'user', userId, { from: u.status, to: newStatus }, 'warning');
-        return { ...u, status: newStatus as any };
-      }
-      return u;
-    }));
+  const fetchUsers = async () => {
+    try {
+      setIsLoading(true);
+      const data = await api.getUsers(currentTenant || 'tenant-1');
+      setUsers(data);
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+      addNotification('Failed to load personnel data', 'error');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const deleteUser = (userId: string) => {
+  useEffect(() => {
+    fetchUsers();
+  }, [currentTenant]);
+
+  const filteredUsers = users.filter(u => 
+    u.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    u.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    u.role?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleOpenModal = (user: User | null = null) => {
+    if (user) {
+      setEditingUser(user);
+      setFormData(user);
+    } else {
+      setEditingUser(null);
+      setFormData({
+        name: '',
+        email: '',
+        role: 'dispatcher' as UserRole,
+        phone: '',
+        idNumber: '',
+        kraPin: '',
+        licenseNumber: '',
+        dateOfBirth: '',
+        gender: '',
+        nationality: '',
+        emergencyContact: '',
+        emergencyPhone: '',
+        address: '',
+        verificationStatus: 'PENDING'
+      });
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingUser) {
+        await api.updateUser(editingUser.id, formData, currentTenant || 'tenant-1');
+        logAction('UPDATE_USER', 'user', editingUser.id, { email: formData.email });
+        addNotification('Personnel updated successfully', 'success');
+      } else {
+        const newUser = await api.createUser(formData, currentTenant || 'tenant-1');
+        logAction('CREATE_USER', 'user', newUser.id, { email: formData.email });
+        addNotification('New personnel provisioned', 'success');
+      }
+      setIsModalOpen(false);
+      fetchUsers();
+    } catch (error) {
+      console.error('Personnel update failed:', error);
+      addNotification('Operation failed', 'error');
+    }
+  };
+
+  const handleStatusToggle = async (user: User) => {
+    try {
+      const newStatus = user.verificationStatus === 'VERIFIED' ? 'REJECTED' : 'VERIFIED';
+      await api.updateUser(user.id, { verificationStatus: newStatus }, currentTenant || 'tenant-1');
+      logAction('TOGGLE_USER_VERIFICATION', 'user', user.id, { status: newStatus });
+      fetchUsers();
+    } catch (error) {
+       addNotification('Status update failed', 'error');
+    }
+  };
+
+  const deleteUser = async (userId: string) => {
     if (confirm('Permanently decommission this operator? This will rescind all security clearances instantly.')) {
-      setUsers(prev => prev.filter(u => u.id !== userId));
-      logAction('delete_user', 'user', userId, {}, 'critical');
+      try {
+        await api.deleteUser(userId, currentTenant || 'tenant-1');
+        logAction('DELETE_USER', 'user', userId, {}, 'critical');
+        addNotification('Personnel decommissioned', 'warning');
+        fetchUsers();
+      } catch (error) {
+        addNotification('Decommission failed', 'error');
+      }
     }
   };
 
@@ -95,7 +173,7 @@ const UserManagement: React.FC = () => {
              <div className="flex items-center gap-4 w-full lg:w-auto">
                 <RoleGuard permissions={['users:manage']}>
                   <button 
-                    onClick={() => setIsAddingUser(true)}
+                    onClick={() => handleOpenModal()}
                     className="flex-1 lg:flex-none px-8 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
                     <UserPlus size={16} /> Provision User
@@ -106,15 +184,22 @@ const UserManagement: React.FC = () => {
 
           {/* User Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-             {filteredUsers.map((user) => (
-                <UserCard 
-                  key={user.id} 
-                  user={user} 
-                  onToggleStatus={() => handleStatusToggle(user.id)}
-                  onDelete={() => deleteUser(user.id)}
-                />
-             ))}
-             {filteredUsers.length === 0 && (
+             {isLoading ? (
+               Array(6).fill(0).map((_, i) => (
+                 <div key={i} className="h-64 bg-slate-100 rounded-[2.5rem] animate-pulse" />
+               ))
+             ) : (
+               filteredUsers.map((user) => (
+                  <UserCard 
+                    key={user.id} 
+                    user={user} 
+                    onToggleStatus={() => handleStatusToggle(user)}
+                    onDelete={() => deleteUser(user.id)}
+                    onEdit={() => handleOpenModal(user)}
+                  />
+               ))
+             )}
+             {!isLoading && filteredUsers.length === 0 && (
                 <div className="col-span-full py-32 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[3rem] flex flex-col items-center justify-center text-center">
                    <div className="h-20 w-20 bg-white rounded-full flex items-center justify-center mb-6 text-slate-300">
                       <Users size={40} />
@@ -123,65 +208,244 @@ const UserManagement: React.FC = () => {
                 </div>
              )}
           </div>
-
-          {/* RBAC Intelligence Sidebar Placeholder / Info */}
-          <section className="bg-brand/5 border border-brand/10 p-12 rounded-[3.5rem] flex flex-col lg:flex-row items-center justify-between gap-12">
-             <div className="lg:w-2/3 space-y-6">
-                <div className="flex items-center gap-4">
-                   <div className="h-14 w-14 bg-brand text-white rounded-[1.5rem] flex items-center justify-center shadow-xl">
-                      <Shield size={32} />
-                   </div>
-                   <div>
-                      <h3 className="text-2xl font-black uppercase tracking-tighter leading-none">RBAC Intelligence Flow</h3>
-                      <p className="text-[10px] font-bold text-brand-dark uppercase tracking-widest mt-1">Enterprise Access Governance</p>
-                   </div>
-                </div>
-                <p className="text-lg font-medium text-slate-600 leading-relaxed max-w-2xl">
-                  Permissions are hierarchically inherited. A <span className="text-slate-900 font-bold">Tenant Admin</span> can manage all assets, while an <span className="text-slate-900 font-bold">Operations Manager</span> is restricted to purely logistical hubs. All escalations are audited globally.
-                </p>
-                <div className="flex flex-wrap gap-3">
-                   {Object.keys(ROLE_DEFINITIONS).map(role => (
-                     <div key={role} className="px-4 py-2 bg-white rounded-xl border border-brand/10 text-[9px] font-bold text-slate-500 uppercase tracking-widest shadow-sm">
-                        {role.replace('_', ' ')}
-                     </div>
-                   ))}
-                </div>
-             </div>
-             <div className="lg:w-1/3 flex flex-col gap-6">
-                <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-xl space-y-4">
-                   <div className="flex items-center justify-between">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Global Invariant</p>
-                      <Lock size={12} className="text-amber-500" />
-                   </div>
-                   <p className="text-xs font-bold text-slate-900">Permissions cannot be individually assigned to users; they must align with pre-defined ROLE PROFILES to ensure audit integrity.</p>
-                </div>
-                <button className="w-full py-5 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 group">
-                   Review RBAC Schema <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                </button>
-             </div>
-          </section>
         </div>
+
+        {/* Modal for Add/Edit */}
+        <AnimatePresence>
+          {isModalOpen && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsModalOpen(false)}
+                className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+              />
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                className="relative w-full max-w-2xl bg-white rounded-[3rem] shadow-2xl overflow-hidden"
+              >
+                <div className="flex items-center justify-between p-8 border-b border-slate-100">
+                  <div>
+                    <h2 className="text-2xl font-black uppercase tracking-tighter leading-none">
+                      {editingUser ? 'Update Personnel' : 'Provision User'}
+                    </h2>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Identity Management Protocol</p>
+                  </div>
+                  <button onClick={() => setIsModalOpen(false)} className="h-12 w-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-slate-900 hover:text-white transition-all">
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="p-8 space-y-6 max-h-[70vh] overflow-y-auto">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Full Name</label>
+                       <div className="relative">
+                          <Users size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                          <input 
+                            required
+                            type="text" 
+                            className="w-full pl-12 pr-6 py-4 bg-slate-50 border-2 border-transparent focus:border-brand/20 rounded-2xl outline-none font-medium text-sm transition-all"
+                            value={formData.name || ''}
+                            onChange={e => setFormData({ ...formData, name: e.target.value })}
+                            placeholder="John Doe"
+                          />
+                       </div>
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Email Address</label>
+                       <div className="relative">
+                          <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                          <input 
+                            required
+                            type="email" 
+                            className="w-full pl-12 pr-6 py-4 bg-slate-50 border-2 border-transparent focus:border-brand/20 rounded-2xl outline-none font-medium text-sm transition-all"
+                            value={formData.email || ''}
+                            onChange={e => setFormData({ ...formData, email: e.target.value })}
+                            placeholder="john@shipstack.io"
+                          />
+                       </div>
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Phone Number</label>
+                       <div className="relative">
+                          <Smartphone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                          <input 
+                            required
+                            type="text" 
+                            className="w-full pl-12 pr-6 py-4 bg-slate-50 border-2 border-transparent focus:border-brand/20 rounded-2xl outline-none font-medium text-sm transition-all"
+                            value={formData.phone || ''}
+                            onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                            placeholder="+254 7XX XXX XXX"
+                          />
+                       </div>
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">System Role</label>
+                       <div className="relative">
+                          <Shield size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                          <select 
+                            className="w-full pl-12 pr-6 py-4 bg-slate-50 border-2 border-transparent focus:border-brand/20 rounded-2xl outline-none font-medium text-sm transition-all appearance-none"
+                            value={formData.role || 'dispatcher'}
+                            onChange={e => setFormData({ ...formData, role: e.target.value as any })}
+                          >
+                             {Object.keys(ROLE_DEFINITIONS).map(role => (
+                               <option key={role} value={role}>{role.replace('_', ' ').toUpperCase()}</option>
+                             ))}
+                          </select>
+                       </div>
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Date of Birth</label>
+                       <div className="relative">
+                          <History size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                          <input 
+                            type="date" 
+                            className="w-full pl-12 pr-6 py-4 bg-slate-50 border-2 border-transparent focus:border-brand/20 rounded-2xl outline-none font-medium text-sm transition-all"
+                            value={formData.dateOfBirth || ''}
+                            onChange={e => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                          />
+                       </div>
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Gender</label>
+                       <div className="relative">
+                          <Users size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                          <select 
+                            className="w-full pl-12 pr-6 py-4 bg-slate-50 border-2 border-transparent focus:border-brand/20 rounded-2xl outline-none font-medium text-sm transition-all appearance-none"
+                            value={formData.gender || ''}
+                            onChange={e => setFormData({ ...formData, gender: e.target.value })}
+                          >
+                             <option value="">Select Gender</option>
+                             <option value="male">Male</option>
+                             <option value="female">Female</option>
+                             <option value="other">Other</option>
+                          </select>
+                       </div>
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nationality</label>
+                       <div className="relative">
+                          <Briefcase size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                          <input 
+                            type="text" 
+                            className="w-full pl-12 pr-6 py-4 bg-slate-50 border-2 border-transparent focus:border-brand/20 rounded-2xl outline-none font-medium text-sm transition-all"
+                            value={formData.nationality || ''}
+                            onChange={e => setFormData({ ...formData, nationality: e.target.value })}
+                            placeholder="Kenyan"
+                          />
+                       </div>
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Emergency Contact</label>
+                       <div className="relative">
+                          <Users size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                          <input 
+                            type="text" 
+                            className="w-full pl-12 pr-6 py-4 bg-slate-50 border-2 border-transparent focus:border-brand/20 rounded-2xl outline-none font-medium text-sm transition-all"
+                            value={formData.emergencyContact || ''}
+                            onChange={e => setFormData({ ...formData, emergencyContact: e.target.value })}
+                            placeholder="Next of Kin Name"
+                          />
+                       </div>
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Emergency Phone</label>
+                       <div className="relative">
+                          <Smartphone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                          <input 
+                            type="text" 
+                            className="w-full pl-12 pr-6 py-4 bg-slate-50 border-2 border-transparent focus:border-brand/20 rounded-2xl outline-none font-medium text-sm transition-all"
+                            value={formData.emergencyPhone || ''}
+                            onChange={e => setFormData({ ...formData, emergencyPhone: e.target.value })}
+                            placeholder="+254 7XX XXX XXX"
+                          />
+                       </div>
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">ID Number</label>
+                       <div className="relative">
+                          <CreditCard size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                          <input 
+                            type="text" 
+                            className="w-full pl-12 pr-6 py-4 bg-slate-50 border-2 border-transparent focus:border-brand/20 rounded-2xl outline-none font-medium text-sm transition-all"
+                            value={formData.idNumber || ''}
+                            onChange={e => setFormData({ ...formData, idNumber: e.target.value })}
+                          />
+                       </div>
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">KRA PIN</label>
+                       <div className="relative">
+                          <Hash size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                          <input 
+                            type="text" 
+                            className="w-full pl-12 pr-6 py-4 bg-slate-50 border-2 border-transparent focus:border-brand/20 rounded-2xl outline-none font-medium text-sm transition-all"
+                            value={formData.kraPin || ''}
+                            onChange={e => setFormData({ ...formData, kraPin: e.target.value })}
+                          />
+                       </div>
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">License Number</label>
+                       <div className="relative">
+                          <CreditCard size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                          <input 
+                             type="text" 
+                             className="w-full pl-12 pr-6 py-4 bg-slate-50 border-2 border-transparent focus:border-brand/20 rounded-2xl outline-none font-medium text-sm transition-all"
+                             value={formData.licenseNumber || ''}
+                             onChange={e => setFormData({ ...formData, licenseNumber: e.target.value })}
+                          />
+                       </div>
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Residential Address</label>
+                       <div className="relative">
+                          <MapPin size={16} className="absolute left-4 top-4 text-slate-300" />
+                          <textarea 
+                             rows={2}
+                             className="w-full pl-12 pr-6 py-4 bg-slate-50 border-2 border-transparent focus:border-brand/20 rounded-2xl outline-none font-medium text-sm transition-all"
+                             value={formData.address || ''}
+                             onChange={e => setFormData({ ...formData, address: e.target.value })}
+                          />
+                       </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-6">
+                    <button type="submit" className="w-full py-5 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-2xl active:scale-[0.98] transition-all">
+                       {editingUser ? 'Seal Identity Update' : 'Finalize Provisioning'}
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </Layout>
     </RoleGuard>
   );
 };
 
-const UserCard = ({ user, onToggleStatus, onDelete }: { user: ManagedUser, onToggleStatus: () => void, onDelete: () => void }) => {
-  const roleDef = ROLE_DEFINITIONS[user.role];
-  const isSuspended = user.status === 'suspended';
+const UserCard = ({ user, onToggleStatus, onDelete, onEdit }: { user: User, onToggleStatus: () => void, onDelete: () => void, onEdit: () => void }) => {
+  const roleDef = ROLE_DEFINITIONS[user.role as SystemRole];
+  const isRejected = user.verificationStatus === 'REJECTED';
 
   return (
     <motion.div 
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className={`bg-white rounded-[2.5rem] p-8 border transition-all ${isSuspended ? 'border-red-100 bg-red-50/10 grayscale-[0.8]' : 'border-slate-200 shadow-sm hover:shadow-xl'}`}
+      className={`bg-white rounded-[2.5rem] p-8 border transition-all ${isRejected ? 'border-red-100 bg-red-50/10 grayscale-[0.8]' : 'border-slate-200 shadow-sm hover:shadow-xl'}`}
     >
        <div className="flex items-start justify-between mb-8">
           <div className="h-16 w-16 rounded-[1.25rem] bg-slate-100 overflow-hidden border-2 border-white shadow-lg">
-             <img src={`https://i.pravatar.cc/150?u=${user.email}`} className="h-full w-full object-cover" />
+             <img src={user.avatar || `https://i.pravatar.cc/150?u=${user.email}`} className="h-full w-full object-cover" />
           </div>
-          <div className={`px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest ${isSuspended ? 'bg-red text-white' : 'bg-emerald-50 text-emerald-500'}`}>
-             {user.status}
+          <div className={`px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest ${isRejected ? 'bg-red text-white' : 'bg-emerald-50 text-emerald-500'}`}>
+             {user.verificationStatus}
           </div>
        </div>
 
@@ -193,14 +457,14 @@ const UserCard = ({ user, onToggleStatus, onDelete }: { user: ManagedUser, onTog
           
           <div className="flex items-center gap-2 text-brand">
              <ShieldCheck size={14} />
-             <span className="text-[10px] font-black uppercase tracking-widest">{user.role.replace('_', ' ')}</span>
+             <span className="text-[10px] font-black uppercase tracking-widest">{(user.role || '').replace('_', ' ')}</span>
           </div>
        </div>
 
        <div className="grid grid-cols-2 gap-4 mb-8 text-slate-400">
           <div className="flex items-center gap-2">
              <Smartphone size={12} />
-             <span className="text-[9px] font-bold">+254 7XX ...</span>
+             <span className="text-[9px] font-bold">{user.phone || 'No Contact'}</span>
           </div>
           <div className="flex items-center gap-2">
              <History size={12} />
@@ -211,11 +475,14 @@ const UserCard = ({ user, onToggleStatus, onDelete }: { user: ManagedUser, onTog
        <div className="flex gap-2">
           <button 
             onClick={onToggleStatus}
-            className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${isSuspended ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white' : 'bg-red-50 text-red hover:bg-red hover:text-white'}`}
+            className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${isRejected ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white' : 'bg-red-50 text-red hover:bg-red hover:text-white'}`}
           >
-            {isSuspended ? 'Unsuspend' : 'Suspend'}
+            {isRejected ? 'Verify' : 'Deactivate'}
           </button>
-          <button className="h-12 w-12 bg-slate-50 text-slate-400 rounded-xl flex items-center justify-center hover:bg-slate-900 hover:text-white transition-all">
+          <button 
+            onClick={onEdit}
+            className="h-12 w-12 bg-slate-50 text-slate-400 rounded-xl flex items-center justify-center hover:bg-slate-900 hover:text-white transition-all"
+          >
              <Edit2 size={16} />
           </button>
           <RoleGuard permissions={['users:manage']}>

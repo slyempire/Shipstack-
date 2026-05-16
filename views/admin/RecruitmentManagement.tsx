@@ -28,8 +28,10 @@ import {
   FileCheck,
   Shield,
   GraduationCap,
-  Eye
+  Eye,
+  Download
 } from 'lucide-react';
+import { exportToCSV } from '../../utils/exportUtils';
 import { useAppStore } from '../../store';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Modal } from '../../components/Modal';
@@ -42,6 +44,24 @@ const RecruitmentManagement: React.FC = () => {
   const [viewMode, setViewMode] = useState<'KANBAN' | 'LIST'>('KANBAN');
   const [selectedApp, setSelectedApp] = useState<DriverApplication | null>(null);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+
+  const handleExport = () => {
+    const dataToExport = applications.map(app => ({
+      'Full Name': app.name,
+      'Email': app.email,
+      'Phone': app.phone,
+      'Status': app.status,
+      'Industry': app.industry,
+      'Region': app.region,
+      'Vehicle Type': app.vehicleType,
+      'Applied At': new Date(app.appliedAt).toLocaleDateString(),
+      'KRA PIN': app.kraPin,
+      'ID Number': app.idNumber,
+      'License Number': app.licenseNumber
+    }));
+    exportToCSV(dataToExport, `Driver_Applications_${new Date().toISOString().split('T')[0]}.csv`);
+  };
+
   const [inviting, setInviting] = useState(false);
   const [inviteForm, setInviteForm] = useState({
     name: '',
@@ -272,6 +292,13 @@ const RecruitmentManagement: React.FC = () => {
                 className="w-full pl-11 pr-4 py-3 bg-white border border-slate-100 rounded-2xl text-[11px] font-bold text-slate-900 outline-none focus:ring-2 focus:ring-brand/10 transition-all shadow-sm"
               />
             </div>
+            <button 
+              onClick={handleExport}
+              className="p-3 bg-white border border-slate-100 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-sm hover:bg-slate-50 transition-all"
+              title="Export to CSV"
+            >
+              <Download size={16} />
+            </button>
             <button 
               onClick={() => setIsInviteModalOpen(true)}
               className="bg-slate-900 text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg hover:bg-slate-800 transition-all"

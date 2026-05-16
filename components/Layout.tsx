@@ -21,6 +21,7 @@ import {
   Route as RouteIcon,
   Scale,
   Layers,
+  UserCheck,
   ChevronDown,
   ShieldCheck,
   Bell,
@@ -32,17 +33,23 @@ import {
   Zap,
   ShoppingBag,
   Activity,
-  Archive,
-  MoreHorizontal,
-  Pin,
-  Flame,
-  Sprout,
-  Stethoscope,
   ShoppingCart,
   ChevronRight,
-  ShieldAlert,
+  Briefcase,
+  Clock,
+  Stethoscope,
   Inbox,
-  Lightbulb
+  ShieldAlert,
+  Search,
+  Navigation,
+  BrainCircuit,
+  Sparkles,
+  RefreshCw,
+  AlertTriangle,
+  ClipboardList,
+  Sprout,
+  Lightbulb,
+  Building2
 } from 'lucide-react';
 
 import { motion, AnimatePresence } from 'framer-motion';
@@ -99,16 +106,16 @@ const Layout: React.FC<LayoutProps> = ({ children, title, subtitle }) => {
       <div className="flex flex-col gap-2 mt-auto pt-6 border-t border-slate-50">
         <div className="flex items-center gap-2 group cursor-help transition-all duration-300 relative">
           <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)] animate-pulse" />
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Operational</span>
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">System Active</span>
           <div className="absolute left-full bottom-0 mb-[-4px] ml-2 px-2 py-1 bg-gray-900 text-white text-[9px] font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-xl">
-            AI-assisted insights active
+            Real-time tracking enabled
           </div>
         </div>
         <div className="flex items-center gap-2 group cursor-help transition-all duration-300 relative">
           <div className="h-1.5 w-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.4)] animate-pulse" />
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Cluster v4.2</span>
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Environment Secure</span>
           <div className="absolute left-full bottom-0 mb-[-4px] ml-2 px-2 py-1 bg-gray-900 text-white text-[9px] font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-xl">
-            ISO-27001 Certified Environment
+            ISO-27001 Certified
           </div>
         </div>
       </div>
@@ -150,80 +157,62 @@ const Layout: React.FC<LayoutProps> = ({ children, title, subtitle }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Navigation Configuration - UPDATED with ALL requested sections
+  // Navigation Configuration - UPDATED with logical groups and missing modules
   const navigationConfig = useMemo(() => {
     return [
       {
+        group: 'Operations',
+        items: [
+          { name: 'Control tower', path: '/admin', icon: LayoutDashboard, id: 'nav-dashboard' },
+          { name: 'Dispatch Hub', path: '/admin/dispatch', icon: RouteIcon, id: 'nav-dispatch' },
+          { name: 'Shipment Queue', path: '/admin/queue', icon: Clock, id: 'nav-queue' },
+          { name: 'Live tracking', path: '/admin/tracking', icon: Activity, id: 'nav-tracking' },
+          { name: 'Exceptions', path: '/admin/exceptions', icon: AlertOctagon, id: 'nav-exceptions' },
+          { name: 'Tactical Hub', path: '/admin/tasks', icon: ClipboardList, id: 'nav-tasks' },
+        ]
+      },
+      {
+        group: 'Assets & Logistics',
+        items: [
+          { name: 'Inventory & Hubs', path: '/admin/fleet', icon: Warehouse, id: 'nav-fleet' },
+          { name: 'Warehouse Ops', path: '/admin/warehouse', icon: Package, id: 'nav-warehouse' },
+          { name: 'Order Hub', path: '/admin/orders', icon: ShoppingBag, id: 'nav-orders' },
+          { name: 'CRM Hub', path: '/admin/crm', icon: UserCheck, id: 'nav-crm' },
+        ]
+      },
+      {
         group: 'Intelligence',
         items: [
-          { name: 'Dashboard', path: '/admin', icon: LayoutDashboard },
-          { 
-            name: 'Analytics Hub', 
-            icon: Activity,
-            children: [
-              { name: 'Performance', path: '/admin/analytics', icon: Activity },
-              { name: 'Data Ingress', path: '/admin/ingress', icon: DatabaseZap },
-              { name: 'Security Audit', path: '/admin/security', icon: ShieldCheck },
-            ]
-          }
+          { name: 'Neural Insights', path: '/admin/analytics', icon: Zap, id: 'nav-intelligence' },
+          { name: 'Data Ingress', path: '/admin/ingress', icon: DatabaseZap, id: 'nav-ingress' },
+          { name: 'Marketplace', path: '/admin/marketplace', icon: Layers, id: 'nav-marketplace' },
         ]
       },
       {
-        group: 'Logistics Control',
+        group: 'Network Management',
         items: [
-          {
-            name: 'Execution',
-            icon: Truck,
-            children: [
-              { name: 'Active Trips', path: '/admin/dispatch', icon: RouteIcon },
-              { name: 'Live Grid', path: '/admin/queue', icon: Inbox },
-              { name: 'Gps Tracking', path: '/admin/tracking', icon: MapIcon },
-            ]
-          },
-          { 
-            name: 'Supply Chain', 
-            icon: Package,
-            children: [
-              { name: 'Order Desk', path: '/admin/orders', icon: ShoppingBag },
-              { name: 'Warehouse Hub', path: '/admin/warehouse', icon: Warehouse },
-              { name: 'Exceptions', path: '/admin/exceptions', icon: AlertOctagon },
-            ]
-          },
-          { name: 'Fleet Asset', path: '/admin/fleet', icon: Truck },
-        ]
-      },
-      {
-        group: 'Enterprise',
-        items: [
-          {
-            name: 'Commercial',
-            icon: DollarSign,
-            children: [
-              { name: 'Invoicing', path: '/admin/billing', icon: FileText },
-              { name: 'Rate Profiles', path: '/admin/rates', icon: Scale },
-              { name: 'Marketplace', path: '/admin/marketplace', icon: Layers },
-            ]
-          },
-          { name: 'CRM Hub', path: '/admin/crm', icon: Users },
-        ]
-      },
-      {
-        group: 'Platform',
-        items: [
-          {
-            name: 'Workspace',
-            icon: Settings,
-            children: [
-              { name: 'Users', path: '/admin/users', icon: UserIcon },
-              { name: 'Recruitment', path: '/admin/recruitment', icon: Users },
-              { name: 'Subscription', path: '/admin/subscription', icon: DollarSign },
-              { name: 'Settings', path: '/settings', icon: Settings },
-            ]
-          }
+          { name: 'Fleet Teams', path: '/admin/users', icon: Users, id: 'nav-teams' },
+          { name: 'Driver Recruitment', path: '/admin/recruitment', icon: Briefcase, id: 'nav-recruitment' },
+          { name: 'Tenant Oracle', path: '/admin/tenants', icon: Building2, id: 'nav-tenants', roles: ['super_admin'] },
+          { name: 'Security Audit', path: '/admin/security', icon: ShieldCheck, id: 'nav-security' },
+          { name: 'Financials', path: '/admin/billing', icon: DollarSign, id: 'nav-finance' },
         ]
       }
     ];
   }, []);
+
+  const filteredNavigation = useMemo(() => {
+    if (!currentUserRole) return navigationConfig;
+    const role = currentUserRole.toLowerCase();
+
+    return navigationConfig.map(group => ({
+      ...group,
+      items: group.items.filter(item => {
+        if (!item.roles) return true;
+        return item.roles.includes(role);
+      })
+    })).filter(group => group.items.length > 0);
+  }, [navigationConfig, currentUserRole]);
 
   return (
     <div className="flex h-full w-full bg-slate-50 overflow-hidden font-sans transition-colors duration-300 text-gray-900">
@@ -256,7 +245,7 @@ const Layout: React.FC<LayoutProps> = ({ children, title, subtitle }) => {
         
         <nav className="flex-1 mt-6 px-4 space-y-8 overflow-y-auto no-scrollbar pb-32">
           {/* Sectioned Navigation */}
-          {navigationConfig.map((group) => (
+          {filteredNavigation.map((group) => (
             <div key={group.group}>
               {!sidebarCollapsed && <p className="px-5 text-[10px] font-black uppercase tracking-[0.2em] mb-4 text-slate-400 italic">{group.group}</p>}
               <div className="space-y-1">
@@ -393,20 +382,20 @@ const Layout: React.FC<LayoutProps> = ({ children, title, subtitle }) => {
                      <div className="space-y-1 px-2">
                         <DropdownItem 
                           icon={UserIcon} 
-                          label="Profile Console" 
-                          desc="Personal identity hub" 
+                          label="My Profile" 
+                          desc="Update your personal info" 
                           onClick={() => { navigate('/profile'); setProfileMenuOpen(false); }}
                         />
                         <DropdownItem 
                           icon={Settings} 
-                          label="Architecture" 
-                          desc="System-level configuration" 
+                          label="Configurations" 
+                          desc="Adjust system parameters" 
                           onClick={() => { navigate('/settings'); setProfileMenuOpen(false); }}
                         />
                         <DropdownItem 
                           icon={ShieldAlert} 
-                          label="Security Audit" 
-                          desc="Governance trail" 
+                          label="Access Logs" 
+                          desc="View security history" 
                           onClick={() => { navigate('/admin/security'); setProfileMenuOpen(false); }}
                         />
                      </div>
@@ -416,7 +405,7 @@ const Layout: React.FC<LayoutProps> = ({ children, title, subtitle }) => {
                           onClick={handleLogout}
                           className="w-full flex items-center justify-between px-6 py-4 rounded-2xl bg-slate-50 text-slate-400 group hover:bg-red hover:text-white transition-all overflow-hidden relative"
                         >
-                           <span className="text-[11px] font-black uppercase tracking-widest relative z-10">Decommission Session</span>
+                           <span className="text-[11px] font-black uppercase tracking-widest relative z-10">Sign Out</span>
                            <LogOut size={16} className="relative z-10" />
                         </button>
                      </div>
@@ -471,6 +460,7 @@ const Layout: React.FC<LayoutProps> = ({ children, title, subtitle }) => {
                 <div className="space-y-1">
                    {[
                      { icon: Package, label: 'Deploy Shipment', path: '/admin/ingress', perm: 'trips:manage' },
+                     { icon: ClipboardList, label: 'Assign Objective', path: '/admin/tasks', perm: 'tasks:manage' },
                      { icon: RouteIcon, label: 'Optimize Route', path: '/admin/dispatch', perm: 'dispatch:manage' },
                      { icon: UserIcon, label: 'Provision Driver', path: '/admin/users', perm: 'users:manage' }
                    ].filter(a => !a.perm || (currentUserPermissions as any).includes(a.perm)).map((action, i) => (
@@ -501,93 +491,26 @@ const Layout: React.FC<LayoutProps> = ({ children, title, subtitle }) => {
 const NavItem = ({ item, collapsed, location }: any) => {
   const Icon = item.icon as any;
   const navigate = useNavigate();
-  const hasChildren = item.children && item.children.length > 0;
-  
-  // Section active if its path matches OR any child path matches
-  const isChildActive = useMemo(() => 
-    hasChildren && item.children.some((child: any) => location.pathname === child.path),
-    [hasChildren, item.children, location.pathname]
-  );
-  
-  const isActive = location.pathname === item.path || isChildActive;
-  const [isOpen, setIsOpen] = useState(isChildActive);
-
-  // Auto-expand if child is active
-  useEffect(() => {
-    if (isChildActive) setIsOpen(true);
-  }, [isChildActive]);
-
-  const toggle = (e: React.MouseEvent) => {
-    if (hasChildren) {
-      e.preventDefault();
-      setIsOpen(!isOpen);
-    }
-  };
+  const isActive = location.pathname === item.path;
 
   const navItemClasses = `flex-1 flex items-center gap-4 px-5 py-3.5 rounded-[1.25rem] transition-all duration-300 text-[11px] font-black uppercase tracking-widest group relative overflow-hidden ${isActive ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-200 hover:bg-slate-800 hover:text-white'}`;
 
-  const renderContent = () => (
-    <>
-      {isActive && !hasChildren && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-emerald-500" />}
-      <div className={`shrink-0 transition-all duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110 group-hover:text-emerald-400'}`}>
-        <Icon size={18} strokeWidth={ isActive ? 2.5 : 2 } />
-      </div>
-      {!collapsed && <span className="flex-1 text-left truncate italic">{item.name}</span>}
-      {!collapsed && hasChildren && (
-        <ChevronRight size={14} className={`transition-transform duration-300 ${isOpen ? 'rotate-90 text-emerald-400' : 'text-slate-600'}`} />
-      )}
-      
-      {collapsed && (
-        <div className="absolute left-full ml-6 px-4 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 translate-x-[-10px] group-hover:translate-x-0 z-50 whitespace-nowrap shadow-2xl">
-          {item.name}
-        </div>
-      )}
-    </>
-  );
-
   return (
-    <div className="space-y-1">
-      {hasChildren ? (
-        <button onClick={toggle} className="w-full">
-          <div className={navItemClasses}>
-            {renderContent()}
+    <Link to={item.path!} className="block" id={item.id}>
+      <div className={navItemClasses}>
+        {isActive && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-emerald-500" />}
+        <div className={`shrink-0 transition-all duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110 group-hover:text-emerald-400'}`}>
+          <Icon size={18} strokeWidth={ isActive ? 2.5 : 2 } />
+        </div>
+        {!collapsed && <span className="flex-1 text-left truncate italic">{item.name}</span>}
+        
+        {collapsed && (
+          <div className="absolute left-full ml-6 px-4 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 translate-x-[-10px] group-hover:translate-x-0 z-50 whitespace-nowrap shadow-2xl">
+            {item.name}
           </div>
-        </button>
-      ) : (
-        <Link to={item.path!} className="block">
-          <div className={navItemClasses}>
-            {renderContent()}
-          </div>
-        </Link>
-      )}
-
-      <AnimatePresence>
-        {!collapsed && hasChildren && isOpen && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="overflow-hidden ml-6 pl-4 border-l border-slate-800/50 space-y-1"
-          >
-            {item.children.map((child: any) => {
-              const ChildIcon = child.icon;
-              const isChildActive = location.pathname === child.path;
-              return (
-                <Link 
-                  key={child.path}
-                  to={child.path}
-                  className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all text-[10px] font-black uppercase tracking-widest ${isChildActive ? 'text-emerald-400 bg-emerald-500/5' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'}`}
-                >
-                  <ChildIcon size={14} className={isChildActive ? 'text-emerald-400' : 'text-slate-500'} />
-                  <span className="truncate italic">{child.name}</span>
-                </Link>
-              );
-            })}
-          </motion.div>
         )}
-      </AnimatePresence>
-    </div>
+      </div>
+    </Link>
   );
 };
 

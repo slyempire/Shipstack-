@@ -11,6 +11,14 @@ import { syncService } from '../../services/syncService';
 import DocumentPreview from '../../components/DocumentPreview';
 import MapEngine from '../../components/MapEngine';
 import { Badge } from '../../packages/ui/Badge';
+import { DriverBottomNav, DriverTab } from '../../components/driver/DriverBottomNav';
+import { StatsOverview } from '../../components/driver/portal/StatsOverview';
+import { NextStopCard } from '../../components/driver/portal/NextStopCard';
+import { AssignmentCard } from '../../components/driver/portal/AssignmentCard';
+import { QuickActionsOverlay } from '../../components/driver/portal/QuickActionsOverlay';
+import { SafetyAlert } from '../../components/driver/portal/SafetyAlert';
+import { DriverHubMenu } from '../../components/driver/portal/DriverHubMenu';
+import { SyncTracker } from '../../components/driver/portal/SyncTracker';
 import { 
   Truck, 
   MapPin, 
@@ -25,6 +33,7 @@ import {
   CheckCircle,
   Package,
   Play,
+  Shield,
   ShieldCheck,
   AlertCircle,
   CameraOff,
@@ -32,6 +41,7 @@ import {
   Phone,
   FileSearch,
   Wifi,
+  WifiOff,
   Activity,
   User as UserIcon,
   Settings,
@@ -83,7 +93,7 @@ const DriverPortal: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [quickActionOpen, setQuickActionOpen] = useState(false);
-  const [isPanelExpanded, setIsPanelExpanded] = useState(true);
+  const [isPanelExpanded, setIsPanelExpanded] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
   // ISO & Disruptive States
@@ -441,9 +451,18 @@ const DriverPortal: React.FC = () => {
   const handleClockIn = async () => {
     setIsSubmitting(true);
     try {
-      await api.clockIn(user?.id || '');
+      if (isOffline) {
+        await offlineDb.addPendingUpdate({
+          type: 'CLOCK_IN',
+          targetId: user?.id || 'unknown',
+          data: { timestamp: new Date().toISOString() }
+        });
+        addNotification("Offline: Shift Started. Data will sync later.", "info");
+      } else {
+        await api.clockIn(user?.id || '');
+        addNotification("Shift Started. Stay Safe.", "success");
+      }
       useAuthStore.getState().updateUser({ onDuty: true });
-      addNotification("Shift Started. Stay Safe.", "success");
       setStep('BRIEFING');
     } finally {
       setIsSubmitting(false);
@@ -453,9 +472,18 @@ const DriverPortal: React.FC = () => {
   const handleClockOut = async () => {
     setIsSubmitting(true);
     try {
-      await api.clockOut(user?.id || '');
+      if (isOffline) {
+        await offlineDb.addPendingUpdate({
+          type: 'CLOCK_OUT',
+          targetId: user?.id || 'unknown',
+          data: { timestamp: new Date().toISOString() }
+        });
+        addNotification("Offline: Shift Ended. Data will sync later.", "info");
+      } else {
+        await api.clockOut(user?.id || '');
+        addNotification("Shift Ended. Reconcile with dispatch.", "info");
+      }
       useAuthStore.getState().updateUser({ onDuty: false });
-      addNotification("Shift Ended. Reconcile with dispatch.", "info");
       setStep('CHECK_IN');
     } finally {
       setIsSubmitting(false);
@@ -565,7 +593,7 @@ const DriverPortal: React.FC = () => {
       if (match) {
         setCurrentDn(match);
         setIsPanelExpanded(false);
-        addNotification("Run Initialized. Tracking active.", "success");
+        addNotification("Trip Started. GPS Tracking Active.", "success");
       }
     } finally {
       setIsSubmitting(false);
@@ -601,6 +629,10 @@ const DriverPortal: React.FC = () => {
 
   const handleGenerateEtims = async () => {
     if (!currentDn) return;
+    if (isOffline) {
+      addNotification("KRA eTIMS generation requires a stable connection.", "info");
+      return;
+    }
     setIsGeneratingEtims(true);
     try {
       const invoice = await api.generateEtimsInvoice(currentDn.id);
@@ -694,8 +726,8 @@ const DriverPortal: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      const status = failures.length > 0 ? 'FAIL' : 'PASS';
-      await api.saveInspection({
+      const status = (failures.length > 0 ? 'FAIL' : 'PASS') as 'FAIL' | 'PASS';
+      const inspectionPayload = {
         driverId: user?.id || 'unknown',
         vehicleId: 'v-1', // Mock vehicle
         date: new Date().toISOString(),
@@ -715,12 +747,22 @@ const DriverPortal: React.FC = () => {
             .map(([k, v]) => [k, (v as any).photo!])
         ),
         status
-      });
+      };
 
-      if (status === 'FAIL') {
-        addNotification("Inspection failed. Maintenance has been notified.", "error");
+      if (isOffline) {
+        await offlineDb.addPendingUpdate({
+          type: 'INSPECTION',
+          targetId: 'v-1',
+          data: inspectionPayload
+        });
+        addNotification("Offline: Inspection saved. Will sync when online.", "info");
       } else {
-        addNotification("Inspection completed successfully.", "success");
+        await api.saveInspection(inspectionPayload);
+        if (status === 'FAIL') {
+          addNotification("Inspection failed. Maintenance has been notified.", "error");
+        } else {
+          addNotification("Inspection completed successfully.", "success");
+        }
       }
       setStep('LIST');
     } finally {
@@ -728,58 +770,23 @@ const DriverPortal: React.FC = () => {
     }
   };
 
-  const renderBottomNav = (activeTab: 'LIST' | 'SAFETY' | 'ALERTS' | 'HUB' | 'MORE') => (
-    <div className="fixed bottom-0 left-0 right-0 bg-navy/95 backdrop-blur-xl border-t border-white/5 px-6 pb-10 pt-4 z-40 flex justify-between items-center shadow-2xl transition-all">
-      <button 
-        onClick={() => setStep('LIST')} 
-        className={`flex flex-col items-center gap-1.5 transition-all group ${activeTab === 'LIST' ? 'text-brand' : 'text-slate-500 hover:text-white'}`}
-      >
-        <Truck className={`w-6 h-6 group-hover:scale-110 transition-transform ${activeTab === 'LIST' ? 'stroke-[3px]' : ''}`} />
-        <span className="text-[10px] font-bold uppercase tracking-tight">Trips</span>
-        {activeTab === 'LIST' && <div className="absolute -bottom-2 h-1 w-1 bg-brand rounded-full" />}
-      </button>
-      
-      <button 
-        onClick={() => setStep('SAFETY_PASSPORT')} 
-        className={`flex flex-col items-center gap-1.5 transition-all group ${activeTab === 'SAFETY' ? 'text-emerald' : 'text-slate-500 hover:text-white'}`}
-      >
-        <ShieldCheck className={`w-6 h-6 group-hover:scale-110 transition-transform ${activeTab === 'SAFETY' ? 'stroke-[3px]' : ''}`} />
-        <span className="text-[10px] font-bold uppercase tracking-tight">Safety</span>
-        {activeTab === 'SAFETY' && <div className="absolute -bottom-2 h-1 w-1 bg-emerald rounded-full" />}
-      </button>
-
-      <button 
-        onClick={() => setStep('NOTIFICATIONS')} 
-        className={`flex flex-col items-center gap-1.5 transition-all group relative ${activeTab === 'ALERTS' ? 'text-amber' : 'text-slate-500 hover:text-white'}`}
-      >
-        <AlertCircle className={`w-6 h-6 group-hover:scale-110 transition-transform ${activeTab === 'ALERTS' ? 'stroke-[3px]' : ''}`} />
-        <span className="text-[10px] font-bold uppercase tracking-tight">Alerts</span>
-        {notifications.some((n: any) => !n.read) && (
-          <span className="absolute top-0 right-1 h-3 w-3 bg-red rounded-full border-2 border-navy" />
-        )}
-        {activeTab === 'ALERTS' && <div className="absolute -bottom-2 h-1 w-1 bg-amber rounded-full" />}
-      </button>
-
-      <button 
-        onClick={() => navigate('/driver/hub')} 
-        className={`flex flex-col items-center gap-1.5 transition-all group ${activeTab === 'HUB' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}
-      >
-        <Activity className={`w-6 h-6 group-hover:scale-110 transition-transform ${activeTab === 'HUB' ? 'stroke-[3px]' : ''}`} />
-        <span className="text-[10px] font-bold uppercase tracking-tight">Hub</span>
-      </button>
-
-      <button 
-        onClick={() => setShowMenu(true)} 
-        className={`flex flex-col items-center gap-1.5 transition-all group ${activeTab === 'MORE' ? 'text-white' : 'text-slate-500 hover:text-white'}`}
-      >
-        <Menu className="w-6 h-6 group-hover:scale-110 transition-transform" />
-        <span className="text-[10px] font-bold uppercase tracking-tight">Menu</span>
-      </button>
-    </div>
+  const renderBottomNav = (activeTab: DriverTab) => (
+    <DriverBottomNav 
+      activeTab={activeTab} 
+      onTabChange={(tab) => {
+        if (tab === 'LIST') setStep('LIST');
+        else if (tab === 'SAFETY') setStep('SAFETY_PASSPORT');
+        else if (tab === 'ALERTS') setStep('NOTIFICATIONS');
+        else if (tab === 'HUB') navigate('/driver/hub');
+        else if (tab === 'MORE') setShowMenu(true);
+      }}
+      hasUnreadNotifications={notifications.some((n: any) => !n.read)}
+    />
   );
 
   if (step === 'BRIEFING') return (
     <div className="min-h-screen bg-navy text-white font-sans flex flex-col p-6 transition-colors duration-300">
+      <SyncTracker />
       <header className="flex justify-between items-center mb-8">
         <div className="h-10 w-10 bg-brand text-white rounded-xl flex items-center justify-center shadow-lg shadow-brand/20">
           <Truck size={20} />
@@ -847,30 +854,46 @@ const DriverPortal: React.FC = () => {
   );
 
   if (step === 'CHECK_IN') return (
-    <div className="h-screen flex flex-col items-center justify-center p-12 text-center bg-navy animate-in fade-in duration-700">
-      <div className="h-28 w-28 bg-brand text-white rounded-full flex items-center justify-center mb-10 shadow-2xl scale-110">
-        <Clock size={56} strokeWidth={3} />
+    <div className="h-screen flex flex-col items-center justify-center p-12 text-center bg-[#0a0f1a] animate-in fade-in duration-700 font-sans">
+      <SyncTracker />
+      <div className="relative mb-12">
+        <div className="absolute inset-0 bg-brand/20 blur-3xl rounded-full" />
+        <div className="h-32 w-32 bg-brand text-white rounded-3xl flex items-center justify-center relative shadow-2xl shadow-brand/20 active:scale-95 transition-all">
+          <Clock size={48} strokeWidth={2.5} />
+        </div>
       </div>
-      <h2 className="heading-primary !text-4xl mb-3">Shift Start</h2>
-      <p className="label-logistics mb-12">Clock in to receive assignments.</p>
-      <button 
-        onClick={handleClockIn} 
-        disabled={isSubmitting}
-        className="btn-primary w-full max-w-xs h-16 flex items-center justify-center gap-4"
-      >
-        {isSubmitting ? <RefreshCw className="animate-spin" size={24} /> : <><Play size={20} fill="currentColor" /> Clock In</>}
-      </button>
-      <button 
-        onClick={() => { logout(); navigate('/login'); }} 
-        className="mt-10 label-logistics !text-white/40 hover:text-red transition-colors"
-      >
-        Terminate Session
-      </button>
+      <div className="space-y-3 mb-12">
+        <span className="text-[10px] font-black text-brand uppercase tracking-[0.3em]">Command Center</span>
+        <h2 className="text-4xl font-bold text-white tracking-tight">Shift Authorization</h2>
+        <p className="text-sm text-slate-500 font-medium">Please confirm your identity to begin your tour of duty.</p>
+      </div>
+      <div className="w-full space-y-4 max-w-xs">
+        <button 
+          onClick={handleClockIn}
+          disabled={isSubmitting}
+          className="w-full bg-brand hover:bg-brand/90 text-white py-5 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] shadow-xl shadow-brand/20 flex items-center justify-center gap-3 transition-all disabled:opacity-50"
+        >
+          {isSubmitting ? <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Play size={18} fill="currentColor" />}
+          Clock In
+        </button>
+        
+        <button 
+          onClick={() => navigate('/login')}
+          className="w-full bg-transparent text-slate-500 py-4 rounded-2xl font-black uppercase text-[9px] tracking-widest border border-white/5 hover:bg-white/5 transition-all"
+        >
+          Switch Profile
+        </button>
+      </div>
+      <div className="absolute bottom-12 flex items-center gap-3 text-[8px] font-black text-slate-600 uppercase tracking-widest bg-slate-900/50 px-4 py-2 rounded-full border border-white/5">
+        <Shield size={10} className="text-brand" />
+        Encrypted Session Protocol v2.4
+      </div>
     </div>
   );
 
   if (step === 'EXCEPTION') return (
     <div className="min-h-screen bg-eggshell font-sans flex flex-col transition-colors duration-300">
+      <SyncTracker />
       <header className="px-6 py-6 border-b border-line flex justify-between items-center sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl pt-12 transition-colors">
         <div className="flex items-center gap-4">
           <button onClick={() => setStep('EXECUTION')} className="p-2 bg-slate-50 dark:bg-white/5 rounded-xl text-slate-600 dark:text-white/40 transition-colors">
@@ -938,7 +961,7 @@ const DriverPortal: React.FC = () => {
           disabled={!exceptionType || isSubmitting}
           className="btn-tactical w-full py-6 bg-red-600 text-white shadow-2xl disabled:opacity-50"
         >
-          {isSubmitting ? <RefreshCw className="animate-spin" size={20} /> : <><AlertCircle size={20} /> Log Exception</>}
+          {isSubmitting ? <RefreshCw className="animate-spin" size={20} /> : <><AlertCircle size={20} /> Report Issue</>}
         </button>
       </main>
     </div>
@@ -946,18 +969,19 @@ const DriverPortal: React.FC = () => {
 
   if (step === 'RECONCILIATION') return (
     <div className="min-h-screen bg-navy font-sans flex flex-col transition-colors duration-300">
+      <SyncTracker />
       <header className="px-6 py-6 border-b border-white/5 flex justify-between items-center sticky top-0 z-30 bg-charcoal/80 backdrop-blur-xl pt-12 transition-colors">
         <div className="flex items-center gap-4">
           <button onClick={() => setStep('LIST')} className="p-2 bg-navy rounded-xl text-white/40 transition-colors">
             <ChevronLeft size={20} />
           </button>
-          <h1 className="text-xl font-black tracking-tighter uppercase text-white transition-colors">Post-Trip Audit</h1>
+          <h1 className="text-xl font-black tracking-tighter uppercase text-white transition-colors">Shift Closure</h1>
         </div>
       </header>
       <main className="flex-1 p-4 space-y-6 overflow-y-auto pb-32 no-scrollbar">
         <div className="bg-brand/10 border border-brand/20 p-4 rounded-2xl flex gap-3 transition-colors">
           <ClipboardCheck className="text-brand shrink-0" size={20} />
-          <p className="label-logistics !text-brand leading-relaxed">Final reconciliation of cash and returns. Accuracy is mandatory for shift closure.</p>
+          <p className="label-logistics !text-brand leading-relaxed">Final cash and item check. Accuracy is required to end shift.</p>
         </div>
 
         <div className="space-y-6">
@@ -1010,11 +1034,12 @@ const DriverPortal: React.FC = () => {
 
   if (step === 'SUCCESS') return (
     <div className="h-screen flex flex-col items-center justify-center p-12 text-center bg-navy animate-in fade-in duration-700 transition-colors duration-300">
+      <SyncTracker />
       <div className="h-24 w-24 bg-emerald text-white rounded-full flex items-center justify-center mb-8 shadow-2xl scale-110 shadow-emerald/20">
         <ShieldCheck size={48} strokeWidth={3} />
       </div>
-      <h2 className="text-3xl font-black mb-2 tracking-tighter uppercase text-white transition-colors">Run Complete</h2>
-      <p className="text-white/60 font-bold mb-12 uppercase text-[10px] tracking-[0.25em] transition-colors">Audit Synchronized.</p>
+      <h2 className="text-3xl font-black mb-2 tracking-tighter uppercase text-white transition-colors">Success</h2>
+      <p className="text-white/60 font-bold mb-12 uppercase text-[10px] tracking-[0.25em] transition-colors">All Data Synced Successfully.</p>
       <button 
         onClick={() => { 
           if (isFinalShiftSuccess) {
@@ -1031,13 +1056,14 @@ const DriverPortal: React.FC = () => {
         }} 
         className="w-full max-w-xs bg-brand text-white py-5 rounded-2xl font-black uppercase text-xs tracking-widest active:scale-95 shadow-lg shadow-brand/20"
       >
-        {isFinalShiftSuccess ? 'End Shift & Exit' : 'Dismiss Terminal'}
+        {isFinalShiftSuccess ? 'End Shift' : 'Back to Schedule'}
       </button>
     </div>
   );
 
   if (step === 'NOTIFICATIONS') return (
     <div className="min-h-screen bg-navy font-sans flex flex-col transition-colors duration-300">
+      <SyncTracker />
       <header className="px-6 py-6 border-b border-white/5 flex justify-between items-center sticky top-0 z-30 bg-charcoal/80 backdrop-blur-xl pt-12 transition-colors">
         <div className="flex items-center gap-4">
           <button onClick={() => setStep('LIST')} className="p-2 bg-navy border border-white/5 rounded-xl text-white/40 transition-colors">
@@ -1072,6 +1098,7 @@ const DriverPortal: React.FC = () => {
 
   if (step === 'INSPECTION') return (
     <div className="min-h-screen bg-navy font-sans flex flex-col transition-colors duration-300">
+      <SyncTracker />
       <header className="px-6 py-6 border-b border-white/5 flex justify-between items-center sticky top-0 z-30 bg-charcoal/80 backdrop-blur-xl pt-12 transition-colors">
         <div className="flex items-center gap-4">
           <button onClick={() => setStep('LIST')} className="p-2 bg-navy rounded-xl text-white/40 transition-colors">
@@ -1084,6 +1111,23 @@ const DriverPortal: React.FC = () => {
         <div className="bg-amber/10 border border-amber/20 p-4 rounded-2xl flex gap-3 transition-colors">
           <AlertCircle className="text-amber shrink-0" size={20} />
           <p className="text-[10px] font-bold text-amber uppercase leading-relaxed">Mandatory daily inspection. Mark each item and provide photo evidence for any failures.</p>
+        </div>
+
+        <div className="flex justify-between items-center mb-6 px-1">
+          <p className="text-[10px] font-black text-white/50 uppercase tracking-[0.2em]">Safety Protocol Items</p>
+          <button 
+            onClick={() => {
+              const allPass = {};
+              inspectionItems.forEach(item => {
+                allPass[item.id] = { status: 'PASS' };
+              });
+              setInspectionData(allPass);
+              addNotification("All items marked PASS", "success");
+            }}
+            className="flex items-center gap-2 text-[10px] font-black text-emerald uppercase tracking-widest hover:text-white transition-colors"
+          >
+            <CheckCircle size={14} /> Pass All
+          </button>
         </div>
 
         <div className="space-y-3">
@@ -1148,474 +1192,199 @@ const DriverPortal: React.FC = () => {
 
   if (step === 'LIST') {
     const activeTrip = dns.find(dn => dn.status === DNStatus.IN_TRANSIT) || dns[0];
-    const currentRoute = activeTrip ? `${activeTrip.originName?.split(' ')[0] || 'Hub'} → ${activeTrip.clientName.split(' ')[0]}` : "Today's Deliveries";
-
+    const currentRoute = activeTrip ? `${activeTrip.clientName.split(' ')[0]}` : "Ready for Duty";
+    
     return (
     <div className="min-h-screen bg-[#0a0f1a] font-sans flex flex-col transition-colors duration-300">
+      <SyncTracker />
+      
       {isOffline && (
-        <div className="bg-amber text-white px-6 py-1.5 text-[9px] font-black uppercase tracking-[0.2em] text-center sticky top-0 z-[100] animate-pulse">
-          Offline Mode Active • Data will sync on reconnection
+        <div className="bg-amber text-white px-6 py-1.5 text-[9px] font-black uppercase tracking-[0.2em] text-center sticky top-0 z-[100]">
+          Offline Mode Active
         </div>
       )}
-      <header className="px-6 py-4 border-b border-slate-700/50 flex justify-between items-center sticky top-0 z-30 bg-[#0a0f1a]/80 backdrop-blur-xl pt-10 transition-colors">
-        <div className="flex flex-col">
-          <div className="flex items-center gap-2 mb-1">
-            <p className="text-white font-semibold text-lg leading-tight">Good morning, {user?.name.split(' ')[0] || 'Driver'}</p>
-            <div className="flex items-center gap-1.5 bg-emerald-500/20 text-emerald-400 rounded-full text-[10px] font-bold px-2 py-0.5 border border-emerald-500/20">
-              <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              ON DUTY
-            </div>
-          </div>
+
+      {/* Simplified, More Intuitive Header */}
+      <header className="px-6 pt-12 pb-6 flex justify-between items-end sticky top-0 z-30 bg-[#0a0f1a]/80 backdrop-blur-xl">
+        <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-white tracking-tight">{currentRoute}</h1>
-            {activeTrip && (
-              <div className="flex items-center gap-1 text-[10px] text-slate-400 bg-slate-800/50 px-2 py-0.5 rounded-lg border border-slate-700/50 ml-1">
-                <Truck size={10} />
-                <span>12.4 km to next stop</span>
-              </div>
-            )}
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">Command Unit</span>
+            <div className="h-1 w-1 rounded-full bg-emerald-500" />
+            <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest leading-none">Online</span>
           </div>
+          <h1 className="text-3xl font-bold text-white tracking-tight leading-none">
+            {currentRoute}
+          </h1>
         </div>
-        <div className="flex gap-2 items-center">
+        
+        <div className="flex gap-2">
           <button 
             onClick={handleToggleVoice}
-            className={`h-11 w-11 rounded-xl flex items-center justify-center active:scale-90 shadow-sm transition-all ${isVoiceActive ? 'bg-brand text-white border-brand shadow-lg shadow-brand/20' : 'bg-slate-800 text-slate-400 border border-slate-700/50'}`}
+            className={`h-10 w-10 rounded-xl flex items-center justify-center transition-all ${isVoiceActive ? 'bg-brand text-white border-brand shadow-lg shadow-brand/20' : 'bg-slate-800 text-slate-400 border border-slate-700/50'}`}
           >
-            <Activity size={20} className={isVoiceActive ? 'animate-pulse' : ''} />
+            <Activity size={18} className={isVoiceActive ? 'animate-pulse' : ''} />
           </button>
           <button 
             onClick={handleSOS}
-            className="animate-pulse bg-red-500 hover:bg-red-600 text-white font-bold px-4 py-2.5 rounded-xl text-sm flex items-center gap-1.5 shadow-lg shadow-red-500/20 active:scale-95 transition-all"
+            className="bg-red-500/10 text-red-500 border border-red-500/20 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all"
           >
-            <Zap size={16} fill="currentColor" /> SOS
+            SOS
           </button>
         </div>
       </header>
-      <main className="flex-1 p-4 space-y-4 pb-32 overflow-y-auto no-scrollbar">
-        {/* Compact Stats Row */}
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
-           <div className="bg-slate-800/80 px-4 py-3 rounded-2xl border border-slate-700/50 shadow-lg flex items-center gap-3 shrink-0">
-              <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
-                <Clock size={16} />
-              </div>
-              <div>
-                <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Duty Time</p>
-                <h3 className="text-sm font-bold text-white tracking-tight">
-                  {Math.floor(driveTime / 3600)}h {Math.floor((driveTime % 3600) / 60)}m
-                </h3>
-              </div>
-           </div>
-           
-           <div className="bg-slate-800/80 px-4 py-3 rounded-2xl border border-slate-700/50 shadow-lg flex items-center gap-3 shrink-0">
-              <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
-                <Activity size={16} />
-              </div>
-              <div>
-                <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Efficiency</p>
-                <h3 className="text-sm font-bold text-white tracking-tight">{ecoScore}%</h3>
-              </div>
-           </div>
 
-           <div className="bg-slate-800/80 px-4 py-3 rounded-2xl border border-slate-700/50 shadow-lg flex items-center gap-3 shrink-0">
-              <div className="h-8 w-8 rounded-lg bg-brand/10 flex items-center justify-center text-brand">
-                <Package size={16} />
-              </div>
-              <div>
-                <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Items</p>
-                <h3 className="text-sm font-bold text-white tracking-tight">{dns.length} Units</h3>
-              </div>
-           </div>
-        </div>
-
-        {/* Next Stop Highlight Card - Compact */}
-        {activeTrip && (
-          <div className="bg-emerald-500/20 border border-emerald-500/30 rounded-2xl p-4 relative overflow-hidden group transition-colors">
-            <div className="relative z-10 flex items-center justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="px-1.5 py-0.5 bg-emerald-500 text-white text-[8px] font-black rounded uppercase">Next Stop</div>
-                  <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-tight">~12 min</span>
-                </div>
-                <h4 className="text-base font-bold text-white truncate transition-colors">{activeTrip.clientName}</h4>
-                <div className="flex items-center gap-1 text-slate-400 mt-0.5">
-                  <MapPin size={12} className="shrink-0" />
-                  <p className="text-[10px] truncate transition-colors">{activeTrip.address}</p>
+      <main className="flex-1 p-6 space-y-6 overflow-y-auto no-scrollbar pb-32">
+        {/* Primary Mission Card */}
+        {activeTrip ? (
+          <div className="space-y-4">
+            <div className="relative">
+              <NextStopCard dn={activeTrip} />
+              <div className="absolute top-4 right-4 flex gap-2">
+                <div className="bg-emerald-500/10 text-emerald-500 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border border-emerald-500/20">
+                  {ecoScore}% Eco
                 </div>
               </div>
+            </div>
+            
+            <div className="flex gap-3">
               <button 
-                onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(activeTrip.address)}`, '_blank')}
-                className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl p-3 shadow-lg active:scale-95 transition-all"
+                onClick={() => {
+                  setCurrentDn(activeTrip);
+                  setStep('EXECUTION');
+                  setIsPanelExpanded(activeTrip.status !== DNStatus.IN_TRANSIT);
+                }}
+                className="flex-[2] bg-brand text-white py-5 rounded-3xl font-black uppercase text-[12px] tracking-[0.2em] shadow-2xl shadow-brand/20 flex items-center justify-center gap-3 active:scale-95 transition-all"
               >
-                <Navigation size={20} fill="currentColor" />
+                <div className="h-6 w-6 bg-white/20 rounded-lg flex items-center justify-center">
+                  <Play size={14} fill="currentColor" />
+                </div>
+                {activeTrip.status === DNStatus.IN_TRANSIT ? 'Resume Navigation' : 'Commence Dispatch'}
+              </button>
+              
+              <button 
+                onClick={() => setStep('EXCEPTION')}
+                className="h-16 w-16 bg-slate-800 text-slate-400 rounded-3xl font-black border border-slate-700/50 flex items-center justify-center active:scale-95 transition-all"
+                title="Report Issue"
+              >
+                <AlertTriangle size={20} />
               </button>
             </div>
+          </div>
+        ) : (
+          <div className="py-20 text-center space-y-6">
+             <div className="h-24 w-24 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner animate-pulse">
+                <CheckCircle size={48} />
+             </div>
+             <div>
+               <h3 className="text-2xl font-bold text-white mb-2">Manifest Complete</h3>
+               <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em]">All tactical objectives met</p>
+             </div>
+             <button 
+               onClick={() => setStep('RECONCILIATION')}
+               className="bg-brand text-white w-full max-w-xs h-16 mx-auto rounded-2xl flex items-center justify-center gap-3 font-black uppercase text-[11px] tracking-widest shadow-xl shadow-brand/20"
+             >
+                <ClipboardCheck size={20} /> Finalize & Reconcile
+             </button>
           </div>
         )}
 
-        {/* Emergency/Issue - Compact Horizontal */}
-        <div className="flex gap-2">
-          <button 
-            onClick={() => {
-              setExceptionType('');
-              setExceptionNotes('');
-              setStep('EXCEPTION');
-            }}
-            className="flex-1 bg-red-900/20 border border-red-700/30 text-red-400 rounded-xl p-3 flex items-center gap-3 transition-all active:scale-95"
-          >
-            <AlertTriangle size={16} />
-            <span className="text-[10px] font-black uppercase tracking-widest">Report Issue</span>
-          </button>
-          
-          <button 
-            onClick={() => setQuickActionOpen(true)}
-            className="flex-1 bg-slate-800 border border-slate-700 text-slate-300 rounded-xl p-3 flex items-center gap-3 transition-all active:scale-95"
-          >
-            <Zap size={16} />
-            <span className="text-[10px] font-black uppercase tracking-widest">Quick Actions</span>
-          </button>
+        {/* Tactical Overview - Grouped Info */}
+        <div className="bg-slate-800/20 border border-white/5 rounded-[2.5rem] p-6 grid grid-cols-2 gap-8 divide-x divide-white/5">
+           <div className="flex flex-col gap-1">
+              <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Active Drive Time</span>
+              <span className="text-xl font-bold text-white tabular-nums">{Math.floor(driveTime / 60)}m {driveTime % 60}s</span>
+           </div>
+           <div className="flex flex-col gap-1 pl-8">
+              <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Fleet Safety</span>
+              <span className="text-xl font-bold text-emerald-500 tabular-nums">{safetyScore}%</span>
+           </div>
         </div>
 
-        <div className="pt-2">
-          <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] mb-3 ml-1">Today's Assignments</p>
-          <div className="space-y-3">
-            {loading ? [1, 2, 3].map(i => <div key={i} className="h-20 rounded-2xl animate-pulse bg-charcoal border border-white/5" />) : 
-              dns.length === 0 ? (
-            <div className="py-16 text-center px-8">
-               <div className="h-20 w-20 bg-emerald/10 text-emerald rounded-full flex items-center justify-center mx-auto mb-6 transition-colors shadow-sm">
-                  <CheckCircle size={40} />
-               </div>
-               <p className="label-logistics mb-8">All deliveries completed</p>
-               <button 
-                 onClick={() => setStep('RECONCILIATION')}
-                 className="btn-primary w-full h-16 flex items-center justify-center gap-3"
-               >
-                  <ClipboardCheck size={20} /> Reconcile & End Shift
-               </button>
-            </div>
-          ) :
-            dns.map(dn => (
-              <button key={dn.id} onClick={() => { setCurrentDn(dn); setStep('EXECUTION'); setOdoStart(dn.odometerStart?.toString() || ''); setIsPanelExpanded(true); }} 
-                className="w-full p-4 rounded-2xl bg-slate-800/60 backdrop-blur-sm border border-slate-700/40 shadow-xl flex items-center gap-4 active:scale-[0.98] transition-all text-left relative overflow-hidden group min-h-[100px]"
-              >
-                <div className={`absolute top-0 right-0 px-3 py-1 text-[8px] font-black uppercase tracking-widest rounded-bl-xl ${dn.type === LogisticsType.INBOUND ? 'bg-brand/80' : 'bg-emerald-500/80'} text-white transition-colors`}>
-                  {dn.type === LogisticsType.INBOUND ? 'Inbound Pickup' : 'Outbound Delivery'}
+        {/* Upcoming Queue */}
+        {dns.length > 1 && (
+          <div className="space-y-4">
+             <div className="flex items-center justify-between px-2">
+                <h4 className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em]">Remaining queue</h4>
+                <div className="h-5 w-5 bg-slate-800 rounded-full flex items-center justify-center text-[9px] font-black text-slate-400">
+                  {dns.length - 1}
                 </div>
-                
-                <div className={`h-14 w-14 rounded-2xl flex items-center justify-center shrink-0 border transition-all ${dn.status === DNStatus.IN_TRANSIT ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-slate-900 border-slate-700 text-slate-500 group-hover:border-emerald-500/30'}`}>
-                  {dn.status === DNStatus.IN_TRANSIT ? <Navigation size={26} className="animate-pulse" /> : 
-                    dn.type === LogisticsType.INBOUND ? <ArrowDownLeft size={26} /> : <ArrowUpRight size={26} />
-                  }
-                </div>
-
-                <div className="flex-1 min-w-0 space-y-1">
-                   <h4 className="text-white font-semibold text-[15px] leading-tight truncate transition-colors">{dn.clientName}</h4>
-                   <div className="flex items-center gap-1.5 text-slate-400">
-                      <MapPin size={12} className="shrink-0" />
-                      <p className="text-[11px] font-medium truncate uppercase tracking-tight transition-colors">{dn.address}</p>
-                   </div>
-                   <div className="flex items-center gap-3 pt-1">
-                      <div className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest transition-colors ${
-                        dn.status === DNStatus.IN_TRANSIT ? 'bg-blue-500/20 text-blue-400' : 
-                        dn.status === DNStatus.DELIVERED ? 'bg-emerald-500/20 text-emerald-400' : 
-                        'bg-amber-500/20 text-amber-400'
-                      }`}>
-                        {dn.status.replace('_', ' ')}
-                      </div>
-                      <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold transition-colors">
-                         <Clock size={12} />
-                         <span>ETA: 14:30</span>
-                      </div>
-                   </div>
-                </div>
-
-                <div className="flex flex-col items-end gap-2 ml-2">
-                   <div className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl p-2.5 shadow-lg shadow-emerald-500/20 transition-all active:scale-90">
-                      <Navigation size={20} fill="currentColor" />
-                   </div>
-                </div>
-              </button>
-            ))
-        }
+             </div>
+             <div className="space-y-3">
+               {dns.slice(1, 3).map(dn => (
+                 <AssignmentCard 
+                   key={dn.id} 
+                   dn={dn} 
+                   onClick={(selectedDn) => { 
+                     setCurrentDn(selectedDn); 
+                     setStep('EXECUTION'); 
+                     setOdoStart(selectedDn.odometerStart?.toString() || ''); 
+                     setIsPanelExpanded(true); 
+                   }} 
+                 />
+               ))}
+               {dns.length > 3 && (
+                 <button onClick={() => setShowMenu(true)} className="w-full py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest border border-dashed border-slate-800 rounded-2xl">
+                   View {dns.length - 3} more assignments
+                 </button>
+               )}
+             </div>
           </div>
-        </div>
+        )}
       </main>
 
       {renderBottomNav('LIST')}
 
-      <div className="fixed bottom-2 left-0 right-0 flex justify-center pointer-events-none z-[45]">
-         <div className="px-3 py-1 bg-white/5 backdrop-blur-sm rounded-full border border-white/5 flex items-center gap-2 transition-colors">
-            <ShieldCheck size={8} className="text-emerald" />
-            <span className="text-[6px] font-black uppercase tracking-[0.2em] opacity-20">ISO 39001 • ISO 9001 • ISO 28000 Compliant Architecture</span>
-         </div>
-      </div>
-
-      {/* Quick Actions Menu Overlay */}
+      {/* Minimalist Quick Actions Overlay */}
       {quickActionOpen && (
-        <div className="fixed inset-0 z-[150] flex items-end justify-center p-6 bg-[#0a0f1a]/80 backdrop-blur-sm animate-in fade-in duration-300">
-           <div className="w-full max-w-md bg-slate-900 border border-slate-700/50 rounded-[2.5rem] shadow-2xl p-8 animate-in slide-in-from-bottom-10 duration-500">
-              <div className="flex justify-between items-center mb-8">
-                 <div>
-                    <h3 className="text-xl font-bold text-white tracking-tight transition-colors">Quick Actions</h3>
-                    <p className="text-xs text-slate-500 mt-1 transition-colors">Select an action to continue</p>
-                 </div>
-                 <button onClick={() => setQuickActionOpen(false)} className="h-10 w-10 bg-slate-800 rounded-xl text-slate-400 flex items-center justify-center border border-slate-700/50 transition-colors hover:text-white active:scale-90"><X size={20}/></button>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                 <button 
-                   onClick={() => {
-                     const activeTrip = dns.find(dn => dn.status === DNStatus.IN_TRANSIT) || dns[0];
-                     if (activeTrip) {
-                       setCurrentDn(activeTrip);
-                       setStep('EXECUTION');
-                       setPodPhoto(null);
-                       setPodSignature(null);
-                       setQuickActionOpen(false);
-                     }
-                   }}
-                   className="p-5 bg-emerald-500/10 border border-emerald-500/20 rounded-3xl flex flex-col items-center gap-3 group active:scale-95 transition-all text-center"
-                 >
-                    <div className="h-12 w-12 bg-emerald-500 text-white rounded-2xl flex items-center justify-center shadow-lg group-hover:rotate-12 transition-transform">
-                       <CheckCircle size={24} />
-                    </div>
-                    <span className="text-[11px] font-bold uppercase tracking-widest text-emerald-400 transition-colors">Mark Delivered</span>
-                 </button>
-                 <button 
-                   onClick={() => { setQuickActionOpen(false); setStep('EXCEPTION'); }}
-                   className="p-5 bg-red-500/10 border border-red-500/20 rounded-3xl flex flex-col items-center gap-3 group active:scale-95 transition-all text-center"
-                 >
-                    <div className="h-12 w-12 bg-red-500 text-white rounded-2xl flex items-center justify-center shadow-lg group-hover:rotate-12 transition-transform">
-                       <AlertTriangle size={24} />
-                    </div>
-                    <span className="text-[11px] font-bold uppercase tracking-widest text-red-500 transition-colors">Report Issue</span>
-                 </button>
-                 <button 
-                   onClick={() => { window.open('tel:0800123456'); setQuickActionOpen(false); }}
-                   className="p-5 bg-blue-500/10 border border-blue-500/20 rounded-3xl flex flex-col items-center gap-3 group active:scale-95 transition-all text-center"
-                 >
-                    <div className="h-12 w-12 bg-blue-500 text-white rounded-2xl flex items-center justify-center shadow-lg group-hover:rotate-12 transition-transform">
-                       <PhoneCall size={24} />
-                    </div>
-                    <span className="text-[11px] font-bold uppercase tracking-widest text-blue-400 transition-colors">Call Dispatch</span>
-                 </button>
-                 <button 
-                   onClick={() => { setShowAdvisoryModal(true); setQuickActionOpen(false); }}
-                   className="p-5 bg-amber-500/10 border border-amber-500/20 rounded-3xl flex flex-col items-center gap-3 group active:scale-95 transition-all text-center"
-                 >
-                    <div className="h-12 w-12 bg-amber-500 text-white rounded-2xl flex items-center justify-center shadow-lg group-hover:rotate-12 transition-transform">
-                       <CloudRain size={24} />
-                    </div>
-                    <span className="text-[11px] font-bold uppercase tracking-widest text-amber-500 transition-colors">Advisories</span>
-                 </button>
-              </div>
-           </div>
-        </div>
+        <QuickActionsOverlay 
+          onClose={() => setQuickActionOpen(false)}
+          onMarkDelivered={() => {
+            const dn = dns.find(dn => dn.status === DNStatus.IN_TRANSIT) || dns[0];
+            if (dn) {
+              setCurrentDn(dn);
+              setStep('EXECUTION');
+              setQuickActionOpen(false);
+            }
+          }}
+          onReportIssue={() => { setQuickActionOpen(false); setStep('EXCEPTION'); }}
+          onCallDispatch={() => { window.open('tel:0800123456'); setQuickActionOpen(false); }}
+          onShowAdvisories={() => { setShowAdvisoryModal(true); setQuickActionOpen(false); }}
+        />
       )}
 
-      {/* Floating Action Button */}
-      {step === 'LIST' && !quickActionOpen && (
-        <button 
-          onClick={() => setQuickActionOpen(true)}
-          className="fixed bottom-28 right-6 h-16 w-16 bg-emerald-500 text-white rounded-2xl shadow-2xl shadow-emerald-500/20 flex items-center justify-center z-[100] active:scale-90 transition-all border-4 border-[#0a0f1a] hover:bg-emerald-600 group"
-        >
-           <Zap size={28} fill="currentColor" className="group-hover:scale-110 transition-transform" />
-        </button>
-      )}
-
-      {/* Driver Hub Menu Overlay */}
-      {/* Safety Alert Overlay */}
-      {showSafetyAlert && (
-        <div className="fixed top-24 left-4 right-4 z-[9000] animate-in slide-in-from-top-8 duration-300">
-           <div className="bg-red-600 text-white p-4 rounded-2xl shadow-2xl flex items-center gap-4 border-2 border-white/20">
-              <div className="h-10 w-10 bg-white/20 rounded-xl flex items-center justify-center animate-pulse">
-                 <AlertTriangle size={24} />
-              </div>
-              <div>
-                 <p className="text-[10px] font-black uppercase tracking-widest opacity-80 leading-none mb-1">Safety Alert</p>
-                 <p className="text-sm font-black uppercase tracking-tight">{safetyAlertMsg}</p>
-              </div>
-           </div>
-        </div>
-      )}
+      {showSafetyAlert && <SafetyAlert message={safetyAlertMsg} />}
 
       {showMenu && (
-        <div className="fixed inset-0 z-[5000] bg-brand/60 backdrop-blur-xl flex flex-col p-6 animate-in fade-in duration-300">
-           <header className="flex justify-between items-center mb-12 pt-8">
-              <div className="flex items-center gap-4">
-                 <div className="h-14 w-14 rounded-2xl bg-white text-brand flex items-center justify-center text-xl font-black shadow-2xl">
-                    {user?.name?.charAt(0) || '?'}
-                 </div>
-                 <div>
-                    <h2 className="text-xl font-black uppercase tracking-tighter leading-none mb-1">{user?.name}</h2>
-                    <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Driver ID: {user?.id.split('-')[1] || '772'}</p>
-                 </div>
-              </div>
-              <button onClick={() => setShowMenu(false)} className="h-12 w-12 bg-white/10 rounded-xl flex items-center justify-center text-white active:scale-90 transition-all">
-                 <X size={24} />
-              </button>
-           </header>
-
-            <div className="flex-1 space-y-4 overflow-y-auto no-scrollbar pb-10">
-              <p className="text-[9px] font-black text-white/50 uppercase tracking-[0.3em] mb-6">Operations Hub</p>
-              
-              <button 
-                onClick={() => { setShowMenu(false); setStep('LIST'); }}
-                className="w-full p-6 bg-white/5 border border-white/5 rounded-[2rem] flex items-center gap-6 group active:bg-white/10 transition-all"
-              >
-                 <div className="h-12 w-12 rounded-xl bg-brand text-white flex items-center justify-center shadow-lg"><Truck size={24} /></div>
-                 <div className="text-left">
-                    <h4 className="text-sm font-black text-white uppercase tracking-tight mb-1">Active Manifest</h4>
-                    <p className="text-[9px] font-bold text-white/40 uppercase">View current delivery queue</p>
-                 </div>
-                 <ChevronRight size={20} className="ml-auto text-white/50" />
-              </button>
-
-              <button 
-                onClick={() => { setShowMenu(false); setStep('WALLET'); }}
-                className="w-full p-6 bg-white/5 border border-white/5 rounded-[2rem] flex items-center gap-6 group active:bg-white/10 transition-all"
-              >
-                 <div className="h-12 w-12 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-lg"><CreditCard size={24} /></div>
-                 <div className="text-left">
-                    <h4 className="text-sm font-black text-white uppercase tracking-tight mb-1">Earnings & Wallet</h4>
-                    <p className="text-[9px] font-bold text-white/40 uppercase">View balance & request advances</p>
-                 </div>
-                 <ChevronRight size={20} className="ml-auto text-white/50" />
-              </button>
-
-              <button 
-                onClick={() => { setShowMenu(false); setStep('SAFETY_PASSPORT'); }}
-                className="w-full p-6 bg-white/5 border border-white/5 rounded-[2rem] flex items-center gap-6 group active:bg-white/10 transition-all"
-              >
-                 <div className="h-12 w-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-lg"><ShieldCheck size={24} /></div>
-                 <div className="text-left">
-                    <h4 className="text-sm font-black text-white uppercase tracking-tight mb-1">Safety Passport</h4>
-                    <p className="text-[9px] font-bold text-white/40 uppercase">ISO 39001 Compliance Profile</p>
-                 </div>
-                 <ChevronRight size={20} className="ml-auto text-white/50" />
-              </button>
-
-              <button 
-                onClick={() => { setShowMenu(false); setStep('INSPECTION'); }}
-                className="w-full p-6 bg-white/5 border border-white/5 rounded-[2rem] flex items-center gap-6 group active:bg-white/10 transition-all"
-              >
-                 <div className="h-12 w-12 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-lg"><ShieldCheck size={24} /></div>
-                 <div className="text-left">
-                    <h4 className="text-sm font-black text-white uppercase tracking-tight mb-1">Vehicle Inspection</h4>
-                    <p className="text-[9px] font-bold text-white/40 uppercase">Daily safety checklist</p>
-                 </div>
-                 <ChevronRight size={20} className="ml-auto text-white/50" />
-              </button>
-
-              <button 
-                onClick={() => { setShowMenu(false); setStep('NOTIFICATIONS'); }}
-                className="w-full p-6 bg-white/5 border border-white/5 rounded-[2rem] flex items-center gap-6 group active:bg-white/10 transition-all"
-              >
-                 <div className="h-12 w-12 rounded-xl bg-red-500 text-white flex items-center justify-center shadow-lg"><AlertCircle size={24} /></div>
-                 <div className="text-left">
-                    <h4 className="text-sm font-black text-white uppercase tracking-tight mb-1">Notifications</h4>
-                    <p className="text-[9px] font-bold text-white/40 uppercase">Urgent alerts & messages</p>
-                 </div>
-                 <ChevronRight size={20} className="ml-auto text-white/50" />
-              </button>
-
-              <button 
-                onClick={() => navigate('/driver/hub')}
-                className="w-full p-6 bg-white/5 border border-white/5 rounded-[2rem] flex items-center gap-6 group active:bg-white/10 transition-all"
-              >
-                 <div className="h-12 w-12 rounded-xl bg-orange-500 text-white flex items-center justify-center shadow-lg"><Activity size={24} /></div>
-                 <div className="text-left">
-                    <h4 className="text-sm font-black text-white uppercase tracking-tight mb-1">Driver Hub</h4>
-                    <p className="text-[9px] font-bold text-white/40 uppercase">Performance & Safety Tools</p>
-                 </div>
-                 <ChevronRight size={20} className="ml-auto text-white/50" />
-              </button>
-
-              <button 
-                onClick={() => { setStep('FLEET_MAP'); setShowMenu(false); }}
-                 className="w-full p-6 bg-white/5 border border-white/5 rounded-[2rem] flex items-center gap-6 group active:bg-white/10 transition-all"
-               >
-                  <div className="h-12 w-12 rounded-xl bg-indigo-500 text-white flex items-center justify-center shadow-lg"><Navigation2 size={24} /></div>
-                  <div className="text-left">
-                     <h4 className="text-sm font-black text-white uppercase tracking-tight mb-1">Fleet Map</h4>
-                     <p className="text-[9px] font-bold text-white/40 uppercase">Real-time network visibility</p>
-                  </div>
-                  <ChevronRight size={20} className="ml-auto text-white/50" />
-               </button>
-
-               <button 
-                onClick={() => { setShowMenu(false); setIsChatOpen(true); }}
-                className="w-full p-6 bg-white/5 border border-white/5 rounded-[2rem] flex items-center gap-6 group active:bg-white/10 transition-all"
-              >
-                 <div className="h-12 w-12 rounded-xl bg-brand text-white flex items-center justify-center shadow-lg"><MessageSquare size={24} /></div>
-                 <div className="text-left">
-                    <h4 className="text-sm font-black text-white uppercase tracking-tight mb-1">Dispatch Comms</h4>
-                    <p className="text-[9px] font-bold text-white/40 uppercase">Real-time secure chat</p>
-                 </div>
-                 <ChevronRight size={20} className="ml-auto text-white/50" />
-              </button>
-
-              <button 
-                onClick={() => { setShowMenu(false); setShowAdvisoryModal(true); }}
-                className="w-full p-6 bg-white/5 border border-white/5 rounded-[2rem] flex items-center gap-6 group active:bg-white/10 transition-all"
-              >
-                 <div className="h-12 w-12 rounded-xl bg-orange-500 text-white flex items-center justify-center shadow-lg"><CloudRain size={24} /></div>
-                 <div className="text-left">
-                    <h4 className="text-sm font-black text-white uppercase tracking-tight mb-1">Route Intelligence</h4>
-                    <p className="text-[9px] font-bold text-white/40 uppercase">Weather & Traffic alerts</p>
-                 </div>
-                 <ChevronRight size={20} className="ml-auto text-white/50" />
-              </button>
-
-               <button 
-                 onClick={() => navigate('/profile')}
-                className="w-full p-6 bg-white/5 border border-white/5 rounded-[2rem] flex items-center gap-6 group active:bg-white/10 transition-all"
-              >
-                 <div className="h-12 w-12 rounded-xl bg-blue-500 text-white flex items-center justify-center shadow-lg"><UserIcon size={24} /></div>
-                 <div className="text-left">
-                    <h4 className="text-sm font-black text-white uppercase tracking-tight mb-1">Identity Terminal</h4>
-                    <p className="text-[9px] font-bold text-white/40 uppercase">Manage profile & security</p>
-                 </div>
-                 <ChevronRight size={20} className="ml-auto text-white/50" />
-              </button>
-
-              <button 
-                onClick={() => navigate('/settings')}
-                className="w-full p-6 bg-white/5 border border-white/5 rounded-[2rem] flex items-center gap-6 group active:bg-white/10 transition-all"
-              >
-                 <div className="h-12 w-12 rounded-xl bg-slate-700 text-white flex items-center justify-center shadow-lg"><Settings size={24} /></div>
-                 <div className="text-left">
-                    <h4 className="text-sm font-black text-white uppercase tracking-tight mb-1">Config</h4>
-                    <p className="text-[9px] font-bold text-white/40 uppercase">App preferences</p>
-                 </div>
-                 <ChevronRight size={20} className="ml-auto text-white/50" />
-              </button>
-           </div>
-
-           <div className="pt-6 border-t border-white/10 space-y-4">
-              <button 
-                onClick={handleClockOut}
-                className="w-full py-6 bg-red-500/10 text-red-500 border border-red-500/20 rounded-2xl font-black uppercase text-xs tracking-[0.2em] active:scale-95 transition-all flex items-center justify-center gap-4"
-              >
-                 <LogOut size={20} /> End Shift & Clock Out
-              </button>
-              <button 
-                onClick={async () => { 
-                  try { await api.logout(); } catch (e) {}
-                  logout(); 
-                  navigate('/login'); 
-                }}
-                className="w-full py-4 text-[10px] font-black text-white/50 uppercase tracking-[0.3em] hover:text-white transition-colors"
-              >
-                 Terminate Active Session
-              </button>
-           </div>
-        </div>
+        <DriverHubMenu 
+          user={user}
+          onClose={() => setShowMenu(false)}
+          onNavigate={(path) => {
+            setShowMenu(false);
+            if (path === 'LIST') setStep('LIST');
+            else if (path === 'WALLET') setStep('WALLET');
+            else if (path === 'SAFETY_PASSPORT') setStep('SAFETY_PASSPORT');
+            else if (path === 'INSPECTION') setStep('INSPECTION');
+            else if (path === 'NOTIFICATIONS') setStep('NOTIFICATIONS');
+            else if (path === 'FLEET_MAP') setStep('FLEET_MAP');
+            else if (path === 'CHAT') setIsChatOpen(true);
+            else if (path === 'ADVISORIES') setShowAdvisoryModal(true);
+            else navigate(path);
+          }}
+          onClockOut={handleClockOut}
+          onLogout={async () => {
+            try { await api.logout(); } catch (e) {}
+            logout();
+            navigate('/login');
+          }}
+        />
       )}
     </div>
-  );
-}
+    );
+  }
 
   if (step === 'WALLET') return (
     <div className="min-h-screen bg-navy font-sans flex flex-col transition-colors duration-300">
+      <SyncTracker />
       <header className="px-6 py-4 border-b border-white/5 flex justify-between items-center sticky top-0 z-30 bg-navy/80 backdrop-blur-xl pt-10 transition-colors">
         <div className="flex items-center gap-4">
           <button onClick={() => setStep('LIST')} className="h-10 w-10 bg-charcoal border border-white/10 rounded-xl flex items-center justify-center text-white/40 active:scale-90 transition-all shadow-sm">
@@ -1682,6 +1451,7 @@ const DriverPortal: React.FC = () => {
 
   if (step === 'SAFETY_PASSPORT') return (
     <div className="min-h-screen bg-navy font-sans flex flex-col transition-colors duration-300">
+      <SyncTracker />
       <header className="px-6 py-4 border-b border-white/5 flex justify-between items-center sticky top-0 z-30 bg-navy/80 backdrop-blur-xl pt-10 transition-colors">
         <div className="flex items-center gap-4">
           <button onClick={() => setStep('LIST')} className="h-10 w-10 bg-charcoal border border-white/10 rounded-xl flex items-center justify-center text-white/40 active:scale-90 transition-all shadow-sm">
@@ -1821,6 +1591,7 @@ const DriverPortal: React.FC = () => {
         className="h-screen flex flex-col font-sans bg-navy overflow-hidden relative transition-colors duration-300"
         onClick={() => { if (isPanelExpanded) setIsPanelExpanded(false); }}
       >
+        <SyncTracker />
         <div className="flex-1 relative">
            <MapEngine 
             dns={liveDn ? [liveDn as any] : []} 
@@ -1830,63 +1601,62 @@ const DriverPortal: React.FC = () => {
             className="w-full h-full" 
            />
            
-           <div 
-             className="absolute top-14 left-4 right-4 z-[2000] flex flex-col gap-2 pointer-events-none"
-             onClick={(e) => e.stopPropagation()}
-           >
-              <div className="bg-brand text-white p-6 rounded-3xl shadow-2xl border border-white/10 backdrop-blur-xl flex-1 max-w-[300px] pointer-events-auto">
-                 <p className="label-logistics !text-white/40 mb-2">
-                   {currentDn.type === LogisticsType.INBOUND ? 'Warehouse Consignee' : 'End Customer'}
-                 </p>
-                 <h4 className="text-sm font-black truncate uppercase leading-none tracking-tight">{currentDn.address}</h4>
-                 <div className="flex items-center justify-between mt-3">
-                   <p className="text-[10px] font-bold text-white/60 uppercase truncate">{currentDn.clientName}</p>
-                   <button 
-                     onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(currentDn.address)}`, '_blank')}
-                     className="h-8 px-3 bg-white/20 hover:bg-white/30 text-white rounded-xl font-black uppercase text-[8px] flex items-center gap-2 transition-colors pointer-events-auto"
-                   >
-                     <Navigation size={12} /> Navigate
-                   </button>
-                 </div>
-              </div>
-              {currentDn.originName && (
-                <div className="bg-charcoal/90 text-white p-5 rounded-3xl shadow-xl border border-white/5 backdrop-blur-xl flex-1 max-w-[300px] pointer-events-auto transition-colors">
-                   <p className="label-logistics !text-white/40 mb-2">
-                     {currentDn.type === LogisticsType.INBOUND ? 'Supplier Origin' : 'Warehouse Origin'}
-                   </p>
-                   <h4 className="text-xs font-black truncate uppercase leading-none tracking-tight transition-colors">{currentDn.originName}</h4>
-                   <p className="text-[10px] font-bold text-white/60 uppercase mt-2 truncate transition-colors">{currentDn.originAddress}</p>
+           {/* Consolidated Mission HUD */}
+           <div className="absolute top-12 left-4 right-4 z-[2000] pointer-events-none">
+             <div className="bg-[#0a0f1a]/80 backdrop-blur-xl border border-white/10 rounded-[2rem] p-5 shadow-2xl flex items-center justify-between pointer-events-auto">
+               <div className="flex-1 min-w-0 pr-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] font-black text-brand uppercase tracking-widest">Target</span>
+                    <div className="h-1 w-1 rounded-full bg-brand" />
+                    <span className="text-[10px] font-black text-white/40 uppercase tracking-widest truncate">{currentDn.clientName}</span>
+                  </div>
+                  <h4 className="text-sm font-bold text-white truncate uppercase tracking-tight">{currentDn.address}</h4>
+               </div>
+               <div className="flex gap-2">
+                 <button 
+                  onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(currentDn.address)}`, '_blank')}
+                  className="h-12 w-12 bg-white/5 border border-white/10 text-white rounded-2xl flex items-center justify-center hover:bg-white/10 transition-colors"
+                 >
+                   <MapIcon size={20} />
+                 </button>
+                 <button 
+                  onClick={() => setStep('LIST')}
+                  className="h-12 w-12 bg-white text-[#0a0f1a] rounded-2xl flex items-center justify-center shadow-lg active:scale-95 transition-all"
+                 >
+                   <X size={20} />
+                 </button>
+               </div>
+             </div>
+           </div>
+           {/* Floating Quick Comms */}
+           <div className="absolute top-40 right-4 z-[2000] flex flex-col gap-3 pointer-events-auto">
+              <button 
+                onClick={() => setIsChatOpen(true)} 
+                className="h-12 w-12 bg-[#0a0f1a]/80 backdrop-blur-md text-white/60 border border-white/10 rounded-2xl flex items-center justify-center active:scale-90 transition-all shadow-xl"
+              >
+                <div className="relative">
+                  <MessageSquare size={18} />
+                  <div className="absolute -top-1 -right-1 h-2 w-2 bg-brand rounded-full border border-[#0a0f1a]" />
                 </div>
-              )}
-           </div>
-           <div 
-             className="absolute top-14 right-4 z-[2000] flex flex-col gap-3 pointer-events-auto"
-             onClick={(e) => e.stopPropagation()}
-           >
-              <button onClick={() => setStep('LIST')} className="h-14 w-14 bg-charcoal rounded-2xl shadow-lg flex items-center justify-center text-white/40 active:scale-90 border border-white/5 transition-colors"><X size={24} /></button>
-              <button onClick={() => setStep('EXCEPTION')} className="h-14 w-14 bg-red/10 text-red rounded-2xl shadow-lg flex items-center justify-center active:scale-90 border border-red/20 transition-colors"><AlertTriangle size={24} /></button>
-              <button onClick={() => setIsChatOpen(true)} className="h-14 w-14 bg-brand text-white rounded-2xl shadow-lg flex items-center justify-center active:scale-90 border border-brand/20 transition-colors">
-                <MessageSquare size={24} />
               </button>
-              <button onClick={() => setShowAdvisoryModal(true)} className="h-14 w-14 bg-amber/10 text-amber rounded-2xl shadow-lg flex items-center justify-center active:scale-90 border border-amber/20 transition-colors">
-                <CloudRain size={24} />
+              <button 
+                onClick={() => setShowAdvisoryModal(true)} 
+                className="h-12 w-12 bg-[#0a0f1a]/80 backdrop-blur-md text-amber-500 border border-amber-500/20 rounded-2xl flex items-center justify-center active:scale-90 transition-all shadow-xl"
+              >
+                <CloudRain size={18} />
               </button>
-              <button onClick={() => addNotification("ISO 9001: SOP - Ensure vehicle is locked during delivery.", "info")} className="h-14 w-14 bg-brand/10 text-brand rounded-2xl shadow-lg flex items-center justify-center active:scale-90 border border-brand/20 transition-colors"><Info size={24} /></button>
+              <button 
+                onClick={() => setStep('EXCEPTION')}
+                className="h-12 w-12 bg-[#0a0f1a]/80 backdrop-blur-md text-red-500 border border-red-500/20 rounded-2xl flex items-center justify-center active:scale-90 transition-all shadow-xl"
+              >
+                <AlertTriangle size={18} />
+              </button>
            </div>
-           
-           {isEnRoute && (
-              <div className="absolute bottom-[280px] right-4 z-[2000] animate-in slide-in-from-right-4">
-                 <div className="bg-brand text-white px-6 py-5 rounded-3xl shadow-2xl flex flex-col items-center border border-white/10">
-                    <p className="label-logistics !text-white/40 mb-2">ETA Check</p>
-                    <p className="text-3xl font-black tracking-tighter leading-none">{distanceToTarget ? `${distanceToTarget.toFixed(1)}km` : '--'}</p>
-                 </div>
-              </div>
-           )}
         </div>
 
         {/* Tactile Execution Drawer */}
         <div 
-          className={`absolute bottom-0 left-0 right-0 bg-navy border-t border-white/5 rounded-t-[3rem] shadow-2xl z-[2500] transition-all duration-500 ease-out flex flex-col ${isPanelExpanded ? 'max-h-[65vh]' : 'max-h-[140px]'}`}
+          className={`absolute bottom-0 left-0 right-0 bg-[#0a0f1a] border-t border-white/5 rounded-t-[3rem] shadow-[0_-20px_50px_rgba(0,0,0,0.5)] z-[2500] transition-all duration-500 ease-out flex flex-col ${isPanelExpanded ? 'max-h-[70vh]' : 'max-h-[140px]'}`}
           onClick={(e) => e.stopPropagation()}
         >
            <button onClick={() => setIsPanelExpanded(!isPanelExpanded)} className="w-full py-4 flex items-center justify-center text-white/10 group transition-colors">

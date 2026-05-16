@@ -6,6 +6,7 @@ import { api } from '../../api';
 import Layout from '../../components/Layout';
 import { ModuleId, User, PermissionRequest, UserPreferences } from '../../types';
 import { getContrastTextColor } from '../../utils/color';
+import { UserSettings } from '../../components/UserSettings';
 import { 
   Settings, 
   Bell, 
@@ -398,36 +399,6 @@ const Toggle = React.memo(({ active, onClick }: { active: boolean, onClick: () =
             </>
           )}
 
-          <section className="space-y-6">
-             <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Connectivity & Performance</h3>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <SettingRow 
-                  icon={prefs.theme === 'DARK' ? Moon : Sun} 
-                  title="Terminal Theme" 
-                  desc={prefs.theme === 'DARK' ? "Dark mode active" : "Light mode active"} 
-                  action={
-                    <div className="flex items-center gap-4">
-                      {prefs.theme === 'DARK' && (
-                        <button 
-                          onClick={() => setPrefs(prev => ({ ...prev, theme: 'LIGHT' }))}
-                          className="text-[9px] font-black uppercase text-brand hover:underline"
-                        >
-                          Reset to Light
-                        </button>
-                      )}
-                      <Toggle active={prefs.theme === 'DARK'} onClick={() => setPrefs(prev => ({ ...prev, theme: prev.theme === 'DARK' ? 'LIGHT' : 'DARK' }))} />
-                    </div>
-                  }
-                />
-                <SettingRow 
-                  icon={RefreshCw} 
-                  title="Auto-Sync Stream" 
-                  desc="Real-time telemetry uplink" 
-                  action={<Toggle active={prefs.autoSync} onClick={() => handleToggle('autoSync')} />}
-                />
-             </div>
-          </section>
-
           {user?.role === 'ADMIN' && (
             <>
               <section className="space-y-6">
@@ -548,23 +519,7 @@ const Toggle = React.memo(({ active, onClick }: { active: boolean, onClick: () =
             </>
           )}
 
-          <section className="space-y-6">
-             <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Communication Matrix</h3>
-             <div className="space-y-3">
-                <SettingRow 
-                  icon={Bell} 
-                  title="Push Notifications" 
-                  desc="Immediate mobile status alerts" 
-                  action={<Toggle active={(prefs.notifications as any).push} onClick={() => handleToggle('notifications', 'push')} />}
-                />
-                <SettingRow 
-                  icon={Database} 
-                  title="Email Digests" 
-                  desc="Periodic operational summaries" 
-                  action={<Toggle active={(prefs.notifications as any).email} onClick={() => handleToggle('notifications', 'email')} />}
-                />
-             </div>
-          </section>
+          <UserSettings />
 
           <section className="space-y-6">
              <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Terminal Persistence</h3>

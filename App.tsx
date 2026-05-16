@@ -10,6 +10,7 @@ import { api } from './api';
 import ErrorBoundary from './components/ErrorBoundary';
 import { ModuleGuard } from './components/ModuleGuard';
 import ProtectedRoute from './components/ProtectedRoute';
+import { RoleGuard } from './components/RoleGuard';
 import NotificationToast from './components/NotificationToast';
 import TenantInitializer from './components/TenantInitializer';
 import ThemeManager from './components/ThemeManager';
@@ -28,6 +29,8 @@ const DriverRegistrationForm = React.lazy(() => import('./views/marketing/Driver
 const OnboardingFlow = React.lazy(() => import('./views/onboarding/OnboardingFlow'));
 
 const LoginView = React.lazy(() => import('./views/LoginView'));
+const ForgotPasswordView = React.lazy(() => import('./views/ForgotPasswordView'));
+const ResetPasswordView = React.lazy(() => import('./views/ResetPasswordView'));
 const AdminDashboard = React.lazy(() => import('./views/admin/AdminDashboard'));
 const DispatchDashboard = React.lazy(() => import('./views/dispatch/DispatchDashboard'));
 const TripManagement = React.lazy(() => import('./views/admin/TripManagement'));
@@ -48,6 +51,8 @@ const SubscriptionView = React.lazy(() => import('./views/admin/SubscriptionView
 const CRMView = React.lazy(() => import('./views/admin/CRMView'));
 const DataIngress = React.lazy(() => import('./views/admin/DataIngress'));
 const MarketplaceView = React.lazy(() => import('./views/admin/MarketplaceView'));
+const TaskManagementView = React.lazy(() => import('./views/admin/TaskManagementView'));
+const TenantManagement = React.lazy(() => import('./views/admin/TenantManagement'));
 const DriverPortal = React.lazy(() => import('./views/driver/DriverPortal'));
 const DriverAuxiliary = React.lazy(() => import('./views/driver/DriverAuxiliary'));
 const FacilityPortal = React.lazy(() => import('./views/facility/FacilityPortal'));
@@ -60,8 +65,10 @@ const LegalView = React.lazy(() => import('./views/shared/LegalView'));
 const StyleGuide = React.lazy(() => import('./views/marketing/StyleGuide'));
 const HealthcareDashboard = React.lazy(() => import('./views/industry/HealthcareDashboard'));
 
+const DiagnosticsView = React.lazy(() => import('./views/admin/DiagnosticsView'));
+
 const DashboardSwitcher = () => {
-  const { user } = useAuthStore();
+  const user = useAuthStore(state => state.user);
   const role = user?.role?.toLowerCase();
   
   if (role === 'dispatcher') return <DispatchDashboard />;
@@ -73,8 +80,12 @@ const DashboardSwitcher = () => {
 };
 
 const App: React.FC = () => {
-  const { setIsOnline, addNotification } = useAppStore();
-  const { login, logout, isAuthenticated } = useAuthStore();
+  const setIsOnline = useAppStore(state => state.setIsOnline);
+  const addNotification = useAppStore(state => state.addNotification);
+  
+  const login = useAuthStore(state => state.login);
+  const logout = useAuthStore(state => state.logout);
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
 
   const [isInitializing, setIsInitializing] = React.useState(true);
 
@@ -164,6 +175,8 @@ const App: React.FC = () => {
                 <Route path="/driver-recruitment" element={<DriverRecruitmentView />} />
                 <Route path="/register-driver" element={<DriverRegistrationForm />} />
                 <Route path="/login" element={<LoginView />} />
+                <Route path="/forgot-password" element={<ForgotPasswordView />} />
+                <Route path="/reset-password" element={<ResetPasswordView />} />
                 <Route path="/legal" element={<LegalView />} />
                 <Route path="/style-guide" element={<StyleGuide />} />
                 <Route path="/solutions/healthcare" element={<HealthcareDashboard />} />
@@ -173,36 +186,235 @@ const App: React.FC = () => {
 
                 {/* Core App Routes - Guarded */}
                 <Route path="/admin" element={
-                  <ProtectedRoute allowedRoles={['super_admin', 'tenant_admin', 'dispatcher', 'finance_manager', 'facility_operator']}>
-                    <DashboardSwitcher />
+                  <ProtectedRoute>
+                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin', 'dispatcher', 'finance_manager', 'facility_operator']} permissions={['dashboard:view']} showFullPageError>
+                      <DashboardSwitcher />
+                    </RoleGuard>
                   </ProtectedRoute>
                 } />
-                <Route path="/admin/dispatch" element={<ProtectedRoute allowedRoles={['super_admin', 'tenant_admin', 'dispatcher']}><ModuleGuard moduleId="dispatch"><ErrorBoundary componentName="Trip Management"><TripManagement /></ErrorBoundary></ModuleGuard></ProtectedRoute>} />
-                <Route path="/admin/analytics" element={<ProtectedRoute allowedRoles={['super_admin', 'tenant_admin']}><ModuleGuard moduleId="analytics"><Analytics /></ModuleGuard></ProtectedRoute>} />
-                <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['super_admin', 'tenant_admin']}><UserManagement /></ProtectedRoute>} />
-                <Route path="/admin/recruitment" element={<ProtectedRoute allowedRoles={['super_admin', 'tenant_admin', 'recruiter']}><RecruitmentManagement /></ProtectedRoute>} />
-                <Route path="/admin/security" element={<ProtectedRoute allowedRoles={['super_admin', 'tenant_admin']}><SecurityAudit /></ProtectedRoute>} />
-                <Route path="/admin/orders" element={<ProtectedRoute allowedRoles={['super_admin', 'tenant_admin', 'dispatcher']}><ModuleGuard moduleId="orders"><OrderManagement /></ModuleGuard></ProtectedRoute>} />
-                <Route path="/admin/warehouse" element={<ProtectedRoute allowedRoles={['super_admin', 'tenant_admin', 'dispatcher', 'facility_operator']}><ModuleGuard moduleId="warehouse"><WarehouseManagement /></ModuleGuard></ProtectedRoute>} />
-                <Route path="/admin/fleet" element={<ProtectedRoute allowedRoles={['super_admin', 'tenant_admin', 'fleet_manager']}><ModuleGuard moduleId="fleet"><FleetManagement /></ModuleGuard></ProtectedRoute>} />
-                <Route path="/admin/ingress" element={<ProtectedRoute allowedRoles={['super_admin', 'tenant_admin', 'analyst']}><ModuleGuard moduleId="integrations"><DataIngress /></ModuleGuard></ProtectedRoute>} />
-                <Route path="/admin/queue" element={<ProtectedRoute allowedRoles={['super_admin', 'tenant_admin', 'dispatcher']}><ModuleGuard moduleId="dispatch"><DNQueue /></ModuleGuard></ProtectedRoute>} />
-                <Route path="/admin/tracking" element={<ProtectedRoute allowedRoles={['super_admin', 'tenant_admin', 'dispatcher']}><ModuleGuard moduleId="dispatch"><LiveTracking /></ModuleGuard></ProtectedRoute>} />
-                <Route path="/admin/exceptions" element={<ProtectedRoute allowedRoles={['super_admin', 'tenant_admin', 'dispatcher']}><ModuleGuard moduleId="dispatch"><ExceptionsView /></ModuleGuard></ProtectedRoute>} />
-                <Route path="/admin/trip/:id" element={<ProtectedRoute><TripDetail /></ProtectedRoute>} />
-                <Route path="/admin/billing" element={<ProtectedRoute allowedRoles={['super_admin', 'tenant_admin', 'finance_manager']}><ModuleGuard moduleId="finance"><Invoicing /></ModuleGuard></ProtectedRoute>} />
-                <Route path="/admin/rates" element={<ProtectedRoute allowedRoles={['super_admin', 'tenant_admin', 'finance_manager']}><ModuleGuard moduleId="finance"><RateProfiles /></ModuleGuard></ProtectedRoute>} />
-                <Route path="/admin/subscription" element={<ProtectedRoute allowedRoles={['super_admin', 'tenant_admin']}><SubscriptionView /></ProtectedRoute>} />
-                <Route path="/admin/crm" element={<ProtectedRoute allowedRoles={['super_admin', 'tenant_admin']}><CRMView /></ProtectedRoute>} />
-                <Route path="/admin/marketplace" element={<ProtectedRoute allowedRoles={['super_admin', 'tenant_admin', 'analyst']}><MarketplaceView /></ProtectedRoute>} />
+                <Route path="/admin/dispatch" element={
+                  <ProtectedRoute>
+                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin', 'dispatcher']} permissions={['dispatch:manage']} showFullPageError>
+                      <ModuleGuard moduleId="dispatch">
+                        <ErrorBoundary componentName="Trip Management">
+                          <TripManagement />
+                        </ErrorBoundary>
+                      </ModuleGuard>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/analytics" element={
+                  <ProtectedRoute>
+                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin']} permissions={['analytics:view']} showFullPageError>
+                      <ModuleGuard moduleId="analytics">
+                        <Analytics />
+                      </ModuleGuard>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/users" element={
+                  <ProtectedRoute>
+                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin']} permissions={['users:manage']} showFullPageError>
+                      <UserManagement />
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/recruitment" element={
+                  <ProtectedRoute>
+                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin', 'recruiter']} permissions={['recruitment:all']} showFullPageError>
+                      <RecruitmentManagement />
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/security" element={
+                  <ProtectedRoute>
+                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin']} permissions={['security:view']} showFullPageError>
+                      <SecurityAudit />
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/orders" element={
+                  <ProtectedRoute>
+                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin', 'dispatcher']} permissions={['orders:view']} showFullPageError>
+                      <ModuleGuard moduleId="orders">
+                        <OrderManagement />
+                      </ModuleGuard>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/warehouse" element={
+                  <ProtectedRoute>
+                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin', 'dispatcher', 'facility_operator']} permissions={['warehouse:manage']} showFullPageError>
+                      <ModuleGuard moduleId="warehouse">
+                        <WarehouseManagement />
+                      </ModuleGuard>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/fleet" element={
+                  <ProtectedRoute>
+                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin', 'fleet_manager']} permissions={['fleet:manage']} showFullPageError>
+                      <ModuleGuard moduleId="fleet">
+                        <FleetManagement />
+                      </ModuleGuard>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/tasks" element={
+                  <ProtectedRoute>
+                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin', 'dispatcher', 'recruiter', 'fleet_manager']} permissions={['tasks:view']} showFullPageError>
+                      <TaskManagementView />
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/ingress" element={
+                  <ProtectedRoute>
+                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin', 'analyst']} permissions={['data_ingress:manage']} showFullPageError>
+                      <ModuleGuard moduleId="integrations">
+                        <DataIngress />
+                      </ModuleGuard>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/queue" element={
+                  <ProtectedRoute>
+                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin', 'dispatcher']} permissions={['dispatch:view']} showFullPageError>
+                      <ModuleGuard moduleId="dispatch">
+                        <DNQueue />
+                      </ModuleGuard>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/tracking" element={
+                  <ProtectedRoute>
+                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin', 'dispatcher']} permissions={['tracking:view']} showFullPageError>
+                      <ModuleGuard moduleId="dispatch">
+                        <LiveTracking />
+                      </ModuleGuard>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/exceptions" element={
+                  <ProtectedRoute>
+                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin', 'dispatcher']} permissions={['exceptions:view']} showFullPageError>
+                      <ModuleGuard moduleId="dispatch">
+                        <ExceptionsView />
+                      </ModuleGuard>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/tenants" element={
+                  <ProtectedRoute>
+                    <RoleGuard allowedRoles={['super_admin']} permissions={['users:manage']} showFullPageError>
+                      <TenantManagement />
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/diagnostics" element={
+                  <ProtectedRoute>
+                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin']} permissions={['security:view']} showFullPageError>
+                      <DiagnosticsView />
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/trip/:id" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={['trips:view']} showFullPageError>
+                      <TripDetail />
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/billing" element={
+                  <ProtectedRoute>
+                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin', 'finance_manager']} permissions={['finance:manage']} showFullPageError>
+                      <ModuleGuard moduleId="finance">
+                        <Invoicing />
+                      </ModuleGuard>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/rates" element={
+                  <ProtectedRoute>
+                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin', 'finance_manager']} permissions={['rates:all']} showFullPageError>
+                      <ModuleGuard moduleId="finance">
+                        <RateProfiles />
+                      </ModuleGuard>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/subscription" element={
+                  <ProtectedRoute>
+                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin']} permissions={['subscription:manage']} showFullPageError>
+                      <SubscriptionView />
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/crm" element={
+                  <ProtectedRoute>
+                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin']} permissions={['crm:manage']} showFullPageError>
+                      <CRMView />
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/marketplace" element={
+                  <ProtectedRoute>
+                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin', 'analyst']} permissions={['marketplace:view']} showFullPageError>
+                      <MarketplaceView />
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
                 
-                <Route path="/profile" element={<ProtectedRoute><ProfileView /></ProtectedRoute>} />
-                <Route path="/settings" element={<ProtectedRoute><SettingsView /></ProtectedRoute>} />
+                <Route path="/profile" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={['dashboard:view']} showFullPageError>
+                      <ProfileView />
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                <Route path="/settings" element={
+                  <ProtectedRoute>
+                    <RoleGuard permissions={['dashboard:view']} showFullPageError>
+                      <SettingsView />
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
 
-                <Route path="/driver" element={<ProtectedRoute allowedRoles={['driver']}><ModuleGuard moduleId="driver-portal"><DriverPortal /></ModuleGuard></ProtectedRoute>} />
-                <Route path="/driver/hub" element={<ProtectedRoute allowedRoles={['driver']}><ModuleGuard moduleId="driver-portal"><DriverAuxiliary /></ModuleGuard></ProtectedRoute>} />
-                <Route path="/facility" element={<ProtectedRoute allowedRoles={['facility_operator']}><ModuleGuard moduleId="facility-portal"><FacilityPortal /></ModuleGuard></ProtectedRoute>} />
-                <Route path="/client" element={<ProtectedRoute allowedRoles={['client']}><ModuleGuard moduleId="client-portal"><ClientPortal /></ModuleGuard></ProtectedRoute>} />
+                <Route path="/driver" element={
+                  <ProtectedRoute>
+                    <RoleGuard allowedRoles={['driver']} showFullPageError>
+                      <ModuleGuard moduleId="driver-portal">
+                        <DriverPortal />
+                      </ModuleGuard>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                <Route path="/driver/hub" element={
+                  <ProtectedRoute>
+                    <RoleGuard allowedRoles={['driver']} showFullPageError>
+                      <ModuleGuard moduleId="driver-portal">
+                        <DriverAuxiliary />
+                      </ModuleGuard>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                <Route path="/facility" element={
+                  <ProtectedRoute>
+                    <RoleGuard allowedRoles={['facility_operator']} showFullPageError>
+                      <ModuleGuard moduleId="facility-portal">
+                        <FacilityPortal />
+                      </ModuleGuard>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+                <Route path="/client" element={
+                  <ProtectedRoute>
+                    <RoleGuard allowedRoles={['client']} showFullPageError>
+                      <ModuleGuard moduleId="client-portal">
+                        <ClientPortal />
+                      </ModuleGuard>
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
 
                 {/* Fallback */}
                 <Route path="*" element={<Navigate to="/" replace />} />

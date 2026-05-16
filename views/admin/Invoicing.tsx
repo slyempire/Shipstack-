@@ -35,6 +35,8 @@ const Invoicing: React.FC = () => {
   const { user } = useAuthStore();
   const { currentTenant } = useTenantStore();
   const [dns, setDns] = useState<DeliveryNote[]>([]);
+  
+  const isDemo = user?.email?.endsWith('@shipstack.com') || window.location.search.includes('demo=true');
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'SETTLEMENTS' | 'COMPENSATION'>('SETTLEMENTS');
@@ -51,8 +53,8 @@ const Invoicing: React.FC = () => {
     setLoading(true);
     try {
       const [dnData, tripData] = await Promise.all([
-        api.getDeliveryNotes(),
-        api.getTrips()
+        api.getDeliveryNotes(currentTenant?.id || 'tenant-1'),
+        api.getTrips(currentTenant?.id || 'tenant-1')
       ]);
       setDns(dnData.filter(d => [DNStatus.DELIVERED, DNStatus.COMPLETED, DNStatus.INVOICED].includes(d.status)));
       setTrips(tripData.filter(t => t.status === 'COMPLETED' || t.status === 'RECONCILED'));
@@ -76,7 +78,7 @@ const Invoicing: React.FC = () => {
     
     setLoading(true);
     try {
-      await api.batchUpdateStatus(unbilledIds, DNStatus.INVOICED, {}, 'Finance Ops');
+      await api.batchUpdateStatus(unbilledIds, DNStatus.INVOICED, {}, 'Finance Ops', currentTenant?.id || 'tenant-1');
       addNotification(`Manifested receipts for ${unbilledIds.length} orders.`, 'success');
       await loadData();
     } catch (error) {
@@ -90,7 +92,7 @@ const Invoicing: React.FC = () => {
     setPayoutProcessing(true);
     const requestId = `pay-${tripId}-${Date.now()}`;
     try {
-      await api.batchDisburseCommission([tripId], user?.role, requestId);
+      await api.batchDisburseCommission([tripId], user?.role, currentTenant?.id || 'tenant-1', requestId);
       addNotification('Commission disbursement initiated', 'success');
       await loadData();
     } catch (error) {
@@ -105,7 +107,7 @@ const Invoicing: React.FC = () => {
     setPayoutProcessing(true);
     const requestId = `pay-batch-${Date.now()}`;
     try {
-      await api.batchDisburseCommission(selectedTripsForPayout, user?.role, requestId);
+      await api.batchDisburseCommission(selectedTripsForPayout, user?.role, currentTenant?.id || 'tenant-1', requestId);
       addNotification(`Batch payout initiated for ${selectedTripsForPayout.length} trips.`, 'success');
       setSelectedTripsForPayout([]);
       setIsPayoutModalOpen(false);
@@ -175,7 +177,7 @@ const Invoicing: React.FC = () => {
 
               {/* FEATURE 5: Revenue Leakage Detection */}
               <div className="bg-slate-900 p-8 rounded-[2.5rem] shadow-xl relative overflow-hidden border border-white/5">
-                {(!api.getTenantPlan() || api.getTenantPlan() === 'STARTER' || api.getTenantPlan() === 'GROWTH') && (
+                {(!api.getTenantPlan() || api.getTenantPlan() === 'STARTER' || api.getTenantPlan() === 'GROWTH') && !isDemo && (
                   <div className="absolute inset-0 z-50 bg-slate-900/40 backdrop-blur-[2px] flex items-center justify-center p-8 text-center">
                     <div className="bg-white rounded-[2rem] p-8 max-w-sm shadow-2xl animate-in zoom-in-95 duration-300 border border-slate-100">
                       <div className="h-12 w-12 bg-red-500/10 text-red-500 rounded-xl flex items-center justify-center mx-auto mb-4">
@@ -225,7 +227,7 @@ const Invoicing: React.FC = () => {
                     AI-powered batch settlement with automated eTIMS synchronization.
                   </p>
                 </div>
-                <RoleGuard allowedRoles={['ADMIN', 'FINANCE']}>
+                <RoleGuard allowedRoles={['super_admin', 'tenant_admin', 'finance_manager']}>
                   <button 
                     onClick={handleBatchInvoice}
                     disabled={totals.unbilled === 0 || loading}

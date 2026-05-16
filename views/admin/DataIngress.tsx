@@ -867,6 +867,7 @@ const HealthMetric = ({ label, value }: { label: string, value: string }) => (
 
 const IngressWizard = ({ onComplete }: { onComplete: () => void }) => {
   const { addNotification } = useAppStore();
+  const { user } = useAuthStore();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [previewRows, setPreviewRows] = useState<ImportPreviewRow[]>([]);
@@ -984,7 +985,7 @@ const IngressWizard = ({ onComplete }: { onComplete: () => void }) => {
     setIsProcessing(true);
     await new Promise(r => setTimeout(r, 1500));
     const validData = previewRows.filter(r => r.isValid).map(r => r.data);
-    await api.processImport(validData);
+    await api.processImport(validData, user?.tenantId || 'tenant-1');
     setIsProcessing(false);
     setStep(4);
     addNotification("Data ingress successful. Records manifested.", "success");

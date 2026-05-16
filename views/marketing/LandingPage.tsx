@@ -342,6 +342,14 @@ const LandingPage: React.FC = () => {
             >
               {isAuthenticated ? 'Go to Dashboard' : 'Get Started Free'}
             </button>
+            {!isAuthenticated && (
+              <button 
+                onClick={() => navigate('/login')}
+                className="w-full sm:w-auto px-12 py-6 bg-white/10 hover:bg-white/20 text-white rounded-2xl text-lg font-black uppercase tracking-widest transition-all backdrop-blur-md border border-white/20"
+              >
+                Login Terminal
+              </button>
+            )}
             <button className="w-full sm:w-auto px-12 py-6 border-2 border-white/20 text-white rounded-2xl text-lg font-black uppercase tracking-widest hover:bg-white/5 transition-all">
               Watch Demo
             </button>

@@ -29,7 +29,12 @@ import {
   Layers,
   BrainCircuit,
   Sparkles,
-  Stethoscope
+  Stethoscope,
+  Briefcase,
+  ShoppingBag,
+  UserCheck,
+  Package,
+  ShieldAlert
 } from 'lucide-react';
 
 import { motion, AnimatePresence } from 'framer-motion';
@@ -48,6 +53,7 @@ const ChecklistItem = ({ icon: Icon, title, desc, done, onClick, index }: {
   index: number
 }) => (
   <motion.button 
+    id={`tour-checklist-${index}`}
     initial={{ opacity: 0, scale: 0.9, y: 20 }}
     whileInView={{ opacity: 1, scale: 1, y: 0 }}
     viewport={{ once: true }}
@@ -81,140 +87,6 @@ const ChecklistItem = ({ icon: Icon, title, desc, done, onClick, index }: {
     </p>
   </motion.button>
 );
-
-const PredictiveInsights = () => {
-  const { addNotification } = useAppStore();
-  const [isOptimizing, setIsOptimizing] = useState(false);
-  const [forecast, setForecast] = useState<any>(null);
-  const [loadingForecast, setLoadingForecast] = useState(false);
-
-  useEffect(() => {
-    const fetchForecast = async () => {
-      setLoadingForecast(true);
-      try {
-        const data = await aiService.forecastDemand([]);
-        setForecast(data);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoadingForecast(false);
-      }
-    };
-    fetchForecast();
-  }, []);
-
-  const handleOptimize = async () => {
-    setIsOptimizing(true);
-    try {
-      // Mock optimization call
-      await aiService.optimizeRoute([], {} as any);
-      addNotification("Operational insights: Route optimization complete. 18% efficiency gain projected.", "success");
-    } catch (e) {
-      addNotification("AI Optimization failed.", "error");
-    } finally {
-      setIsOptimizing(false);
-    }
-  };
-
-  const { tenant } = useTenant();
-  const getVerticalLabels = () => {
-    switch (tenant?.industry) {
-      case 'AGRICULTURE':
-        return { insightTitle: 'Crop health & logistics', insightDesc: 'Satellite & sensor data stream' };
-      case 'MEDICAL':
-        return { insightTitle: 'Cold chain compliance', insightDesc: 'Regulatory & temperature integrity' };
-      case 'RETAIL':
-        return { insightTitle: 'Store replenishment', insightDesc: 'Omnichannel inventory & last-mile' };
-      case 'E-COMMERCE':
-      default:
-        return { insightTitle: 'Marketplace intelligence', insightDesc: 'Last-mile performance & sentiment' };
-    }
-  };
-
-  const labels = getVerticalLabels();
-
-  const insights = [
-    { 
-      id: 1, 
-      type: 'DELAY_PREDICTION', 
-      title: 'High Delay Risk: Westlands Route', 
-      desc: 'ML Model predicts 25min delay for 3 deliveries due to unusual traffic surge on Waiyaki Way.',
-      impact: 'High',
-      action: 'Re-route via Loresho',
-      handler: handleOptimize,
-      loading: isOptimizing
-    },
-    { 
-      id: 2, 
-      type: 'DEMAND_FORECAST', 
-      title: 'Inventory Alert: Mombasa Hub', 
-      desc: forecast?.insights[0] || 'Predictive demand analysis suggests stock-out for "Medical Kit A" in 48 hours.',
-      impact: 'Medium',
-      action: 'Restock from Nairobi',
-      handler: () => addNotification("Restock order initiated via AI recommendation.", "info"),
-      loading: loadingForecast
-    }
-  ];
-
-  return (
-    <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl">
-      <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none">
-        <BrainCircuit size={160} className="text-brand-accent" />
-      </div>
-      
-      <div className="flex items-center justify-between mb-8 relative z-10">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 bg-brand-accent/20 text-brand-accent rounded-xl flex items-center justify-center">
-            <Sparkles size={20} />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-white tracking-tight">Operational insights</h3>
-            <p className="text-[10px] text-white/40 font-medium whitespace-nowrap">AI-assisted · Updated just now</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg border border-white/10">
-          <div className="h-1.5 w-1.5 rounded-full bg-brand-accent" />
-          <span className="text-[10px] font-bold text-white/40">Live</span>
-        </div>
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-6 relative z-10">
-        {insights.map((insight) => (
-          <div key={insight.id} className="p-6 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all group">
-            <div className="flex items-center justify-between mb-4">
-              <Badge variant={insight.impact === 'High' ? 'failed' : 'exception'} className="!bg-white/10 !text-white border-none py-1">
-                {insight.impact} impact
-              </Badge>
-              <span className="text-[10px] font-bold text-brand-accent">{insight.type.replace('_', ' ').toLowerCase()}</span>
-            </div>
-            <h4 className="text-xs font-bold tracking-tight mb-2">{insight.title}</h4>
-            <p className="text-[11px] text-white/60 font-medium leading-relaxed mb-4">{insight.desc}</p>
-            
-            <div className="mb-4 flex flex-col gap-1.5 p-3 bg-white/5 rounded-xl border border-white/5">
-              <div className="flex items-center justify-between">
-                <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest text-xs">Confidence</span>
-                <span className="text-[10px] font-bold text-brand-accent">94%</span>
-              </div>
-              <div className="h-1 bg-white/10 rounded-full overflow-hidden">
-                <div className="h-full bg-brand-accent w-[94%]" />
-              </div>
-              <p className="text-[9px] text-white/30 font-medium">Based on traffic telemetry & historical Waiyaki Way patterns</p>
-            </div>
-
-            <button 
-              onClick={insight.handler}
-              disabled={insight.loading}
-              className="w-full py-3 bg-white/10 hover:bg-brand-accent hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
-            >
-              {insight.loading ? <RefreshCw className="animate-spin" size={14} /> : <Zap size={14} />}
-              Apply recommendation
-            </button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
 
 const StatCard = ({ title, value, icon: Icon, color, subValue, trend, index }: any) => (
   <motion.div 
@@ -254,7 +126,7 @@ const AdminDashboard: React.FC = () => {
   const [health, setHealth] = useState<HealthMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [troubleshooting, setTroubleshooting] = useState(false);
-  const [activeTab, setActiveTab] = useState<'HEALTH' | 'DEMAND' | 'VERTICAL'>('HEALTH');
+  const [activeTab, setActiveTab] = useState<'HEALTH' | 'INTELLIGENCE' | 'VERTICAL'>('HEALTH');
   const navigate = useNavigate();
   const { addNotification } = useAppStore();
   const { isModuleEnabled, tenant } = useTenant();
@@ -334,10 +206,10 @@ const AdminDashboard: React.FC = () => {
   const loadData = async () => {
     try {
       const results = await Promise.allSettled([
-        api.getDeliveryNotes(), 
-        api.getFacilities(),
+        api.getDeliveryNotes(tenant?.id), 
+        api.getFacilities(tenant?.id),
         api.getHealthMetrics(user?.role),
-        api.getVehicles(),
+        api.getVehicles(tenant?.id),
         api.getUsers(tenant?.id, user?.role)
       ]);
 
@@ -392,8 +264,8 @@ const AdminDashboard: React.FC = () => {
         )}
         <div className="flex justify-between items-end pt-4">
            <div>
-              <h2 className="text-3xl font-bold tracking-tight text-gray-900 mb-1">Network health</h2>
-              <p className="text-sm text-gray-500 font-medium">Regional platform oversight & governance</p>
+              <h2 className="text-3xl font-bold tracking-tight text-gray-900 mb-1">Operational health</h2>
+              <p className="text-sm text-gray-500 font-medium">Unified logistics oversight</p>
            </div>
            <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl border border-slate-200 mr-4">
@@ -402,12 +274,6 @@ const AdminDashboard: React.FC = () => {
                   className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'HEALTH' ? 'bg-white text-brand shadow-sm' : 'text-slate-400 hover:text-brand'}`}
                 >
                   System Health
-                </button>
-                <button 
-                  onClick={() => setActiveTab('DEMAND')}
-                  className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'DEMAND' ? 'bg-white text-brand shadow-sm' : 'text-slate-400 hover:text-brand'}`}
-                >
-                  Demand Intelligence
                 </button>
                 <button 
                   onClick={() => setActiveTab('VERTICAL')}
@@ -432,29 +298,6 @@ const AdminDashboard: React.FC = () => {
               exit={{ opacity: 0, y: -20 }}
               className="space-y-8"
             >
-              <div className="mb-8 relative">
-                {(api.getTenantPlan() === 'STARTER') && (
-                  <div className="absolute inset-0 z-50 bg-slate-900/40 backdrop-blur-[2px] rounded-[2.5rem] flex items-center justify-center p-8 text-center">
-                    <div className="bg-white rounded-[2rem] p-8 max-w-sm shadow-2xl animate-in zoom-in-95 duration-300 border border-slate-100">
-                      <div className="h-12 w-12 bg-slate-900 text-white rounded-xl flex items-center justify-center mx-auto mb-4">
-                        <BrainCircuit size={24} />
-                      </div>
-                      <h4 className="text-xl font-bold text-slate-900 tracking-tight mb-2">Recommendations</h4>
-                      <p className="text-sm text-slate-500 font-medium mb-6">
-                        Unlock real-time AI-assisted insights and operational predictions. Upgrade to GROWTH to enable operational insights.
-                      </p>
-                      <button 
-                        onClick={() => navigate('/admin/subscription')}
-                        className="w-full py-4 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all"
-                      >
-                        Upgrade to Growth
-                      </button>
-                    </div>
-                  </div>
-                )}
-                <PredictiveInsights />
-              </div>
-
               <div id="dashboard-kpis" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard 
                   index={0}
@@ -496,166 +339,103 @@ const AdminDashboard: React.FC = () => {
                 )}
               </div>
             </motion.div>
-          ) : activeTab === 'DEMAND' ? (
+          ) : activeTab === 'INTELLIGENCE' ? (
             <motion.div 
-              key="demand"
+              key="intelligence"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               className="space-y-8"
             >
-              {/* FEATURE 2: Demand Intelligence Panel */}
-              <div className="bg-white border border-slate-200 rounded-[2.5rem] p-10 shadow-sm overflow-hidden relative">
-                {(!api.getTenantPlan() || api.getTenantPlan() === 'STARTER' || api.getTenantPlan() === 'GROWTH') && (
-                  <div className="absolute inset-0 z-50 bg-slate-50/60 backdrop-blur-[2px] flex items-center justify-center p-8 text-center">
-                    <div className="bg-white rounded-[2.5rem] p-10 max-w-md shadow-2xl animate-in zoom-in-95 duration-300 border border-slate-100">
-                      <div className="h-16 w-16 bg-brand/10 text-brand rounded-2xl flex items-center justify-center mx-auto mb-6">
-                        <DatabaseZap size={32} />
-                      </div>
-                      <h4 className="text-2xl font-black text-slate-900 uppercase tracking-tighter mb-3">Intelligent Inventory</h4>
-                      <p className="text-sm text-slate-500 font-medium mb-8">
-                        ML Heatmaps and Predictive Stock-Out Alerts are part of our Scale Intelligence suite. Avoid stock-outs before they happen.
-                      </p>
-                      <button 
-                        onClick={() => navigate('/admin/subscription')}
-                        className="w-full py-5 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all"
-                      >
-                        Upgrade to Scale
-                      </button>
-                    </div>
-                  </div>
-                )}
-                <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
-                  <DatabaseZap size={200} className="text-brand" />
-                </div>
-                
-                <div className="flex flex-col lg:flex-row gap-12 relative z-10">
-                  {/* Inventory Heatmap Simulation */}
-                  <div className="lg:w-1/2">
-                    <div className="flex items-center justify-between mb-8">
-                      <div>
-                        <h3 className="text-xl font-black uppercase tracking-tighter text-slate-900">Inventory Velocity Heatmap</h3>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">ML-Predicted Stock Depletion Rates</p>
-                      </div>
-                      <Badge variant="delivered" className="bg-emerald/10 text-emerald border-none">Live Sync</Badge>
-                    </div>
-                    
-                    <div className="grid grid-cols-5 gap-3 h-64">
-                      {Array.from({ length: 25 }).map((_, i) => {
-                        const intensity = Math.random();
-                        return (
-                          <div 
-                            key={i} 
-                            className="rounded-lg transition-all hover:scale-110 cursor-help"
-                            style={{ 
-                              backgroundColor: intensity > 0.8 ? '#DC2626' : intensity > 0.5 ? '#F59E0B' : '#10B981',
-                              opacity: 0.2 + intensity * 0.8
-                            }}
-                            title={`Zone ${i+1}: ${Math.round(intensity * 100)}% Depletion Risk`}
-                          />
-                        );
-                      })}
-                    </div>
-                    <div className="mt-6 flex justify-between items-center px-2">
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                          <div className="h-2 w-2 rounded-full bg-emerald" />
-                          <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Stable</span>
+               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  <div className="lg:col-span-2 bg-slate-900 rounded-[3rem] p-12 text-white relative overflow-hidden group border border-white/5 shadow-2xl">
+                     <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none group-hover:scale-125 transition-transform duration-[10s]">
+                        <BrainCircuit size={300} />
+                     </div>
+                     <div className="relative z-10 space-y-8">
+                        <div className="flex items-center gap-4">
+                           <div className="h-14 w-14 bg-brand-accent text-slate-900 rounded-[1.5rem] flex items-center justify-center shadow-2xl">
+                              <BrainCircuit size={32} />
+                           </div>
+                           <div>
+                              <h3 className="text-3xl font-black uppercase tracking-tighter leading-none italic">Neural Dispatch Cortex</h3>
+                              <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mt-1 italic">Active Intelligence Node</p>
+                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <div className="h-2 w-2 rounded-full bg-amber" />
-                          <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Warning</span>
+                        <p className="text-xl font-medium text-white/70 max-w-xl leading-relaxed">
+                           Cortex AI is currently processing 14.2k historical data points to optimize route density and minimize fuel consumption across your fleet mesh.
+                        </p>
+                        <div className="flex flex-wrap gap-4">
+                           {[
+                             { label: 'Neural Load', val: '12% CPU' },
+                             { label: 'Predictions', val: '840/hr' },
+                             { label: 'Confidence', val: '98.2%' }
+                           ].map((stat, i) => (
+                             <div key={i} className="px-6 py-4 bg-white/5 rounded-2xl border border-white/10 flex flex-col gap-1">
+                                <span className="text-[9px] font-black text-white/30 uppercase tracking-widest">{stat.label}</span>
+                                <span className="text-lg font-black text-brand-accent leading-none">{stat.val}</span>
+                             </div>
+                           ))}
                         </div>
-                        <div className="flex items-center gap-2">
-                          <div className="h-2 w-2 rounded-full bg-red" />
-                          <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Critical</span>
-                        </div>
-                      </div>
-                      <span className="text-[8px] font-black uppercase tracking-widest text-slate-300">Updated 2m ago</span>
-                    </div>
+                     </div>
                   </div>
 
-                  {/* Predictive Stock-Outs */}
-                  <div className="lg:w-1/2 space-y-6">
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Predictive Stock-Out Alerts</h3>
-                    <div className="space-y-4">
-                      {[
-                        { item: 'Medical Kit A', hub: 'Mombasa Hub', days: 2, confidence: 94, action: 'Transfer' },
-                        { item: 'Solar Panel X1', hub: 'Nairobi West', days: 5, confidence: 88, action: 'Order' },
-                        { item: 'Water Filter B', hub: 'Kisumu Central', days: 3, confidence: 91, action: 'Transfer' },
-                      ].map((alert, i) => (
-                        <div key={i} className="p-6 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-between group hover:border-brand transition-all">
-                          <div className="flex items-center gap-4">
-                            <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${alert.days <= 2 ? 'bg-red-50 text-red-500' : 'bg-amber-50 text-amber-500'}`}>
-                              <AlertTriangle size={20} />
-                            </div>
-                            <div>
-                              <p className="text-sm font-black text-slate-900 uppercase tracking-tight">{alert.item}</p>
-                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{alert.hub} • Stock-out in {alert.days} days</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-[10px] font-black text-brand mb-2">{alert.confidence}% Confidence</div>
-                            <button className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-brand hover:text-white transition-all">
-                              {alert.action}
-                            </button>
-                          </div>
+                  <div className="bg-brand text-white rounded-[3rem] p-10 shadow-2xl shadow-brand/20 relative overflow-hidden">
+                     <div className="absolute top-0 right-0 p-8 opacity-20">
+                        <Zap size={120} fill="white" />
+                     </div>
+                     <h4 className="text-xl font-black uppercase tracking-tighter mb-4">Estimator Engine</h4>
+                     <p className="text-sm font-medium text-white/70 mb-6 leading-relaxed">
+                        Passive intelligence is reducing "where is my order" support tickets by 42% on average across all active nodes.
+                     </p>
+                     <div className="h-32 bg-white/10 rounded-2xl flex items-center justify-center">
+                        <div className="text-center">
+                           <p className="text-4xl font-black">92%</p>
+                           <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mt-1">Accuracy Score</p>
                         </div>
-                      ))}
-                    </div>
+                     </div>
                   </div>
-                </div>
-              </div>
+               </div>
 
-              {/* Demand Forecast Chart Simulation */}
-              <div className="card-logistics !p-10">
-                <div className="flex items-center justify-between mb-10">
-                  <div>
-                    <h3 className="heading-primary mb-1">30-Day Demand Forecast</h3>
-                    <p className="label-logistics text-gray-400">ML-Projected Volume Trends</p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <div className="h-3 w-3 rounded-full bg-brand"></div>
-                      <span className="label-logistics !mb-0">Actual</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="h-3 w-3 rounded-full bg-brand/30 border border-dashed border-brand"></div>
-                      <span className="label-logistics !mb-0">Forecasted</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="h-64 w-full flex items-end justify-between gap-1 px-2">
-                  {Array.from({ length: 30 }).map((_, i) => {
-                    const isPast = i < 15;
-                    const height = 30 + Math.sin(i * 0.5) * 20 + Math.random() * 30;
-                    return (
-                      <div key={i} className="flex-1 flex flex-col items-center gap-2 group relative">
-                        <div className="relative w-full flex justify-center items-end h-full">
-                          <motion.div 
-                            initial={{ height: 0 }}
-                            animate={{ height: `${height}%` }}
-                            className={`w-full rounded-t-sm transition-all duration-500 ${
-                              isPast ? 'bg-brand' : 'bg-brand/10 border-t-2 border-dashed border-brand'
-                            }`}
-                          />
-                          {i === 15 && (
-                            <div className="absolute inset-y-0 left-1/2 w-px bg-red-500/50 z-10">
-                              <div className="absolute top-0 -translate-x-1/2 bg-red-500 text-white text-[6px] font-black px-1 rounded">TODAY</div>
-                            </div>
-                          )}
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {/* Dynamic Insights from aiService if needed */}
+                  <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between">
+                     <div>
+                        <div className="flex items-center gap-2 mb-4">
+                           <Sparkles size={16} className="text-brand" />
+                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Growth Insight</p>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="mt-6 flex justify-between text-[8px] font-black text-slate-300 uppercase tracking-widest">
-                  <span>15 Days Ago</span>
-                  <span>Today</span>
-                  <span>15 Days Forecast</span>
-                </div>
-              </div>
+                        <h4 className="text-lg font-black uppercase tracking-tight text-slate-900 mb-2">Expansion Opportunity</h4>
+                        <p className="text-xs font-medium text-slate-500 leading-relaxed uppercase">
+                           Cluster analysis suggests high demand density in "Westlands North". Increasing fleet capacity by 5% may yield 12% revenue growth.
+                        </p>
+                     </div>
+                  </div>
+                  <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between">
+                     <div>
+                        <div className="flex items-center gap-2 mb-4">
+                           <RefreshCw size={16} className="text-emerald-500" />
+                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Efficiency Insight</p>
+                        </div>
+                        <h4 className="text-lg font-black uppercase tracking-tight text-slate-900 mb-2">Idle Time Reduction</h4>
+                        <p className="text-xs font-medium text-slate-500 leading-relaxed uppercase">
+                           Neural mesh has optimized warehouse loading cycles, reducing average dispatch latency by 14.5 minutes.
+                        </p>
+                     </div>
+                  </div>
+                  <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between">
+                     <div>
+                        <div className="flex items-center gap-2 mb-4">
+                           <AlertTriangle size={16} className="text-amber-500" />
+                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Risk Mitigation</p>
+                        </div>
+                        <h4 className="text-lg font-black uppercase tracking-tight text-slate-900 mb-2">Predictive Maintenance</h4>
+                        <p className="text-xs font-medium text-slate-500 leading-relaxed uppercase">
+                           Telemetry anomalies detected in Vehicle KBG-122. Scheduled maintenance recommended before terminal gearbox failure.
+                        </p>
+                     </div>
+                  </div>
+               </div>
             </motion.div>
           ) : (
             <motion.div 
@@ -691,28 +471,9 @@ const AdminDashboard: React.FC = () => {
               </motion.div>
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-12 relative z-10">
                 <div className="mb-6 md:mb-0">
-                  <h3 className="text-3xl font-black text-gray-900 uppercase tracking-tighter leading-none mb-3">Quick Start Guide</h3>
+                  <h3 className="text-3xl font-black text-gray-900 uppercase tracking-tighter leading-none mb-3">Operational Setup</h3>
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Complete these tactical pillars to launch your operations</p>
                 </div>
-                <motion.button 
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={async () => {
-                    setLoading(true);
-                    try {
-                      await api.generateSampleData();
-                      addNotification("Sample data generated successfully!", "success");
-                      loadData();
-                    } catch (err) {
-                      addNotification("Failed to generate sample data.", "error");
-                    } finally {
-                      setLoading(false);
-                    }
-                  }}
-                  className="btn-primary"
-                >
-                  <Zap size={16} fill="currentColor" /> Generate Sample Data
-                </motion.button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
                 {isModuleEnabled('fleet') && (
@@ -747,161 +508,144 @@ const AdminDashboard: React.FC = () => {
                 )}
                 <ChecklistItem 
                   index={3}
-                  icon={Users} 
-                  title="Onboard Drivers" 
-                  desc="Invite drivers to the driver portal" 
+                  icon={Briefcase} 
+                  title="Driver Recruitment" 
+                  desc="Manage your driver onboarding pipeline" 
                   done={users.filter(u => u.role === 'DRIVER').length > 0}
-                  onClick={() => navigate('/admin/users')}
+                  onClick={() => navigate('/admin/recruitment')}
                 />
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* Global Live View */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            {/* Main Content Area - Now Tab-Aware for full clearing of dashboard */}
             <div className="lg:col-span-8 space-y-8">
-               {/* Weekly Volume Trends */}
-               <div className="card-logistics !p-8">
-                  <div className="flex items-center justify-between mb-8">
-                    <div>
-                      <h3 className="heading-primary mb-1">Weekly Shipment Trends</h3>
-                      <p className="label-logistics text-gray-400">Volume distribution across the network</p>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <div className="h-3 w-3 rounded-full bg-brand"></div>
-                        <span className="label-logistics text-gray-400 !mb-0">Volume</span>
+              {activeTab === 'HEALTH' && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="space-y-8"
+                >
+                  {/* Weekly Volume Trends */}
+                  <div className="card-logistics !p-8">
+                    <div className="flex items-center justify-between mb-8">
+                      <div>
+                        <h3 className="heading-primary mb-1">Weekly Shipment Trends</h3>
+                        <p className="label-logistics text-gray-400">Volume distribution across the network</p>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <div className="h-3 w-3 rounded-full bg-brand"></div>
+                          <span className="label-logistics text-gray-400 !mb-0">Volume</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  
-                  <div className="h-48 w-full flex items-end justify-between gap-2 px-2">
-                    {weeklyData.map((d, i) => {
-                      const height = (d.count / maxVolume) * 100;
-                      return (
-                        <div key={i} className="flex-1 flex flex-col items-center gap-3 group">
-                          <div className="relative w-full flex justify-center items-end h-full">
-                            <motion.div 
-                              initial={{ height: 0 }}
-                              animate={{ height: `${height}%` }}
-                              transition={{ delay: 0.5 + (i * 0.1), duration: 0.8, ease: "easeOut" }}
-                              className="w-full max-w-[40px] bg-brand/10 group-hover:bg-brand/20 rounded-t-lg transition-all duration-500 relative overflow-hidden"
-                            >
-                              <div className="absolute inset-0 bg-gradient-to-t from-brand/20 to-transparent"></div>
-                              <div className="absolute top-0 left-0 right-0 h-1 bg-brand shadow-[0_0_10px_rgba(0,102,255,0.5)]"></div>
-                            </motion.div>
-                            {/* Tooltip on hover */}
-                            <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-white border border-slate-200 text-gray-900 text-[10px] font-black px-3 py-1.5 rounded-lg shadow-xl z-10 whitespace-nowrap">
-                              {d.count} Shipments
+                    
+                    <div className="h-48 w-full flex items-end justify-between gap-2 px-2">
+                      {weeklyData.map((d, i) => {
+                        const height = (d.count / maxVolume) * 100;
+                        return (
+                          <div key={i} className="flex-1 flex flex-col items-center gap-3 group">
+                            <div className="relative w-full flex justify-center items-end h-full">
+                              <motion.div 
+                                initial={{ height: 0 }}
+                                animate={{ height: `${height}%` }}
+                                transition={{ delay: 0.5 + (i * 0.1), duration: 0.8, ease: "easeOut" }}
+                                className="w-full max-w-[40px] bg-brand/10 group-hover:bg-brand/20 rounded-t-lg transition-all duration-500 relative overflow-hidden"
+                              >
+                                <div className="absolute inset-0 bg-gradient-to-t from-brand/20 to-transparent"></div>
+                                <div className="absolute top-0 left-0 right-0 h-1 bg-brand shadow-[0_0_10px_rgba(0,102,255,0.5)]"></div>
+                              </motion.div>
+                              <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-white border border-slate-200 text-gray-900 text-[10px] font-black px-3 py-1.5 rounded-lg shadow-xl z-10 whitespace-nowrap">
+                                {d.count} Shipments
+                              </div>
                             </div>
+                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{d.day}</span>
                           </div>
-                          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{d.day}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-               </div>
-
-               <div className="card-logistics !p-0 overflow-hidden relative flex flex-col h-[500px]">
-                  <div className="absolute top-8 left-8 right-8 z-[1000] flex justify-between items-start pointer-events-none">
-                    <div className="bg-white/90 backdrop-blur-md px-6 py-3 rounded-xl border border-slate-200 text-gray-900 font-black text-[10px] uppercase tracking-widest flex items-center gap-3 pointer-events-auto shadow-xl">
-                      <div className="h-2 w-2 rounded-full bg-emerald animate-pulse"></div>
-                      Global Network Activity
-                    </div>
-                  </div>
-                  
-                  <MapEngine 
-                    dns={dns.filter(d => d.status === DNStatus.IN_TRANSIT)} 
-                    facilities={facilities} 
-                  />
-               </div>
-
-               {/* Process Health & Stabilization Monitoring */}
-               <div className="card-logistics">
-                  <div className="flex items-center justify-between mb-10">
-                    <div>
-                      <p className="label-logistics text-gray-400 mb-2">Process Health Monitoring</p>
-                      <p className="heading-primary">Stabilization & Service Reliability</p>
-                    </div>
-                    <div className="flex items-center gap-3 px-4 py-2 bg-emerald/10 text-emerald rounded-xl border border-emerald/20">
-                      <ShieldCheck size={14} />
-                      <span className="label-logistics !mb-0">Active Guard</span>
+                        );
+                      })}
                     </div>
                   </div>
 
-                   <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <div className="p-8 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col justify-between group hover:border-brand transition-all">
-                      <div className="flex items-center justify-between mb-6">
-                        <div className="h-12 w-12 bg-white rounded-xl flex items-center justify-center text-brand shadow-sm group-hover:scale-110 transition-transform border border-slate-100">
-                          <Zap size={24} />
-                        </div>
-                        <Badge variant={health?.isSupabaseHealthy ? "delivered" : "failed"} className="scale-90 origin-right">
-                          {health?.isSupabaseHealthy ? "Connected" : "Disconnected"}
-                        </Badge>
+                  <div className="card-logistics !p-0 overflow-hidden relative flex flex-col h-[500px]">
+                    <div className="absolute top-8 left-8 right-8 z-[1000] flex justify-between items-start pointer-events-none">
+                      <div className="bg-white/90 backdrop-blur-md px-6 py-3 rounded-xl border border-slate-200 text-gray-900 font-black text-[10px] uppercase tracking-widest flex items-center gap-3 pointer-events-auto shadow-xl">
+                        <div className="h-2 w-2 rounded-full bg-emerald animate-pulse"></div>
+                        Global Network Activity
                       </div>
+                    </div>
+                    
+                    <MapEngine 
+                      dns={dns.filter(d => d.status === DNStatus.IN_TRANSIT)} 
+                      facilities={facilities} 
+                    />
+                  </div>
+                </motion.div>
+              )}
+
+              {activeTab === 'INTELLIGENCE' && (
+                <div className="space-y-8">
+                  {/* Process Health moved here to clear dashboard */}
+                  <div className="card-logistics">
+                    <div className="flex items-center justify-between mb-10">
                       <div>
-                        <p className="label-logistics text-gray-400 mb-2">Supabase DB Gateway</p>
-                        <p className="body-value text-gray-900">
-                          {health?.isSupabaseHealthy ? "Real-time Sync Active" : "Sync Error Detected"}
-                        </p>
-                        <div className="mt-4 h-2 bg-slate-200 rounded-full overflow-hidden">
-                          <div className={`h-full ${health?.isSupabaseHealthy ? 'bg-emerald w-[98%] animate-pulse' : 'bg-red w-[10%]'}`}></div>
-                        </div>
-                        {!health?.isSupabaseHealthy && (
-                          <button 
-                            onClick={handleTroubleshoot}
-                            disabled={troubleshooting}
-                            className="mt-4 text-[10px] font-black text-brand uppercase tracking-widest hover:underline disabled:opacity-50"
-                          >
-                            {troubleshooting ? "Troubleshooting..." : "Run Troubleshooter"}
-                          </button>
-                        )}
+                        <p className="label-logistics text-gray-400 mb-2">Network Diagnostics</p>
+                        <h3 className="heading-primary">Cortex Health & Stability</h3>
+                      </div>
+                      <div className="flex items-center gap-3 px-4 py-2 bg-emerald/10 text-emerald rounded-xl border border-emerald/20">
+                        <ShieldCheck size={14} />
+                        <span className="label-logistics !mb-0">Secure Node</span>
                       </div>
                     </div>
 
-                    <div className="p-8 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col justify-between group hover:border-brand transition-all">
-                      <div className="flex items-center justify-between mb-6">
-                        <div className="h-12 w-12 bg-white rounded-xl flex items-center justify-center text-brand shadow-sm group-hover:scale-110 transition-transform border border-slate-100">
-                          <Activity size={24} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="p-8 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col justify-between group hover:border-brand transition-all">
+                        <div className="flex items-center justify-between mb-6">
+                          <div className="h-12 w-12 bg-white rounded-xl flex items-center justify-center text-brand shadow-sm">
+                            <Zap size={24} />
+                          </div>
+                          <Badge variant={health?.isSupabaseHealthy ? "delivered" : "failed"}>
+                            {health?.isSupabaseHealthy ? "Connected" : "Disconnected"}
+                          </Badge>
                         </div>
-                        <Badge variant={health?.isFrappeHealthy ? "delivered" : "failed"} className="scale-90 origin-right">
-                          {health?.isFrappeHealthy ? "Stable" : "Unreachable"}
-                        </Badge>
-                      </div>
-                      <div>
-                        <p className="label-logistics text-gray-400 mb-2">Frappe ERP Bridge</p>
-                        <p className="body-value text-gray-900">
-                          {health?.isFrappeHealthy ? "HTTP Redundancy Ready" : "Bridge Offline"}
-                        </p>
-                        <div className="mt-4 h-2 bg-slate-200 rounded-full overflow-hidden">
-                          <div className={`h-full ${health?.isFrappeHealthy ? 'bg-emerald w-full' : 'bg-red w-[10%]'}`}></div>
+                        <div>
+                          <p className="label-logistics text-gray-400 mb-2">Data Gateway</p>
+                          <p className="body-value text-gray-900">{health?.isSupabaseHealthy ? "Sync Flow Active" : "Gateway Error"}</p>
+                          {!health?.isSupabaseHealthy && (
+                            <button onClick={handleTroubleshoot} className="mt-4 text-[10px] font-black text-brand uppercase tracking-widest hover:underline">
+                              Run Diagnostics
+                            </button>
+                          )}
                         </div>
                       </div>
-                    </div>
-
-                    <div className="p-8 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col justify-between group hover:border-brand transition-all">
-                      <div className="flex items-center justify-between mb-6">
-                        <div className="h-12 w-12 bg-white rounded-xl flex items-center justify-center text-amber shadow-sm group-hover:scale-110 transition-transform border border-slate-100">
-                          <DatabaseZap size={24} />
+                      
+                      <div className="p-8 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col justify-between group hover:border-brand transition-all">
+                        <div className="flex items-center justify-between mb-6">
+                          <div className="h-12 w-12 bg-white rounded-xl flex items-center justify-center text-brand shadow-sm">
+                            <Activity size={24} />
+                          </div>
+                          <Badge variant={health?.isFrappeHealthy ? "delivered" : "failed"}>
+                            {health?.isFrappeHealthy ? "Stable" : "Offline"}
+                          </Badge>
                         </div>
-                        <Badge variant="neutral" className="scale-90 origin-right bg-slate-100 text-gray-500 border-slate-200">Optimized</Badge>
-                      </div>
-                      <div>
-                        <p className="label-logistics text-gray-400 mb-2">Process Stabilization</p>
-                        <p className="body-value text-gray-900">Queue Reconciliation</p>
-                        <div className="mt-4 h-2 bg-slate-200 rounded-full overflow-hidden">
-                          <div className="h-full bg-amber w-[85%]"></div>
+                        <div>
+                          <p className="label-logistics text-gray-400 mb-2">ERP Integration</p>
+                          <p className="body-value text-gray-900">{health?.isFrappeHealthy ? "Channel Verified" : "Auth Failure"}</p>
                         </div>
                       </div>
                     </div>
                   </div>
-               </div>
-
-                <div className="card-logistics">
-                   <TaskManagement />
                 </div>
-             </div>
+              )}
+
+              {activeTab === 'VERTICAL' && <VerticalIntelligence industry={activeVertical} />}
+              
+              <div className="card-logistics">
+                <TaskManagement />
+              </div>
+            </div>
 
            <div className="lg:col-span-4 space-y-8">
               <div className="card-logistics">
@@ -912,10 +656,11 @@ const AdminDashboard: React.FC = () => {
                  <div className="grid grid-cols-1 gap-4 mb-10">
                    {isModuleEnabled('dispatch') && (
                      <button 
+                       id="tour-manage-dispatch"
                        onClick={() => navigate('/admin/dispatch')}
                        className="btn-primary"
                      >
-                       <RouteIcon size={18} /> Create Delivery Run
+                       <RouteIcon size={18} /> Manage Dispatch
                      </button>
                    )}
                    {isModuleEnabled('orders') && (
@@ -923,17 +668,33 @@ const AdminDashboard: React.FC = () => {
                        onClick={() => navigate('/admin/orders')}
                        className="btn-outline"
                      >
-                       <Inbox size={18} /> New Order
+                       <Inbox size={18} /> Create New Order
                      </button>
                    )}
+                   <button 
+                     onClick={() => navigate('/admin/tracking')}
+                     className="btn-outline"
+                   >
+                     <Navigation size={18} /> Live Tracking
+                   </button>
                  </div>
 
-                 <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-6">Administrative Pillars</h4>
+                 <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-6">Core Operations</h4>
                  <div className="space-y-2 mb-10">
-                    <AdminLink index={0} icon={Users} label="User Management" desc="RBAC & Access Control" onClick={() => navigate('/admin/users')} />
-                    {isModuleEnabled('finance') && <AdminLink index={1} icon={Scale} label="Billing & Invoicing" desc="Commercial Reconciliation" onClick={() => navigate('/admin/billing')} />}
-                    {isModuleEnabled('integrations') && <AdminLink index={2} icon={DatabaseZap} label="Data Ingress" desc="Pipeline & API Health" onClick={() => navigate('/admin/ingress')} />}
-                    {isModuleEnabled('fleet') && <AdminLink index={3} icon={Warehouse} label="Fleet & Network" desc="Asset & Facility Registry" onClick={() => navigate('/admin/fleet')} />}
+                    <AdminLink index={0} icon={Users} label="Team & Access" desc="Manage active staff & roles" onClick={() => navigate('/admin/users')} />
+                    <AdminLink index={1} icon={Briefcase} label="Driver Recruitment" desc="Manage driver pipeline" onClick={() => navigate('/admin/recruitment')} />
+                    {isModuleEnabled('finance') && <AdminLink index={2} icon={Scale} label="Financial Office" desc="Billing, invoices & reconciliation" onClick={() => navigate('/admin/billing')} />}
+                    {isModuleEnabled('integrations') && <AdminLink index={3} icon={DatabaseZap} label="Data Integration" desc="Import and sync external records" onClick={() => navigate('/admin/ingress')} />}
+                    <AdminLink index={3.5} icon={Activity} label="System Cluster" desc="Real-time infrastructure health" onClick={() => navigate('/admin/diagnostics')} />
+                    {isModuleEnabled('fleet') && <AdminLink index={4} icon={Warehouse} label="Fleet & Hubs" desc="Register vehicles & locations" onClick={() => navigate('/admin/fleet')} />}
+                 </div>
+
+                 <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-6">Supply Chain & CRM</h4>
+                 <div className="space-y-2 mb-10">
+                    {isModuleEnabled('orders') && <AdminLink index={5} icon={ShoppingBag} label="Order Orchestration" desc="Manage sales orders & approvals" onClick={() => navigate('/admin/orders')} />}
+                    {isModuleEnabled('warehouse') && <AdminLink index={6} icon={Package} label="Warehouse Management" desc="Inventory & fulfillment" onClick={() => navigate('/admin/warehouse')} />}
+                    <AdminLink index={7} icon={UserCheck} label="Client Relations" desc="CRM & customer interactions" onClick={() => navigate('/admin/crm')} />
+                    <AdminLink index={8} icon={ShieldAlert} label="Exception Logs" desc="Investigate delivery disputes" onClick={() => navigate('/admin/exceptions')} />
                  </div>
 
                  <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-6">Industry Solutions</h4>

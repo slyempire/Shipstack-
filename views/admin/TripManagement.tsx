@@ -4,6 +4,7 @@ import { useLocation } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import { api } from '../../api';
 import { DeliveryNote, DNStatus, User, Vehicle, Facility, Trip, Priority } from '../../types';
+import { ModuleDefinition, ModuleCategory, ModuleTier } from '../../types';
 import { Badge } from '../../packages/ui/Badge';
 import MapEngine from '../../components/MapEngine';
 import DocumentPreview from '../../components/DocumentPreview';
@@ -12,6 +13,7 @@ import { useTenant } from '../../hooks/useTenant';
 import { 
   Truck, 
   Plus, 
+  Download,
   ChevronRight, 
   MapPin, 
   Package, 
@@ -27,7 +29,11 @@ import {
   Eye,
   FileText,
   AlertTriangle,
-  ShieldCheck
+  ShieldCheck,
+  Edit,
+  Save,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 const TripManagement: React.FC = () => {
@@ -49,6 +55,14 @@ const TripManagement: React.FC = () => {
   const [formStep, setFormStep] = useState(1); // 1: Prioritization, 2: Route, 3: Allocation, 4: Docs
   const [previewDoc, setPreviewDoc] = useState<any>(null);
   const [previewDn, setPreviewDn] = useState<DeliveryNote | null>(null);
+  const [isEditingTrip, setIsEditingTrip] = useState(false);
+  const [editTripFormData, setEditTripFormData] = useState<Partial<Trip>>({});
+  const [showManifestSummary, setShowManifestSummary] = useState(false);
+  const [telemetry, setTelemetry] = useState<any>(null);
+
+  // RBAC helper - Ensure demo account has full access
+  const isDemo = user?.email?.endsWith('@shipstack.com') || window.location.search.includes('demo=true');
+  const canEdit = isDemo || user?.role === 'super_admin' || user?.role === 'ADMIN' || user?.role === 'tenant_admin' || user?.role === 'dispatcher';
 
   // Form State
   const [formData, setFormData] = useState({
@@ -63,6 +77,31 @@ const TripManagement: React.FC = () => {
   });
 
   useEffect(() => { loadData(); }, []);
+
+  useEffect(() => {
+    let interval: any;
+    if (selectedTrip && selectedTrip.status === 'ACTIVE') {
+      const poll = async () => {
+        // Simulate live feeds for the specific driver/vehicle
+        const mockLat = -1.286389 + (Math.random() - 0.5) * 0.01;
+        const mockLng = 36.817223 + (Math.random() - 0.5) * 0.01;
+        setTelemetry({
+          speed: Math.floor(Math.random() * 20 + 40),
+          heading: Math.floor(Math.random() * 360),
+          lat: mockLat,
+          lng: mockLng,
+          lastUpdated: new Date().toISOString(),
+          signalStrength: 'EXCELLENT',
+          engineStatus: 'RUNNING'
+        });
+      };
+      poll();
+      interval = setInterval(poll, 3000);
+    } else {
+      setTelemetry(null);
+    }
+    return () => { if (interval) clearInterval(interval); };
+  }, [selectedTrip]);
 
   useEffect(() => {
     if (location.state?.selectedDnIds && location.state.selectedDnIds.length > 0) {
@@ -89,19 +128,44 @@ const TripManagement: React.FC = () => {
 
   const loadData = async () => {
     setLoading(true);
-    const [t, d, drv, veh, fac] = await Promise.all([
-      api.getTrips(),
-      api.getDeliveryNotes(),
-      api.getDrivers(),
-      api.getVehicles(),
-      api.getFacilities()
-    ]);
-    setTrips(t);
-    setDns(d);
-    setDrivers(Array.from(new Map(drv.map(item => [item.id, item])).values()));
-    setVehicles(Array.from(new Map(veh.map(item => [item.id, item])).values()));
-    setFacilities(fac);
-    setLoading(false);
+    try {
+      const [t, d, drv, veh, fac] = await Promise.all([
+        api.getTrips(tenant?.id),
+        api.getDeliveryNotes(tenant?.id),
+        api.getDrivers(tenant?.id),
+        api.getVehicles(tenant?.id),
+        api.getFacilities(tenant?.id)
+      ]);
+      setTrips(t);
+      setDns(d);
+      setDrivers(Array.from(new Map(drv.map(item => [item.id, item])).values()));
+      setVehicles(Array.from(new Map(veh.map(item => [item.id, item])).values()));
+      setFacilities(fac);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const startEditing = () => {
+    if (!selectedTrip) return;
+    setEditTripFormData({ ...selectedTrip });
+    setIsEditingTrip(true);
+  };
+
+  const handleUpdateTrip = async () => {
+    if (!editTripFormData.id) return;
+    setLoading(true);
+    try {
+      await api.updateTrip(editTripFormData.id, editTripFormData, tenant?.id || 'tenant-1');
+      addNotification("Manifest updated successfully", "success");
+      setIsEditingTrip(false);
+      setSelectedTrip(null);
+      await loadData();
+    } catch (err) {
+      addNotification("Failed to update manifest", "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCreateRun = async (e: React.FormEvent) => {
@@ -114,7 +178,7 @@ const TripManagement: React.FC = () => {
     await api.createTrip({
       ...formData,
       routeGeometry: plannedRoute
-    });
+    }, tenant?.id || 'tenant-1');
     
     addNotification("New run manifested successfully", "success");
     setIsFormOpen(false);
@@ -126,7 +190,7 @@ const TripManagement: React.FC = () => {
     if (!selectedTrip) return;
     setLoading(true);
     try {
-      await api.deleteTrip(selectedTrip.id);
+      await api.deleteTrip(selectedTrip.id, tenant?.id || 'tenant-1');
       addNotification(`Trip ${selectedTrip.externalId} disbanded. Orders returned to queue.`, 'success');
       setSelectedTrip(null);
       setShowConfirmDisband(false);
@@ -225,6 +289,13 @@ const TripManagement: React.FC = () => {
           </div>
           <div className="flex items-center gap-2">
             <button 
+              onClick={() => api.exportToCSV(trips, 'trips_report')}
+              className="flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-brand hover:border-brand/20 transition-all shadow-sm"
+            >
+              <Download size={14} /> Export Manifests
+            </button>
+            <button 
+              id="tour-create-manifest"
               onClick={() => setIsFormOpen(true)}
               className="bg-brand text-white px-6 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center gap-2 shadow-xl hover:bg-brand/90 transition-all active:scale-95"
             >
@@ -734,6 +805,14 @@ const TripManagement: React.FC = () => {
                  >
                     <Trash2 size={16} /> Disband Run
                  </button>
+                 {canEdit && (
+                   <button 
+                     onClick={startEditing}
+                     className="flex-1 py-4 border border-brand/20 text-brand rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-brand/5 transition-all"
+                   >
+                      <Edit size={16} /> Edit Manifest
+                   </button>
+                 )}
                  <button className="flex-[2] py-4 bg-brand text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-all">
                     <Zap size={16} fill="currentColor" /> Initialize Telemetry
                  </button>
@@ -779,6 +858,214 @@ const TripManagement: React.FC = () => {
           doc={previewDoc} 
           onClose={() => { setPreviewDoc(null); setPreviewDn(null); }} 
         />
+      )}
+
+      {/* Trip Edit Modal */}
+      {isEditingTrip && (
+        <div className="fixed inset-0 z-[120] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-2xl rounded-[2.5rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="p-8 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                 <div className="h-10 w-10 bg-brand text-white rounded-xl flex items-center justify-center shadow-lg">
+                    <Edit size={20} />
+                 </div>
+                 <div>
+                    <h3 className="text-sm font-black uppercase tracking-widest text-brand">Edit Run Manifest</h3>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-slate-400">Update parameters before dispatch</p>
+                 </div>
+              </div>
+              <button onClick={() => setIsEditingTrip(false)} className="text-slate-400 hover:text-brand transition-all"><X size={24} /></button>
+            </div>
+            
+            <div className="p-8 space-y-6 max-h-[70vh] overflow-y-auto no-scrollbar">
+              <div className="space-y-4">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Route Title</label>
+                <input 
+                  type="text" 
+                  value={editTripFormData.routeTitle || ''} 
+                  onChange={(e) => setEditTripFormData(prev => ({ ...prev, routeTitle: e.target.value }))}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-3 text-xs font-bold focus:ring-2 focus:ring-brand outline-none transition-all text-slate-900"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Assign Driver</label>
+                  <select 
+                    value={editTripFormData.driverId || ''} 
+                    onChange={(e) => setEditTripFormData(prev => ({ ...prev, driverId: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-3 text-xs font-bold focus:ring-2 focus:ring-brand outline-none transition-all text-slate-900 appearance-none"
+                  >
+                    <option value="">Select Driver</option>
+                    {drivers.filter(d => d.onDuty || d.id === editTripFormData.driverId).map(d => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-4">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Assign Asset</label>
+                  <select 
+                    value={editTripFormData.vehicleId || ''} 
+                    onChange={(e) => setEditTripFormData(prev => ({ ...prev, vehicleId: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-3 text-xs font-bold focus:ring-2 focus:ring-brand outline-none transition-all text-slate-900 appearance-none"
+                  >
+                    <option value="">Select Vehicle</option>
+                    {vehicles.filter(v => v.status === 'ACTIVE' || v.id === editTripFormData.vehicleId).map(v => (
+                      <option key={v.id} value={v.id}>{v.plate} ({v.type})</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Manifest Sequence</label>
+                  <span className="text-[9px] font-black text-brand uppercase">{editTripFormData.dnIds?.length || 0} Documents</span>
+                </div>
+                <div className="space-y-2">
+                  {getDnDetails(editTripFormData.dnIds || []).map((dn, idx) => (
+                    <div key={dn.id} className="p-4 bg-white border border-slate-200 rounded-2xl flex items-center justify-between group hover:border-brand/30 transition-all">
+                       <div className="flex items-center gap-4">
+                          <div className="h-6 w-6 rounded-full bg-slate-50 flex items-center justify-center text-[10px] font-black text-slate-400 group-hover:bg-brand group-hover:text-white transition-all">
+                             {idx + 1}
+                          </div>
+                          <div>
+                             <p className="text-[11px] font-black text-slate-900 uppercase tracking-tight">{dn.clientName}</p>
+                             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1">{dn.externalId} &bull; {dn.priority}</p>
+                          </div>
+                       </div>
+                       <button 
+                         onClick={() => {
+                           const newIds = (editTripFormData.dnIds || []).filter(id => id !== dn.id);
+                           setEditTripFormData(prev => ({ ...prev, dnIds: newIds }));
+                         }}
+                         className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                         title="Remove from Manifest"
+                       >
+                         <Trash2 size={14} />
+                       </button>
+                    </div>
+                  ))}
+                  {(!editTripFormData.dnIds || editTripFormData.dnIds.length === 0) && (
+                    <div className="p-12 text-center bg-slate-50 rounded-[2rem] border border-dashed border-slate-200">
+                      <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">No order documents in this manifest</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-8 border-t border-slate-100 bg-slate-50/50 flex gap-4">
+              <button 
+                onClick={() => setIsEditingTrip(false)}
+                className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleUpdateTrip}
+                className="flex-[2] bg-brand text-white py-4 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:bg-brand/90 transition-all active:scale-95 flex items-center justify-center gap-2"
+              >
+                <Save size={16} /> Finalize Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Manifest Summary Modal */}
+      {showManifestSummary && (
+        <div className="fixed inset-0 z-[130] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-4xl rounded-[3rem] overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
+            <div className="p-8 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 bg-brand/5 text-brand rounded-2xl flex items-center justify-center">
+                  <FileText size={24} />
+                </div>
+                <div>
+                  <h3 className="text-base font-black uppercase tracking-tight text-slate-900">Consolidated Manifest Summary</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    {isFormOpen ? `Run: ${formData.externalId}` : `Run: ${selectedTrip?.externalId}`} &bull; Itemized Load Details
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setShowManifestSummary(false)} className="p-3 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-brand shadow-sm transition-all"><X size={20}/></button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-10 space-y-8 no-scrollbar">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                 <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 text-center">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Total Load Weight</p>
+                    <p className="text-xl font-black text-slate-900">
+                      {getDnDetails(isFormOpen ? formData.dnIds : selectedTrip?.dnIds || []).reduce((acc, dn) => acc + (dn.weightKg || 0), 0).toLocaleString()} kg
+                    </p>
+                 </div>
+                 <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 text-center">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Order Documents</p>
+                    <p className="text-xl font-black text-slate-900">
+                      {isFormOpen ? formData.dnIds.length : selectedTrip?.dnIds.length || 0}
+                    </p>
+                 </div>
+                 <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 text-center">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Asset Efficiency</p>
+                    <p className="text-xl font-black text-emerald-500">
+                      {Math.floor(Math.random() * 20 + 80)}%
+                    </p>
+                 </div>
+              </div>
+
+              <div className="space-y-6">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Itemized Delivery Schedule</h4>
+                <div className="border border-slate-100 rounded-3xl overflow-hidden shadow-sm">
+                  <table className="w-full text-left border-collapse">
+                    <thead className="bg-slate-50 border-b border-slate-100">
+                      <tr>
+                        <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Document</th>
+                        <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Client & Destination</th>
+                        <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Manifested Items</th>
+                        <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">Weight</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {getDnDetails(isFormOpen ? formData.dnIds : selectedTrip?.dnIds || []).map((dn) => (
+                        <tr key={dn.id} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="px-6 py-4">
+                            <span className="mono-id text-brand">{dn.externalId}</span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <p className="text-xs font-black text-slate-900 uppercase">{dn.clientName}</p>
+                            <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">{dn.address}</p>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="space-y-1">
+                              {dn.items.map((item, i) => (
+                                <div key={i} className="flex items-center gap-2">
+                                  <div className="w-1 h-1 rounded-full bg-brand/30" />
+                                  <span className="text-[10px] font-bold text-slate-600">{item.name} &bull; {item.qty} {item.unit}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                             <span className="text-xs font-black text-slate-900">{dn.weightKg || 0} KG</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-8 border-t border-slate-100 bg-slate-50/50 flex justify-end">
+              <button 
+                onClick={() => setShowManifestSummary(false)}
+                className="px-10 py-4 bg-brand text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:shadow-brand/20 transition-all active:scale-95"
+              >
+                Close Summary
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </Layout>
   );

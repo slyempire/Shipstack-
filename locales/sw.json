@@ -1,0 +1,28 @@
+{
+  "common": {
+    "save": "Hifadhi",
+    "cancel": "Ghairi",
+    "loading": "Inapakia...",
+    "error": "Hitilafu",
+    "success": "Mafanikio"
+  },
+  "settings": {
+    "title": "Mapendeleo ya Mtumiaji",
+    "subtitle": "Sanidi mazingira yako ya terminal",
+    "theme": "Mandhari ya Kiolesura",
+    "language": "Lugha ya Mfumo",
+    "notifications": "Vituo vya Arifa",
+    "apply": "Tumia Mapendeleo",
+    "light": "Mwanga",
+    "dark": "Giza",
+    "system": "Mfumo"
+  },
+  "notifications": {
+    "email": "Arifa za Barua Pepe",
+    "push": "Arifa za Kusukuma",
+    "sms": "Arifa za SMS",
+    "email_desc": "Muhtasari muhimu wa utendaji",
+    "push_desc": "Matukio ya muda halisi katika programu",
+    "sms_desc": "Sasisho za haraka za itifaki"
+  }
+}

@@ -65,7 +65,7 @@ const OrderManagement: React.FC = () => {
   const handleApprove = async (order: Order) => {
     const requestId = `ord-app-${order.id}-${Date.now()}`;
     try {
-      await api.batchApproveOrders([order.id], user?.role, requestId);
+      await api.batchApproveOrders([order.id], user?.role, tenant?.id || 'tenant-1', requestId);
       addNotification(`Order ${order.externalId} approved and queued for dispatch.`, "success");
       loadOrders();
     } catch (err) {
@@ -78,7 +78,7 @@ const OrderManagement: React.FC = () => {
     setBatchProcessing(true);
     const requestId = `ord-batch-${Date.now()}`;
     try {
-      await api.batchApproveOrders(selectedOrders, user?.role, requestId);
+      await api.batchApproveOrders(selectedOrders, user?.role, tenant?.id || 'tenant-1', requestId);
       addNotification(`Batch approved ${selectedOrders.length} orders for dispatch.`, "success");
       setSelectedOrders([]);
       loadOrders();

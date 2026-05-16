@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Layout from '../../components/Layout';
+import { useAppStore, useAuthStore } from '../../store';
 import { api } from '../../api';
 import { OperationalMetrics, AnalyticsReport, DeliveryNote, User, DNStatus, ExceptionType } from '../../types';
 import { 
@@ -34,11 +35,157 @@ import {
   Sparkles,
   Truck,
   Navigation,
-  CheckCircle2
+  CheckCircle2,
+  AlertTriangle,
+  DatabaseZap
 } from 'lucide-react';
 import { Badge } from '../../packages/ui/Badge';
+import { aiService } from '../../services/aiService';
+import { useTenant } from '../../hooks/useTenant';
+import { BrainCircuit, RefreshCw } from 'lucide-react';
+import { motion } from 'framer-motion';
+
+const PredictiveInsights = () => {
+  const { addNotification } = useAppStore();
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [forecast, setForecast] = useState<any>(null);
+  const [loadingForecast, setLoadingForecast] = useState(false);
+  const { tenant } = useTenant();
+  const user = useAuthStore((s) => s.user);
+  const isDemo = user?.email?.endsWith('@shipstack.com') || window.location.search.includes('demo=true');
+
+  useEffect(() => {
+    const fetchForecast = async () => {
+      setLoadingForecast(true);
+      try {
+        const data = await aiService.forecastDemand([]);
+        setForecast(data);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoadingForecast(false);
+      }
+    };
+    fetchForecast();
+  }, []);
+
+  const handleOptimize = async () => {
+    setIsOptimizing(true);
+    try {
+      await aiService.optimizeRoute([], {} as any);
+      addNotification("Operational insights: Route optimization complete. 18% efficiency gain projected.", "success");
+    } catch (e) {
+      addNotification("AI Optimization failed.", "error");
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
+  const insights = [
+    { 
+      id: 1, 
+      type: 'DELAY_PREDICTION', 
+      title: 'High Delay Risk: Westlands Route', 
+      desc: 'ML Model predicts 25min delay for 3 deliveries due to unusual traffic surge on Waiyaki Way.',
+      impact: 'High',
+      action: 'Re-route via Loresho',
+      handler: handleOptimize,
+      loading: isOptimizing,
+      color: 'text-brand',
+      icon: Navigation
+    },
+    { 
+      id: 2, 
+      type: 'DEMAND_FORECAST', 
+      title: 'Inventory Alert: Mombasa Hub', 
+      desc: forecast?.insights[0] || 'Predictive demand analysis suggests stock-out for "Medical Kit A" in 48 hours.',
+      impact: 'Medium',
+      action: 'Restock from Nairobi',
+      handler: () => addNotification("Restock order initiated via AI recommendation.", "info"),
+      loading: loadingForecast,
+      color: 'text-emerald-500',
+      icon: Truck
+    }
+  ];
+
+  return (
+    <div id="ai-intelligence" className="bg-slate-900 rounded-[2.5rem] p-10 text-white relative overflow-hidden shadow-2xl border border-white/5">
+      {(!api.getTenantPlan() || api.getTenantPlan() === 'STARTER' || api.getTenantPlan() === 'GROWTH') && !isDemo && (
+        <div className="absolute inset-0 z-50 bg-slate-900/40 backdrop-blur-[2px] flex items-center justify-center p-8">
+          <div className="bg-white rounded-[2rem] p-8 max-w-md text-center shadow-2xl animate-in zoom-in-95 duration-300">
+            <div className="h-12 w-12 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-500 mx-auto mb-4">
+              <Sparkles size={24} />
+            </div>
+            <h4 className="text-xl font-bold text-slate-900 tracking-tight mb-2">Intelligence Hub</h4>
+            <p className="text-sm text-slate-500 font-medium mb-6">
+              AI-assisted operational directives to optimize your fleet and save costs. Upgrade to SCALE to unlock real-time recommendations.
+            </p>
+            <button 
+              onClick={() => window.location.href = '/admin/subscription'}
+              className="w-full py-4 bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 transition-all font-sans"
+            >
+              View Scale Intelligence
+            </button>
+          </div>
+        </div>
+      )}
+      <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
+        <BrainCircuit size={200} className="text-brand" />
+      </div>
+      
+      <div className="relative z-10">
+        <div className="flex items-center justify-between mb-10">
+          <div>
+            <h3 className="text-2xl font-bold tracking-tight text-white mb-2">Intelligence Hub</h3>
+            <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">ML-Assisted Operational Directives</p>
+          </div>
+          <Badge variant="delivered" className="bg-brand/20 text-brand border-none">Active Engine</Badge>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {insights.map((item) => (
+            <div key={item.id} className="p-6 bg-white/5 border border-white/5 rounded-2xl group hover:bg-white/10 transition-all">
+              <div className="flex items-center justify-between mb-4">
+                <div className={`p-3 rounded-xl bg-white/5 ${item.color}`}>
+                  <item.icon size={20} />
+                </div>
+                <div className="text-right">
+                  <p className="text-[8px] font-black text-white/20 uppercase tracking-widest">Est. Impact</p>
+                  <p className={`text-[10px] font-black uppercase opacity-60`}>{item.impact}</p>
+                </div>
+              </div>
+              <h4 className="text-sm font-bold tracking-tight mb-2">{item.title}</h4>
+              <p className="text-[10px] font-bold text-white/40 leading-relaxed italic mb-4">"{item.desc}"</p>
+              
+              <div className="mb-4 flex flex-col gap-1.5 p-3 bg-white/5 rounded-xl border border-white/5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[8px] font-bold text-white/30 uppercase tracking-widest">Confidence</span>
+                  <span className={`text-[10px] font-bold ${item.color}`}>94%</span>
+                </div>
+                <div className="h-0.5 bg-white/10 rounded-full overflow-hidden">
+                  <div className="h-full bg-brand-accent w-[94%]" />
+                </div>
+                <p className="text-[8px] text-white/30 font-medium whitespace-nowrap overflow-hidden text-ellipsis">Based on telemetry logs</p>
+              </div>
+
+              <button 
+                onClick={item.handler}
+                disabled={item.loading}
+                className="w-full py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+              >
+                {item.loading ? <RefreshCw className="animate-spin" size={14} /> : <Zap size={14} />}
+                Apply directive
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const Analytics: React.FC = () => {
+  const { user } = useAuthStore();
   const [metrics, setMetrics] = useState<OperationalMetrics | null>(null);
   const [zoneMetrics, setZoneMetrics] = useState<{ name: string, count: number, id: string }[]>([]);
   const [reports, setReports] = useState<AnalyticsReport[]>([]);
@@ -47,6 +194,8 @@ const Analytics: React.FC = () => {
   const [drillDown, setDrillDown] = useState<{ type: 'DAY' | 'ZONE' | 'METRIC', value: string, data: DeliveryNote[] } | null>(null);
   const [allDns, setAllDns] = useState<DeliveryNote[]>([]);
   const [drivers, setDrivers] = useState<User[]>([]);
+
+  const isDemo = user?.email?.endsWith('@shipstack.com') || window.location.search.includes('demo=true');
 
   useEffect(() => {
     Promise.all([
@@ -134,118 +283,55 @@ const Analytics: React.FC = () => {
         <MetricTile icon={Activity} label="Fleet utilization" value="88%" color="text-orange-600" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* FEATURE 6: Prescriptive Analytics Panel */}
-        <div className="lg:col-span-2 bg-slate-900 rounded-[2.5rem] p-10 text-white shadow-2xl relative overflow-hidden border border-white/5">
-          {(!api.getTenantPlan() || api.getTenantPlan() === 'STARTER' || api.getTenantPlan() === 'GROWTH') && (
-            <div className="absolute inset-0 z-50 bg-slate-900/40 backdrop-blur-[2px] flex items-center justify-center p-8">
-              <div className="bg-white rounded-[2rem] p-8 max-w-md text-center shadow-2xl animate-in zoom-in-95 duration-300">
-                <div className="h-12 w-12 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-500 mx-auto mb-4">
-                  <Sparkles size={24} />
-                </div>
-                <h4 className="text-xl font-bold text-slate-900 tracking-tight mb-2">Recommendations</h4>
-                <p className="text-sm text-slate-500 font-medium mb-6">
-                  AI-assisted operational directives to optimize your fleet and save costs. Upgrade to SCALE to unlock real-time recommendations.
-                </p>
-                <button 
-                  onClick={() => window.location.href = '/admin/subscription'}
-                  className="w-full py-4 bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 transition-all font-sans"
-                >
-                  View Scale Intelligence
-                </button>
-              </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <PredictiveInsights />
+        
+        {/* Inventory Velocity Heatmap */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-10 shadow-sm relative overflow-hidden">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h3 className="text-xl font-black uppercase tracking-tighter text-slate-900 dark:text-white">Inventory Velocity Heatmap</h3>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">ML-Predicted Stock Depletion Rates</p>
             </div>
-          )}
-          <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
-            <Sparkles size={200} className="text-brand" />
+            <Badge variant="delivered" className="bg-emerald/10 text-emerald border-none">Live Sync</Badge>
           </div>
           
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-10">
-              <div>
-                <h3 className="text-2xl font-bold tracking-tight text-white mb-2">Recommendations</h3>
-                <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Operational recommendations</p>
+          <div className="grid grid-cols-5 gap-3 h-48">
+            {Array.from({ length: 25 }).map((_, i) => {
+              const intensity = Math.random();
+              return (
+                <div 
+                  key={i} 
+                  className="rounded-lg transition-all hover:scale-110 cursor-help"
+                  style={{ 
+                    backgroundColor: intensity > 0.8 ? '#DC2626' : intensity > 0.5 ? '#F59E0B' : '#10B981',
+                    opacity: 0.2 + intensity * 0.8
+                  }}
+                />
+              );
+            })}
+          </div>
+          <div className="mt-6 flex justify-between items-center px-2">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-emerald" />
+                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Stable</span>
               </div>
-              <Badge variant="delivered" className="bg-brand/20 text-brand border-none">Active Engine</Badge>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {[
-                { 
-                  title: 'Fleet Optimization', 
-                  impact: 'High', 
-                  saving: '$1,200/mo', 
-                  directive: 'Re-allocate 4 light trucks from Nairobi West to Mombasa Hub for weekend surge.',
-                  confidence: 96,
-                  source: 'Mombasa Port congestion data',
-                  icon: Truck,
-                  color: 'text-brand'
-                },
-                { 
-                  title: 'Route Efficiency', 
-                  impact: 'Medium', 
-                  saving: '14% Time', 
-                  directive: 'Shift Loresho deliveries to 06:00 AM to avoid new construction bottlenecks.',
-                  confidence: 92,
-                  source: 'Traffic telemetry logs',
-                  icon: Navigation,
-                  color: 'text-emerald-500'
-                },
-                { 
-                  title: 'Client Retention', 
-                  impact: 'High', 
-                  saving: '2 Accounts', 
-                  directive: 'Proactively credit Account #402 for recent delay anomalies to prevent churn.',
-                  confidence: 88,
-                  source: 'CRM sentiment analysis',
-                  icon: ShieldAlert,
-                  color: 'text-red-500'
-                },
-                { 
-                  title: 'Fuel Economy', 
-                  impact: 'Low', 
-                  saving: '$450/mo', 
-                  directive: 'Enforce 80km/h speed limiters on long-haul routes to Kisumu.',
-                  confidence: 95,
-                  source: 'Vehicle telemetry stream',
-                  icon: Zap,
-                  color: 'text-amber-500'
-                }
-              ].map((item, i) => (
-                <div key={i} className="p-6 bg-white/5 border border-white/5 rounded-2xl group hover:bg-white/10 transition-all">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className={`p-3 rounded-xl bg-white/5 ${item.color}`}>
-                      <item.icon size={20} />
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[8px] font-black text-white/20 uppercase tracking-widest">Est. Impact</p>
-                      <p className={`text-[10px] font-black uppercase ${item.color}`}>{item.saving}</p>
-                    </div>
-                  </div>
-                  <h4 className="text-sm font-bold tracking-tight mb-2">{item.title}</h4>
-                  <p className="text-[10px] font-bold text-white/40 leading-relaxed italic mb-4">"{item.directive}"</p>
-                  
-                  <div className="mb-4 flex flex-col gap-1.5 p-3 bg-white/5 rounded-xl border border-white/5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[8px] font-bold text-white/30 uppercase tracking-widest">Confidence</span>
-                      <span className={`text-[10px] font-bold ${item.color}`}>{item.confidence}%</span>
-                    </div>
-                    <div className="h-0.5 bg-white/10 rounded-full overflow-hidden">
-                      <div className={`h-full ${item.color.replace('text', 'bg')} w-[${item.confidence}%]`} style={{ width: `${item.confidence}%` }} />
-                    </div>
-                    <p className="text-[8px] text-white/30 font-medium whitespace-nowrap overflow-hidden text-ellipsis">Based on {item.source}</p>
-                  </div>
-
-                  <button className="w-full py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all">
-                    Apply recommendation
-                  </button>
-                </div>
-              ))}
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-amber" />
+                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Warning</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-red" />
+                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Critical</span>
+              </div>
             </div>
           </div>
         </div>
+      </div>
 
-        <div className="space-y-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-1 space-y-8">
            <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm">
               <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6">Network Volume</h3>
               <div className="h-64">

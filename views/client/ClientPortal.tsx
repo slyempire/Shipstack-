@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store';
 import { api } from '../../api';
 import { useTenant } from '../../hooks/useTenant';
@@ -23,10 +24,13 @@ import {
   ShieldCheck,
   Zap,
   RefreshCw,
-  Sparkles
+  Sparkles,
+  Settings,
+  Home
 } from 'lucide-react';
 
 const ClientPortal: React.FC = () => {
+  const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const { tenant, formatCurrency } = useTenant();
   const [dns, setDns] = useState<DeliveryNote[]>([]);
@@ -114,16 +118,31 @@ const ClientPortal: React.FC = () => {
             <Truck size={24} className="text-white" />
           </div>
           <div>
-            <h1 className="heading-primary mb-1">Shipstack Client</h1>
-            <p className="label-logistics">Consignee Tracking Terminal</p>
+            <h1 className="heading-primary mb-1">Customer Portal</h1>
+            <p className="label-logistics">Track your orders & shipments</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
+          <button 
+            onClick={() => navigate('/admin')} 
+            className="h-10 px-4 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center gap-2 text-white/40 hover:text-brand hover:bg-white/10 transition-all"
+            title="Admin Dashboard"
+          >
+            <Home size={18} />
+            <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Admin Dash</span>
+          </button>
+          <button 
+            onClick={() => navigate('/settings')} 
+            className="h-10 w-10 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all transition-colors"
+            title="Settings"
+          >
+            <Settings size={18} />
+          </button>
           <div className="hidden md:flex flex-col items-end mr-4">
             <p className="body-value !mb-0">{user?.name}</p>
             <p className="label-logistics !mb-0">{user?.company || 'Enterprise Partner'}</p>
           </div>
-          <button onClick={() => logout()} className="h-10 w-10 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-white/40 hover:text-white transition-all">
+          <button onClick={() => logout()} className="h-10 w-10 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-white/40 hover:text-red transition-all">
             <LogOut size={18} />
           </button>
         </div>
@@ -137,14 +156,14 @@ const ClientPortal: React.FC = () => {
           </div>
           <div className="relative z-10 max-w-2xl">
             <h2 className="text-4xl md:text-5xl font-black tracking-tighter uppercase mb-6 leading-tight">
-              Track your <span className="text-brand">Global</span> Shipments
+              Track your <span className="text-brand">Orders</span> & Shipments
             </h2>
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1 relative group">
                 <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-brand transition-colors" size={20} />
                 <input 
                   type="text" 
-                  placeholder="Enter Tracking Number (e.g. DN-772)..." 
+                  placeholder="Enter Tracking Number..." 
                   value={trackingNumber}
                   onChange={(e) => setTrackingNumber(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleTrack()}
@@ -156,7 +175,7 @@ const ClientPortal: React.FC = () => {
                 disabled={isSearching}
                 className="h-16 px-10 bg-brand text-white rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-brand/20 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
               >
-                {isSearching ? <RefreshCw className="animate-spin" size={20} /> : 'Locate Shipment'}
+                {isSearching ? <RefreshCw className="animate-spin" size={20} /> : 'Track Now'}
               </button>
             </div>
           </div>
@@ -170,11 +189,11 @@ const ClientPortal: React.FC = () => {
               <div className="p-8 bg-charcoal rounded-[2.5rem] border border-white/5 shadow-xl">
                 <div className="flex justify-between items-start mb-12">
                   <div>
-                    <p className="label-logistics !text-brand mb-2">Shipment Status</p>
+                    <p className="label-logistics !text-brand mb-2">Order Status</p>
                     <h3 className="text-3xl font-black tracking-tighter uppercase">{trackedDn.status.replace('_', ' ')}</h3>
                   </div>
                   <div className="text-right">
-                    <p className="label-logistics mb-2">Estimated Arrival</p>
+                    <p className="label-logistics mb-2">Estimated Delivery</p>
                     <div className="flex items-center gap-2 text-emerald">
                       <Clock size={20} />
                       <span className="text-2xl font-black tracking-tighter">14:20 PM</span>
@@ -233,7 +252,7 @@ const ClientPortal: React.FC = () => {
                   )}
                   <div className="flex items-center gap-3 mb-6">
                     <Sparkles className="text-brand" size={18} />
-                    <h4 className="text-[10px] font-black uppercase tracking-widest text-white/40">Live Delivery Intelligence</h4>
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-white/40">Shipment Intelligence</h4>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="p-5 bg-navy/30 rounded-2xl border border-white/5">
@@ -272,7 +291,7 @@ const ClientPortal: React.FC = () => {
 
               {/* Shipment Details */}
               <div className="p-8 bg-charcoal rounded-[2.5rem] border border-white/5 shadow-xl">
-                <h4 className="label-logistics mb-8">Manifest Details</h4>
+                <h4 className="label-logistics mb-8">Order Details</h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
                   <div>
                     <p className="label-logistics mb-2">Origin</p>
@@ -292,7 +311,7 @@ const ClientPortal: React.FC = () => {
                   </div>
                 </div>
                 <div className="mt-10 pt-8 border-t border-white/5">
-                   <p className="label-logistics mb-4">Items in Shipment</p>
+                   <p className="label-logistics mb-4">Ordered Items</p>
                    <div className="space-y-3">
                       {trackedDn.items.map((item, idx) => (
                         <div key={idx} className="flex justify-between items-center p-4 bg-navy/30 rounded-xl border border-white/5">

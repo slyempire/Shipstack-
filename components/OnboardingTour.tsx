@@ -14,9 +14,12 @@ import {
   Layers,
   Settings,
   Zap,
-  ArrowRight
+  ArrowRight,
+  Truck,
+  ShieldCheck
 } from 'lucide-react';
 import ReactDOM from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 
 interface TourStep {
   targetId?: string;
@@ -24,53 +27,66 @@ interface TourStep {
   description: string;
   icon?: any;
   position: 'top' | 'bottom' | 'left' | 'right' | 'center';
+  path?: string;
 }
 
 const steps: TourStep[] = [
   {
-    title: "Welcome to Shipstack",
-    description: "Your next-generation fleet intelligence hub. Let's take a quick 2-minute tour to get you up to speed with the operational environment.",
+    title: "Operational Command",
+    description: "Welcome to Shipstack. Let's walk through an essential workflow: Dispatching your first fleet manifest.",
     icon: Layers,
     position: 'center'
   },
   {
-    targetId: 'nav-dashboard',
-    title: "Operational Command",
-    description: "The sidebar organises your fleet into logical silos: Core Engine, Fulfillment, Commercial, People, Insights, and Platform.",
-    icon: LayoutDashboard,
-    position: 'right'
+    targetId: 'nav-fleet',
+    title: "1. Asset Preparedness",
+    description: "Workflow: Fleet Registration. First, digitize your vehicles and distribution hubs in 'Fleet & Premise management'.",
+    icon: Truck,
+    position: 'right',
+    path: '/admin'
   },
   {
-    targetId: 'dashboard-kpis',
-    title: "Intelligence Briefing",
-    description: "Your primary dashboard shows real-time KPIs: Active Trips, Fleet Health, and Exception Alerts. Monitor these high-level signals to maintain operational integrity.",
-    icon: Activity,
-    position: 'bottom'
+    targetId: 'tour-checklist-0',
+    title: "Onboarding KPI",
+    description: "Goal: Register 1st Vehicle. Use this checklist to track your setup. Completion marks your company as 'Dispatch Ready'.",
+    icon: CheckCircle,
+    position: 'top',
+    path: '/admin'
   },
   {
     targetId: 'nav-dispatch',
-    title: "Active Workflow",
-    description: "The Dispatch Hub is where you optimize routes and assign drivers. Use AI-assisted optimization to reduce carbon footprint and operational costs.",
+    title: "2. The Dispatch Hub",
+    description: "Workflow: Route Optimization. Once assets are live, navigate here to batch orders into optimized manifests.",
     icon: Navigation,
-    position: 'right'
+    position: 'right',
+    path: '/admin'
   },
   {
-    targetId: 'nav-marketplace',
-    title: "Infinite Scale",
-    description: "Provision third-party logistics (3PL) and additional capabilities directly from the Marketplace as your operational requirements evolve.",
+    targetId: 'tour-create-manifest',
+    title: "Execution: First Run",
+    description: "Click 'Create Route Manifest' to launch the wizard. This combines orders, maps routes, and assigns drivers in one tool.",
+    icon: Play,
+    position: 'bottom',
+    path: '/admin/dispatch'
+  },
+  {
+    targetId: 'nav-intelligence',
+    title: "3. Oversight & Scale",
+    description: "Workflow: Performance Review. Use Intelligence to monitor delivery SLAs and predict future demand spikes.",
     icon: Zap,
-    position: 'right'
+    position: 'right',
+    path: '/admin'
   },
   {
-    targetId: 'nav-settings',
-    title: "System Architecture",
-    description: "Configure role-based access, API integrations, and vertical-specific parameters in the Settings console.",
-    icon: Settings,
-    position: 'right'
+    title: "Deployment Ready",
+    description: "You've mastered the core loop: Asset -> Dispatch -> Intel. You're now ready to process your first customer delivery.",
+    icon: ShieldCheck,
+    position: 'center'
   }
 ];
 
 export const OnboardingTour: React.FC = () => {
+  const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState<number | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
@@ -86,8 +102,25 @@ export const OnboardingTour: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (activeStep !== null && steps[activeStep].targetId) {
-      const element = document.getElementById(steps[activeStep].targetId!);
+    if (activeStep !== null) {
+      const step = steps[activeStep];
+      
+      // Handle navigation if path is specified
+      if (step.path && window.location.pathname !== step.path) {
+        navigate(step.path);
+        // Wait for navigation transition
+        setTimeout(() => updateRect(step.targetId), 500);
+      } else {
+        updateRect(step.targetId);
+      }
+    } else {
+      setTargetRect(null);
+    }
+  }, [activeStep, window.location.pathname]);
+
+  const updateRect = (targetId?: string) => {
+    if (targetId) {
+      const element = document.getElementById(targetId);
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' });
         setTimeout(() => {
@@ -99,7 +132,7 @@ export const OnboardingTour: React.FC = () => {
     } else {
       setTargetRect(null);
     }
-  }, [activeStep]);
+  };
 
   // Update rect on resize or scroll
   useEffect(() => {
@@ -193,25 +226,45 @@ export const OnboardingTour: React.FC = () => {
   return ReactDOM.createPortal(
     <div className="fixed inset-0 z-[6000] pointer-events-none">
       {/* Dark Overlay with Hole */}
-      <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-[2px] transition-all duration-500 pointer-events-auto">
+      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-[2px] transition-all duration-500 pointer-events-auto">
         {targetRect && (
-          <svg className="absolute inset-0 w-full h-full">
-            <defs>
-              <mask id="spotlight-mask">
-                <rect width="100%" height="100%" fill="white" />
-                <rect 
-                  x={targetRect.left - 8} 
-                  y={targetRect.top - 8} 
-                  width={targetRect.width + 16} 
-                  height={targetRect.height + 16} 
-                  rx="12" 
-                  ry="12" 
-                  fill="black" 
-                />
-              </mask>
-            </defs>
-            <rect width="100%" height="100%" fill="rgba(0,0,0,0)" mask="url(#spotlight-mask)" />
-          </svg>
+          <>
+            <svg className="absolute inset-0 w-full h-full">
+              <defs>
+                <mask id="spotlight-mask">
+                  <rect width="100%" height="100%" fill="white" />
+                  <rect 
+                    x={targetRect.left - 12} 
+                    y={targetRect.top - 12} 
+                    width={targetRect.width + 24} 
+                    height={targetRect.height + 24} 
+                    rx="16" 
+                    ry="16" 
+                    fill="black" 
+                  />
+                </mask>
+              </defs>
+              <rect width="100%" height="100%" fill="rgba(0,0,0,0)" mask="url(#spotlight-mask)" />
+            </svg>
+
+            {/* Pulsing Ring Highlight */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ 
+                opacity: [0.5, 1, 0.5], 
+                scale: [1, 1.05, 1],
+                borderColor: ['#0066FF', '#00FFFF', '#0066FF']
+              }}
+              transition={{ repeat: Infinity, duration: 2 }}
+              className="absolute border-4 rounded-[1.25rem] shadow-[0_0_30px_rgba(0,102,255,0.6)] z-[6001] pointer-events-none"
+              style={{
+                width: targetRect.width + 24,
+                height: targetRect.height + 24,
+                top: targetRect.top - 12,
+                left: targetRect.left - 12,
+              }}
+            />
+          </>
         )}
       </div>
 

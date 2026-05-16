@@ -1,7 +1,8 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import Layout from '../../components/Layout';
-import { useTenantStore, useModuleStore } from '../../store';
+import { useTenantStore, useModuleStore, useAppStore } from '../../store';
+import { api } from '../../api';
 import { 
   CreditCard, 
   Zap, 
@@ -15,17 +16,89 @@ import {
   History as HistoryIcon,
   Download,
   AlertTriangle,
-  Package
+  Package,
+  X,
+  Star,
+  Rocket,
+  Shield,
+  Building2
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import RoleGuard from '../../components/RoleGuard';
 
 const SubscriptionView: React.FC = () => {
-  const { currentTenant } = useTenantStore();
+  const { currentTenant, updateTenant } = useTenantStore();
   const { installedModules } = useModuleStore();
+  const { addNotification } = useAppStore();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
-   const activePlan = currentTenant?.tier || currentTenant?.plan || 'Professional';
-   const monthlyCost = activePlan === 'Enterprise' ? 2499 : activePlan === 'Professional' ? 499 : 99;
+  const activePlan = currentTenant?.plan || 'Professional';
+  const monthlyCost = activePlan === 'ENTERPRISE' ? 2499 : activePlan === 'SCALE' ? 999 : activePlan === 'GROWTH' ? 499 : 99;
+
+  const plans = [
+    {
+      id: 'STARTER',
+      name: 'Starter Cluster',
+      desc: 'Perfect for local delivery fleets and small operations.',
+      price: 99,
+      icon: Rocket,
+      color: 'text-blue-500',
+      bgColor: 'bg-blue-50',
+      features: ['Up to 10 vehicles', 'Basic telemetry', 'Core dispatch', 'Email support']
+    },
+    {
+      id: 'GROWTH',
+      name: 'Growth Cluster',
+      desc: 'Scale your operations with advanced routing and multi-hub.',
+      price: 499,
+      icon: Zap,
+      color: 'text-brand',
+      bgColor: 'bg-brand/5',
+      features: ['Up to 50 vehicles', 'Route optimization', 'AI-assisted demand', 'Hub-to-Hub mesh']
+    },
+    {
+      id: 'SCALE',
+      name: 'Scale Cluster',
+      desc: 'High-fidelity infrastructure for nationwide logistics.',
+      price: 999,
+      icon: Star,
+      color: 'text-amber-500',
+      bgColor: 'bg-amber-50',
+      features: ['Unlimited vehicles', 'Predictive intelligence', 'Sub-second sync', '24/7 dedicated support']
+    },
+    {
+      id: 'ENTERPRISE',
+      name: 'Enterprise Mesh',
+      desc: 'Custom infrastructure with sovereign data hosting.',
+      price: 2499,
+      icon: Building2,
+      color: 'text-slate-900',
+      bgColor: 'bg-slate-100',
+      features: ['Global fleet mesh', 'SLA guaranteed', 'Custom integrations', 'ISO compliance toolkit']
+    }
+  ];
+
+  const handleUpdatePlan = async (planId: any) => {
+    if (!currentTenant?.id) return;
+    setIsUpdating(true);
+    try {
+      // Call actual API
+      const updated = await api.updateTenant(currentTenant.id, { 
+        plan: planId,
+        tier: planId as any
+      });
+      
+      updateTenant({ plan: planId });
+      addNotification(`Cluster upgraded to ${planId} successfully. Your infrastructure is being re-provisioned.`, "success");
+      setShowUpgradeModal(false);
+    } catch (error) {
+      console.error('Plan update failed:', error);
+      addNotification("Plan update failed. Please contact your finance administrator.", "error");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   return (
     <RoleGuard permissions={['billing:view']} showFullPageError>
@@ -51,11 +124,11 @@ const SubscriptionView: React.FC = () => {
                       </div>
                    </div>
                    <p className="text-xl font-medium text-white/70 max-w-xl leading-relaxed">
-                      You are currently operating on our most high-fidelity infrastructure with sub-second latency and guaranteed 99.99% uptime for all dispatch nodes.
+                      You are currently operating on {activePlan === 'ENTERPRISE' ? 'our most high-fidelity infrastructure' : 'a high-performance node'} with sub-second latency and guaranteed 99.99% uptime for all dispatch nodes.
                    </p>
                    <div className="flex flex-wrap gap-4">
                       {[
-                        { label: 'Sync Rate', val: 'Sub-second' },
+                        { label: 'Sync Rate', val: activePlan === 'ENTERPRISE' ? 'Sub-second' : 'Real-time' },
                         { label: 'Active Modules', val: installedModules.length },
                         { label: 'Next Refresh', val: 'May 1st, 2026' }
                       ].map((stat, i) => (
@@ -67,7 +140,10 @@ const SubscriptionView: React.FC = () => {
                    </div>
                 </div>
                 <div className="relative z-10 pt-12 flex flex-col sm:flex-row gap-4">
-                   <button className="px-10 py-5 bg-brand-accent text-slate-950 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all flex items-center gap-2">
+                   <button 
+                    onClick={() => setShowUpgradeModal(true)}
+                    className="px-10 py-5 bg-brand-accent text-slate-950 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+                   >
                       Manage Plan Tier <ArrowRight size={16} />
                    </button>
                    <button className="px-10 py-5 bg-white/10 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest border border-white/10 hover:bg-white/20 transition-all">
@@ -83,7 +159,7 @@ const SubscriptionView: React.FC = () => {
                       <div className="flex justify-between items-center group">
                          <div>
                             <p className="text-xs font-black text-slate-900 uppercase leading-none mb-1 group-hover:text-brand transition-colors">Core Platform</p>
-                            <p className="text-[10px] font-bold text-slate-400 capitalize">{activePlan} Tier</p>
+                            <p className="text-[10px] font-bold text-slate-400 capitalize">{activePlan.toLowerCase()} Tier</p>
                          </div>
                          <p className="text-sm font-black text-slate-900">${monthlyCost}</p>
                       </div>
@@ -107,6 +183,101 @@ const SubscriptionView: React.FC = () => {
                 </div>
              </div>
           </div>
+
+          <AnimatePresence>
+            {showUpgradeModal && (
+              <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-12">
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setShowUpgradeModal(false)}
+                  className="absolute inset-0 bg-slate-950/60 backdrop-blur-md"
+                />
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                  className="relative w-full max-w-6xl bg-white rounded-[3rem] shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
+                >
+                  <div className="p-12">
+                    <div className="flex items-center justify-between mb-12">
+                      <div>
+                        <h2 className="text-4xl font-black uppercase tracking-tighter italic">Upgrade Operational Hub</h2>
+                        <p className="text-sm font-medium text-slate-500 mt-2">Select a cluster tier that matches your current mission requirements.</p>
+                      </div>
+                      <button 
+                        onClick={() => setShowUpgradeModal(false)}
+                        className="h-14 w-14 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center hover:bg-slate-200 transition-all"
+                      >
+                        <X size={24} />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {plans.map((p) => (
+                        <div 
+                          key={p.id}
+                          className={`p-8 rounded-[2.5rem] border-2 transition-all flex flex-col justify-between ${
+                            activePlan === p.id 
+                              ? 'border-brand bg-brand/5 shadow-xl ring-4 ring-brand/10 scale-105 z-10' 
+                              : 'border-slate-100 hover:border-slate-200'
+                          }`}
+                        >
+                          <div>
+                            <div className={`h-12 w-12 ${p.bgColor} ${p.color} rounded-xl flex items-center justify-center mb-6`}>
+                              <p.icon size={24} />
+                            </div>
+                            <h3 className="text-xl font-black uppercase tracking-tight mb-2">{p.name}</h3>
+                            <p className="text-[11px] font-medium text-slate-500 leading-relaxed min-h-[40px]">{p.desc}</p>
+                            <div className="mt-6 flex items-baseline gap-1">
+                              <span className="text-3xl font-black">${p.price}</span>
+                              <span className="text-[10px] font-bold text-slate-400 uppercase">/mo</span>
+                            </div>
+                            <div className="mt-8 space-y-4">
+                              {p.features.map((f, i) => (
+                                <div key={i} className="flex items-center gap-3">
+                                  <CheckCircle2 size={14} className="text-brand" />
+                                  <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight">{f}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          <button 
+                            disabled={activePlan === p.id || isUpdating}
+                            onClick={() => handleUpdatePlan(p.id)}
+                            className={`w-full mt-10 py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                              activePlan === p.id 
+                                ? 'bg-slate-100 text-slate-400 cursor-default'
+                                : 'bg-brand text-white shadow-xl shadow-brand/20 hover:bg-brand-dark active:scale-95'
+                            } flex items-center justify-center gap-2`}
+                          >
+                            {isUpdating ? <TrendingUp size={16} className="animate-pulse" /> : null}
+                            {activePlan === p.id ? 'Active Plan' : 'Transition to Cluster'}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-12 p-8 bg-slate-900 rounded-[2.5rem] text-white flex flex-col md:flex-row items-center justify-between gap-8">
+                      <div className="flex items-center gap-6">
+                        <div className="h-16 w-16 bg-white/10 rounded-2xl flex items-center justify-center text-brand-accent">
+                          <ShieldCheck size={32} />
+                        </div>
+                        <div>
+                          <p className="font-bold text-lg leading-none">Need a custom node configuration?</p>
+                          <p className="text-white/50 text-sm mt-1">Our infrastructure engineers can provision bespoke clusters for air & sea fleet mesh.</p>
+                        </div>
+                      </div>
+                      <button className="px-10 py-4 bg-brand-accent text-slate-900 rounded-xl text-[11px] font-black uppercase tracking-widest whitespace-nowrap">
+                        Inquire Custom Node
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
 
           {/* Billing & Activity Hub */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">

@@ -58,8 +58,9 @@ const CRMView: React.FC = () => {
 
   useEffect(() => {
     const loadCustomers = async () => {
+      if (!user?.tenantId) return;
       try {
-        const data = await api.getCustomers();
+        const data = await api.getCustomers(user.tenantId);
         setCustomers(data);
       } catch (error) {
         addNotification('Failed to load customers.', 'error');
@@ -92,11 +93,11 @@ const CRMView: React.FC = () => {
     const requestId = `crm-${Date.now()}`;
     try {
       if (selectedCustomer) {
-        const updated = await api.updateCustomer(selectedCustomer.id, formData, requestId);
+        const updated = await api.updateCustomer(selectedCustomer.id, formData, user?.tenantId || 'tenant-1', requestId);
         setCustomers(customers.map(c => c.id === selectedCustomer.id ? updated : c));
         addNotification('Relationship updated successfully.', 'success');
       } else {
-        const newCustomer = await api.createCustomer(formData, 'tenant-1', requestId);
+        const newCustomer = await api.createCustomer(formData, user?.tenantId || 'tenant-1', requestId);
         setCustomers([newCustomer, ...customers]);
         addNotification('New relationship established.', 'success');
       }
@@ -197,7 +198,7 @@ const CRMView: React.FC = () => {
                 Leads
               </button>
             </div>
-            <RoleGuard allowedRoles={['ADMIN', 'DISPATCHER', 'FINANCE']}>
+            <RoleGuard allowedRoles={['super_admin', 'tenant_admin', 'operations_manager', 'finance_manager']}>
               <button 
                 onClick={() => handleOpenModal()}
                 className="bg-brand text-white px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-2 shadow-xl hover:opacity-90 active:scale-95 transition-all"
@@ -270,7 +271,7 @@ const CRMView: React.FC = () => {
                     >
                       <Trash2 size={14} />
                     </button>
-                    <RoleGuard allowedRoles={['ADMIN', 'DISPATCHER', 'FINANCE']}>
+                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin', 'operations_manager', 'finance_manager']}>
                       <button 
                         onClick={(e) => { e.stopPropagation(); handleOpenModal(customer); }}
                         className="p-2 bg-slate-50 text-slate-400 rounded-lg hover:bg-brand hover:text-white transition-all"

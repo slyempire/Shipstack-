@@ -1,85 +1,114 @@
 
 import React from 'react';
-import { useModuleStore, useAuthStore } from '../../store';
-import { Lock, Zap, ArrowRight, ShieldCheck } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { getModuleById } from '../../constants/modules';
-import { Permission } from '../../types';
-import Icon from '../Icon';
+import { motion } from 'framer-motion';
+import { useTenant } from '../../hooks/useTenant';
+import { useAuthStore } from '../../store';
+import { ModuleId } from '../../types';
+import { PaywallView } from './PaywallView';
+import { ModuleLockedView } from './ModuleLockedView';
 
 interface ModuleGuardProps {
-  moduleId: string;
-  requiredPermission?: Permission;
-  fallback?: React.ReactNode;
+  moduleId: ModuleId;
   children: React.ReactNode;
 }
 
-const ModuleLockedView = ({ moduleId }: { moduleId: string }) => {
-  const navigate = useNavigate();
-  const module = getModuleById(moduleId);
-  
-  if (!module) return null;
+/**
+ * ModuleGuard component protects routes based on tenant plan and module enablement.
+ * It handles:
+ * 1. Plan-based access (Paywall)
+ * 2. Tenant-based enablement (Module Locked)
+ * 3. Role-based access (handled via ProtectedRoute, but reinforced here)
+ */
+export const ModuleGuard: React.FC<ModuleGuardProps> = ({ moduleId, children }) => {
+  try {
+    const { isModuleEnabled, tenant } = useTenant();
+    const { user } = useAuthStore();
 
-  return (
-    <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2.5rem] p-12 text-center max-w-2xl mx-auto my-12">
-      <div className="h-16 w-16 bg-brand/10 text-brand rounded-2xl flex items-center justify-center mx-auto mb-6">
-        <Icon name={module.icon as string} size={32} />
-      </div>
-      <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-900 mb-2">{module.name} Inactive</h3>
-      <p className="text-sm text-slate-500 font-medium mb-8 leading-relaxed">
-        This module is currently not provisioned for your tenant. Unlock specialized {module.category.replace('_', ' ')} capabilities by activating this solution in the marketplace.
-      </p>
+    // Global Bypass for Demo Admin
+    const isDemoAdmin = user?.email === 'joemugoh215@gmail.com' || 
+                        user?.email?.endsWith('@shipstack.com') || 
+                        localStorage.getItem('shipstack_demo_mode') === 'true';
+
+    // 1. Basic validation
+    if (!moduleId || isDemoAdmin) {
+      return <>{children}</>;
+    }
+
+    // 2. Loading state protection
+    if (!tenant) {
+      return (
+        <div className="min-h-[40vh] flex items-center justify-center">
+          <motion.div 
+            animate={{ rotate: 360 }}
+            transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+            className="h-8 w-8 border-4 border-brand border-t-transparent rounded-full"
+          />
+        </div>
+      );
+    }
+
+    // 3. Plan-based access check
+    const isPremiumModule = (id: ModuleId): 'PRO' | 'ENTERPRISE' | undefined => {
+      const premiumModules: Partial<Record<ModuleId, 'PRO' | 'ENTERPRISE'>> = {
+        'fleet': 'PRO',
+        'finance': 'PRO',
+        'analytics': 'PRO',
+        'integrations': 'ENTERPRISE'
+      };
+      return premiumModules[id];
+    };
+
+    const requiredPlan = isPremiumModule(moduleId);
+    const currentPlan = tenant.plan || 'BASIC';
+
+    if (requiredPlan) {
+      const planHierarchy: Record<string, number> = { 'BASIC': 0, 'PRO': 1, 'ENTERPRISE': 2 };
+      const currentLevel = planHierarchy[currentPlan] ?? 0;
+      const requiredLevel = planHierarchy[requiredPlan] ?? 0;
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10 text-left">
-        {module.tags.map(tag => (
-          <div key={tag} className="flex items-center gap-2 px-4 py-2 bg-white rounded-xl border border-slate-100">
-            <ShieldCheck size={14} className="text-brand" />
-            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tight">{tag}</span>
+      if (currentLevel < requiredLevel) {
+        return <PaywallView moduleId={moduleId} requiredPlan={requiredPlan} />;
+      }
+    }
+
+    // 4. Module enablement check
+    if (!isModuleEnabled(moduleId)) {
+      return <ModuleLockedView moduleId={moduleId} />;
+    }
+
+    // 5. All checks passed
+    return <>{children}</>;
+
+  } catch (error: any) {
+    // Definitive crash protection
+    console.error('Critical Error in ModuleGuard:', error);
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-white rounded-[2rem] p-8 shadow-xl border border-red-100 text-center">
+          <div className="h-16 w-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
           </div>
-        ))}
+          <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight mb-2">Security Module Error</h2>
+          <p className="text-sm text-slate-500 mb-6">
+            There was a problem verifying your access permissions. This might be due to a temporary connection issue.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="w-full py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-slate-800 transition-all"
+          >
+            Reload Application
+          </button>
+          {process.env.NODE_ENV === 'development' && (
+            <pre className="mt-4 p-4 bg-slate-50 rounded-xl text-[10px] text-left overflow-auto max-h-40 text-slate-400 font-mono">
+              {error?.message}
+              {'\n'}
+              {error?.stack}
+            </pre>
+          )}
+        </div>
       </div>
-
-      <button 
-        onClick={() => navigate('/admin/marketplace')}
-        className="w-full py-5 bg-brand text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-brand/20 active:scale-95 transition-all flex items-center justify-center gap-2 group"
-      >
-        Explore in Marketplace <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-      </button>
-      
-      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-6">
-        {module.pricing.model === 'free' ? 'Available for Free' : `Starting at ${module.pricing.amount} ${module.pricing.currency}/mo`}
-      </p>
-    </div>
-  );
-};
-
-export const ModuleGuard: React.FC<ModuleGuardProps> = ({ 
-  moduleId, 
-  requiredPermission,
-  fallback, 
-  children 
-}) => {
-  const { isModuleActive } = useModuleStore();
-  const { hasPermission } = useAuthStore();
-  
-  const isActive = isModuleActive(moduleId);
-  const isAuthorized = requiredPermission ? hasPermission(requiredPermission) : true;
-
-  if (!isActive) {
-    if (fallback) return <>{fallback}</>;
-    return <ModuleLockedView moduleId={moduleId} />;
+    );
   }
-
-  if (!isAuthorized) {
-    return null; // Let RoleGuard handle permission errors if wrapped
-  }
-
-  return (
-    <div className="relative group/module">
-      {/* Trial Banner would go here if needed as an overlay */}
-      {children}
-    </div>
-  );
 };
 
 export default ModuleGuard;

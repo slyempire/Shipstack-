@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 import './index.css';
+import './i18n';
 
 // Suppress specific console logs and errors
 const originalConsoleError = console.error;

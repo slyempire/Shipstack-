@@ -30,8 +30,13 @@ import {
   CheckCircle,
   AlertTriangle,
   Save,
-  X
+  X,
+  Navigation,
+  Activity,
+  Compass
 } from 'lucide-react';
+import { telemetryService } from '../../services/socket';
+import MapEngine from '../../components/MapEngine';
 
 const TripDetail: React.FC = () => {
   const { id } = useParams();
@@ -43,6 +48,21 @@ const TripDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isDispatching, setIsDispatching] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<LogisticsDocument | null>(null);
+
+  // Telemetry State
+  const [telemetry, setTelemetry] = useState<{
+    speed: number;
+    lat: number;
+    lng: number;
+    heading: number;
+    lastUpdate: string;
+  }>({
+    speed: 0,
+    lat: 0,
+    lng: 0,
+    heading: 0,
+    lastUpdate: new Date().toISOString()
+  });
 
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [drivers, setDrivers] = useState<User[]>([]);
@@ -65,6 +85,41 @@ const TripDetail: React.FC = () => {
   const [exceptionNotes, setExceptionNotes] = useState('');
 
   useEffect(() => { loadAll(); }, [id]);
+
+  // Telemetry Listener
+  useEffect(() => {
+    if (!id) return;
+    
+    telemetryService.connect();
+    telemetryService.onTelemetryUpdate((data) => {
+      if (data.dnId === id) {
+        setTelemetry({
+          speed: data.speed || 0,
+          lat: data.lat,
+          lng: data.lng,
+          heading: data.heading || 0,
+          lastUpdate: new Date().toISOString()
+        });
+      }
+    });
+
+    // Simulated telemetry for demo if in transit
+    let interval: any;
+    if (dn?.status === DNStatus.IN_TRANSIT) {
+      interval = setInterval(() => {
+        setTelemetry(prev => ({
+          ...prev,
+          speed: 45 + Math.random() * 15,
+          heading: (prev.heading + (Math.random() - 0.5) * 5) % 360,
+          lastUpdate: new Date().toISOString()
+        }));
+      }, 3000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [id, dn?.status]);
 
   const loadAll = async () => {
     if (!id) return;
@@ -237,6 +292,69 @@ const TripDetail: React.FC = () => {
             </div>
             <Target size={200} className="absolute -right-12 -bottom-12 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity pointer-events-none" />
           </div>
+
+          {/* Tactical Live Telemetry */}
+          {dn.status === DNStatus.IN_TRANSIT && (
+            <div className="bg-slate-950 rounded-[2.5rem] border border-white/5 shadow-2xl overflow-hidden flex flex-col relative group">
+               <div className="p-8 border-b border-white/5 bg-white/5 flex justify-between items-center">
+                  <div className="flex items-center gap-4">
+                     <div className="h-12 w-12 bg-white/10 text-brand-accent rounded-2xl flex items-center justify-center shadow-lg">
+                        <Activity size={24} className="animate-pulse" />
+                     </div>
+                     <div>
+                        <h3 className="text-sm font-black uppercase tracking-[0.2em] text-white leading-none mb-1.5">Tactical Live Telemetry</h3>
+                        <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Active Satellite Uplink Verified</p>
+                     </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                     <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                     <span className="text-[9px] font-black text-emerald-500/80 uppercase tracking-widest">Live Feed</span>
+                  </div>
+               </div>
+
+               <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-white/5">
+                  <div className="flex-1 p-8 h-[350px] relative">
+                     <MapEngine 
+                        dns={[dn]} 
+                        facilities={facilities} 
+                        focusedDnId={dn.id} 
+                        followDriver={true} 
+                        className="rounded-2xl border border-white/10"
+                     />
+                  </div>
+                  <div className="md:w-72 p-8 grid grid-cols-2 md:grid-cols-1 gap-6 bg-white/[0.02]">
+                     <div className="space-y-1">
+                        <p className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Current Velocity</p>
+                        <div className="flex items-baseline gap-1">
+                           <span className="text-3xl font-black text-white tracking-tighter tabular-nums">{Math.floor((telemetry.speed || dn.speed || 0))}</span>
+                           <span className="text-[10px] font-black text-white/40 uppercase">km/h</span>
+                        </div>
+                     </div>
+                     <div className="space-y-1">
+                        <p className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Tactical Heading</p>
+                        <div className="flex items-center gap-2">
+                           <Compass size={18} className="text-brand-accent" style={{ transform: `rotate(${telemetry.heading}deg)` }} />
+                           <span className="text-lg font-bold text-white tabular-nums">{Math.floor(telemetry.heading)}°</span>
+                        </div>
+                     </div>
+                     <div className="space-y-1 col-span-2 md:col-span-1">
+                        <p className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">GPS Coordinates</p>
+                        <div className="font-mono text-[10px] text-white/60 space-y-0.5">
+                           <p>LAT: {(telemetry.lat || dn.lastLat || 0).toFixed(6)}</p>
+                           <p>LNG: {(telemetry.lng || dn.lastLng || 0).toFixed(6)}</p>
+                        </div>
+                     </div>
+                     <div className="pt-4 mt-auto border-t border-white/5 hidden md:block">
+                        <div className="flex items-center gap-2 mb-2">
+                           <Clock size={12} className="text-white/20" />
+                           <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">Last Update</span>
+                        </div>
+                        <p className="text-[10px] font-bold text-brand-accent tabular-nums">{new Date(telemetry.lastUpdate).toLocaleTimeString()}</p>
+                     </div>
+                  </div>
+               </div>
+            </div>
+          )}
 
           {/* Items Manifest Hub */}
           <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col">

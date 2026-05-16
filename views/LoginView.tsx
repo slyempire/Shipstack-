@@ -116,7 +116,7 @@ const LoginView: React.FC = () => {
               </div>
               <div>
                 <h2 className="text-3xl font-black tracking-tighter text-slate-900 uppercase font-display">Shipstack</h2>
-                <p className="text-[10px] font-black text-brand-accent uppercase tracking-widest">The Operating System for African Logistics</p>
+                <p className="text-[10px] font-black text-brand-accent uppercase tracking-widest">Africa's Digital Logistics Platform</p>
               </div>
             </motion.div>
           </div>
@@ -130,7 +130,7 @@ const LoginView: React.FC = () => {
               onSubmit={handleLogin}
             >
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Operator ID / Email</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email / ID</label>
                 <input
                   type="email"
                   required
@@ -142,12 +142,19 @@ const LoginView: React.FC = () => {
               </div>
 
               <PasswordInput 
-                label="Security Pin"
+                label="Password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
               />
+
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                   No account? <Link to="/register" className="text-brand hover:underline">Register Org</Link>
+                </p>
+                <Link to="/forgot-password" virtual-id="forgot-password-link" className="text-[10px] font-black text-brand-accent uppercase tracking-widest hover:underline">Forgot Access Token?</Link>
+              </div>
 
               <motion.button
                 type="submit"
@@ -156,7 +163,7 @@ const LoginView: React.FC = () => {
                 whileTap={{ scale: 0.98 }}
                 className="w-full bg-brand text-white py-6 rounded-2xl font-black uppercase text-sm tracking-[0.2em] shadow-xl shadow-brand/20 active:scale-[0.98] disabled:opacity-50 transition-all flex items-center justify-center gap-3"
               >
-                {isLoading ? <RefreshCw className="animate-spin" size={20} /> : 'Initialize Stack'}
+                {isLoading ? <RefreshCw className="animate-spin" size={20} /> : 'Sign In'}
               </motion.button>
 
               <motion.button

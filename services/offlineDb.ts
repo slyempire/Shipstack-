@@ -4,7 +4,7 @@ import DOMPurify from 'dompurify';
 
 export interface PendingUpdate {
   id?: number;
-  type: 'DN_STATUS' | 'TRIP_STATUS' | 'TELEMETRY' | 'EMERGENCY';
+  type: 'DN_STATUS' | 'TRIP_STATUS' | 'TELEMETRY' | 'EMERGENCY' | 'CLOCK_IN' | 'CLOCK_OUT' | 'INSPECTION';
   targetId: string;
   data: any;
   timestamp: string;
@@ -44,11 +44,18 @@ export class OfflineDB extends Dexie {
 
   async addPendingUpdate(update: Omit<PendingUpdate, 'id' | 'timestamp'>) {
     const sanitizedData = this.sanitizeData(update.data);
-    return await this.pendingUpdates.add({
+    const result = await this.pendingUpdates.add({
       ...update,
       data: sanitizedData,
       timestamp: new Date().toISOString()
     });
+    
+    // Update store count immediately
+    const count = await this.pendingUpdates.count();
+    const { useAppStore } = await import('../store');
+    useAppStore.getState().setSyncStatus({ pendingCount: count });
+    
+    return result;
   }
 }
 

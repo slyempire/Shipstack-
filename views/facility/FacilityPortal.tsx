@@ -99,7 +99,7 @@ const FacilityPortal: React.FC = () => {
           </div>
           <div>
             <h1 className="heading-primary mb-1">
-              {user?.company || 'Central Distribution'} Hub
+              {user?.company || 'Facility'} Dashboard
             </h1>
             <div className="flex items-center gap-3">
               <p className="label-logistics !text-brand !text-[10px] !mb-0">Facility ID: {user?.facilityId || 'WH-NBO-01'}</p>
@@ -111,7 +111,7 @@ const FacilityPortal: React.FC = () => {
         <div className="flex items-center gap-6">
           <div className="hidden lg:flex items-center gap-8 px-8 border-x border-white/5">
             <div className="text-center">
-              <p className="text-[8px] font-black text-white/20 uppercase tracking-widest mb-1">On-Duty Staff</p>
+              <p className="text-[8px] font-black text-white/20 uppercase tracking-widest mb-1">Staff on Shift</p>
               <p className="text-lg font-black tracking-tighter">24 Agents</p>
             </div>
             <div className="text-center">
@@ -132,21 +132,21 @@ const FacilityPortal: React.FC = () => {
             <button className="p-8 bg-brand rounded-[2.5rem] shadow-2xl shadow-brand/20 flex flex-col items-center gap-4 group active:scale-95 transition-all relative overflow-hidden">
               <Zap className="absolute -right-4 -bottom-4 opacity-10 group-hover:rotate-12 transition-transform" size={100} />
               <div className="h-14 w-14 bg-white/20 rounded-2xl flex items-center justify-center"><Plus size={28} /></div>
-              <span className="text-xs font-black uppercase tracking-widest">Log Incoming</span>
+              <span className="text-xs font-black uppercase tracking-widest">Inbound Log</span>
             </button>
             <button className="p-8 bg-charcoal border border-white/5 rounded-[2.5rem] flex flex-col items-center gap-4 group active:scale-95 transition-all hover:border-brand/50">
               <div className="h-14 w-14 bg-white/5 rounded-2xl flex items-center justify-center text-brand"><Truck size={28} /></div>
-              <span className="text-xs font-black uppercase tracking-widest">Ready for Dispatch</span>
+              <span className="text-xs font-black uppercase tracking-widest">Outbound Log</span>
             </button>
             <button className="p-8 bg-charcoal border border-white/5 rounded-[2.5rem] flex flex-col items-center gap-4 group active:scale-95 transition-all hover:border-emerald/50">
               <div className="h-14 w-14 bg-white/5 rounded-2xl flex items-center justify-center text-emerald"><CheckCircle2 size={28} /></div>
-              <span className="text-xs font-black uppercase tracking-widest">Mark Bay Available</span>
+              <span className="text-xs font-black uppercase tracking-widest">Manage Bays</span>
             </button>
           </div>
           <div className="lg:col-span-4 bg-charcoal border border-white/5 rounded-[2.5rem] p-8 flex flex-col justify-between relative overflow-hidden">
             <Activity className="absolute -right-8 -bottom-8 opacity-5" size={160} />
             <div>
-              <p className="label-logistics mb-2">Throughput Efficiency</p>
+              <p className="label-logistics mb-2">Operational Efficiency</p>
               <h3 className="text-4xl font-black tracking-tighter">94.2%</h3>
             </div>
             <div className="flex items-center gap-2 text-emerald mt-4">
@@ -249,8 +249,8 @@ const FacilityPortal: React.FC = () => {
           <div className="lg:col-span-4 space-y-6">
             <div className="flex justify-between items-end px-2">
               <div>
-                <h3 className="text-xl font-black tracking-tighter uppercase">Bay Management</h3>
-                <p className="label-logistics">Real-time dock status</p>
+                <h3 className="text-xl font-black tracking-tighter uppercase">Dock Bay Status</h3>
+                <p className="label-logistics">Real-time availability</p>
               </div>
               <LayoutGrid size={20} className="text-white/20" />
             </div>
@@ -279,7 +279,7 @@ const FacilityPortal: React.FC = () => {
 
             {/* Staff Overview */}
             <div className="p-8 bg-charcoal border border-white/5 rounded-[2.5rem] space-y-6">
-              <h4 className="label-logistics">Personnel Overview</h4>
+              <h4 className="label-logistics">Staff Status</h4>
               <div className="space-y-4">
                 {[
                   { name: 'John Kamau', role: 'Bay Supervisor', status: 'Active' },

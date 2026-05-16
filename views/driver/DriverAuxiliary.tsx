@@ -37,6 +37,7 @@ import {
 import { Badge } from '../../packages/ui/Badge';
 import { DNStatus, DeliveryNote } from '../../types';
 
+import { DriverBottomNav } from '../../components/driver/DriverBottomNav';
 import FeatureGuide from '../../components/FeatureGuide';
 
 type AuxTab = 'PERFORMANCE' | 'INSPECTION' | 'SUPPORT' | 'SETTINGS';
@@ -419,18 +420,34 @@ const DriverAuxiliary: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-eggshell text-slate-900 font-sans p-6 pb-40 transition-colors duration-300">
+    <div className="min-h-screen bg-[#0a0f1a] text-white font-sans p-6 pb-40 transition-colors duration-300">
       <header className="flex items-center justify-between mb-8 pt-8">
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate(-1)} className="p-3 bg-white rounded-2xl text-slate-900 active:scale-90 transition-all shadow-sm">
+          <button onClick={() => navigate(-1)} className="p-3 bg-white/5 border border-white/5 rounded-2xl text-white active:scale-90 transition-all shadow-sm">
             <ChevronLeft size={24} />
           </button>
-          <h1 className="text-xl font-black uppercase tracking-widest">Driver Hub</h1>
+          <h1 className="text-xl font-black uppercase tracking-widest text-[#FF8C42]">Driver Hub</h1>
         </div>
-        <div className="h-12 w-12 rounded-2xl bg-brand text-white flex items-center justify-center text-lg font-black shadow-lg">
+        <div className="h-12 w-12 rounded-2xl bg-[#FF8C42] text-white flex items-center justify-center text-lg font-black shadow-lg">
           {user?.name?.charAt(0) || '?'}
         </div>
       </header>
+
+      <div className="flex bg-white/5 p-1 rounded-2xl mb-8 border border-white/10">
+        {(['PERFORMANCE', 'INSPECTION', 'SUPPORT', 'SETTINGS'] as AuxTab[]).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`flex-1 py-3 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all ${
+              activeTab === tab 
+                ? 'bg-[#FF8C42] text-white shadow-lg' 
+                : 'text-white/40 hover:text-white'
+            }`}
+          >
+            {tab === 'PERFORMANCE' ? 'Stats' : tab === 'INSPECTION' ? 'Safety' : tab === 'SUPPORT' ? 'Help' : 'Config'}
+          </button>
+        ))}
+      </div>
 
       <main className="animate-in fade-in duration-500">
         {activeTab === 'PERFORMANCE' && renderPerformance()}
@@ -439,51 +456,15 @@ const DriverAuxiliary: React.FC = () => {
         {activeTab === 'SETTINGS' && renderSettings()}
       </main>
 
-      {/* Bottom Navigation Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-2xl border-t border-slate-100 dark:border-white/5 px-6 pb-8 pt-3 z-[100] flex items-center justify-between transition-colors">
-        <button 
-          onClick={() => setActiveTab('PERFORMANCE')}
-          className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'PERFORMANCE' ? 'text-brand-accent' : 'text-slate-500 dark:text-slate-500'}`}
-        >
-          <TrendingUp size={20} strokeWidth={activeTab === 'PERFORMANCE' ? 3 : 2} />
-          <span className="text-[8px] font-black uppercase tracking-widest">Stats</span>
-        </button>
-
-        <button 
-          onClick={() => setActiveTab('INSPECTION')}
-          className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'INSPECTION' ? 'text-brand-accent' : 'text-slate-500 dark:text-slate-500'}`}
-        >
-          <ClipboardCheck size={20} strokeWidth={activeTab === 'INSPECTION' ? 3 : 2} />
-          <span className="text-[8px] font-black uppercase tracking-widest">Safety</span>
-        </button>
-
-        {/* Dynamic Action Button */}
-        <div className="relative -mt-12">
-          <button 
-            onClick={() => navigate(actionConfig.path)}
-            className="h-16 w-16 bg-brand-accent text-white rounded-full shadow-[0_10px_30px_rgba(31,106,225,0.4)] flex items-center justify-center active:scale-90 transition-all border-4 border-white dark:border-slate-900"
-          >
-            <actionConfig.icon size={28} strokeWidth={3} className={loadingTrip ? 'animate-spin' : ''} />
-          </button>
-          <p className="text-[8px] font-black text-slate-500 dark:text-white/40 uppercase tracking-widest text-center mt-2">{actionConfig.label}</p>
-        </div>
-
-        <button 
-          onClick={() => setActiveTab('SUPPORT')}
-          className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'SUPPORT' ? 'text-brand-accent' : 'text-slate-500 dark:text-slate-500'}`}
-        >
-          <HelpCircle size={20} strokeWidth={activeTab === 'SUPPORT' ? 3 : 2} />
-          <span className="text-[8px] font-black uppercase tracking-widest">Help</span>
-        </button>
-
-        <button 
-          onClick={() => setActiveTab('SETTINGS')}
-          className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'SETTINGS' ? 'text-brand-accent' : 'text-slate-500 dark:text-slate-500'}`}
-        >
-          <Settings size={20} strokeWidth={activeTab === 'SETTINGS' ? 3 : 2} />
-          <span className="text-[8px] font-black uppercase tracking-widest">Config</span>
-        </button>
-      </div>
+      <DriverBottomNav 
+        activeTab="HUB"
+        onTabChange={(tab) => {
+          if (tab === 'LIST') navigate('/driver');
+          else if (tab === 'SAFETY') navigate('/driver'); // Or handle internally
+          else if (tab === 'ALERTS') navigate('/driver');
+          else if (tab === 'MORE') navigate('/driver');
+        }}
+      />
 
       <FeatureGuide isOpen={guideOpen} onClose={() => setGuideOpen(false)} />
     </div>

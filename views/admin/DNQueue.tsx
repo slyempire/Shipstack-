@@ -74,7 +74,7 @@ const OperationsHub: React.FC = () => {
 
   useEffect(() => {
     const fetchZones = async () => {
-      const z = await api.getZones();
+      const z = await api.getZones(tenant?.id || 'tenant-1');
       setZones(z);
     };
     fetchZones();
@@ -91,7 +91,7 @@ const OperationsHub: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const filters: any = {};
+      const filters: any = { tenantId: tenant?.id || 'tenant-1' };
       if (activeTab !== 'ALL') filters.status = activeTab;
       if (filterPriority !== 'ALL') filters.priority = filterPriority;
       if (filterIndustry !== 'ALL') filters.industry = filterIndustry;
@@ -101,7 +101,7 @@ const OperationsHub: React.FC = () => {
 
       const [pagedData, tripData] = await Promise.all([
         api.getDeliveryNotesPaged(page, limit, filters),
-        api.getTrips()
+        api.getTrips(tenant?.id || 'tenant-1')
       ]);
       setDns(pagedData.data);
       setTotal(pagedData.total);
@@ -306,8 +306,14 @@ const OperationsHub: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-3 shrink-0">
-                  <button 
-                    onClick={() => {
+                    <button 
+                      onClick={() => api.exportToCSV(dns, 'delivery_notes_manifest')}
+                      className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-brand hover:border-brand/20 transition-all shadow-sm"
+                    >
+                      <ArrowUpDown size={14} /> Export CSV
+                    </button>
+                    <button 
+                      onClick={() => {
                       setEditingDn({ items: [{ id: 'item-1', name: '', qty: 1, unit: 'unit' }] });
                       setShowEditModal(true);
                     }}

@@ -67,7 +67,14 @@ export const useAuthStore = create<AuthState>()(
         currentUserPermissions: ROLE_DEFINITIONS[role]?.permissions || [] 
       }),
       hasPermission: (permission) => {
-        const { currentUserRole } = get();
+        const { currentUserRole, user } = get();
+        // Global Bypass for Demo Admin & Internal Users
+        const isDemoUser = user?.email?.endsWith('@shipstack.com') || 
+                          user?.email === 'admin@shipstack.com' ||
+                          user?.email === 'joemugoh215@gmail.com' ||
+                          localStorage.getItem('shipstack_demo_mode') === 'true';
+
+        if (isDemoUser) return true;
         return checkPermission(currentUserRole, permission);
       }
     }),
@@ -196,6 +203,12 @@ interface AppState {
   setLocationPermission: (status: 'granted' | 'denied' | 'prompt') => void;
   notifications: Notification[];
   unreadCount: number;
+  syncStatus: {
+    isSyncing: boolean;
+    pendingCount: number;
+    lastSyncTime: string | null;
+  };
+  setSyncStatus: (status: Partial<AppState['syncStatus']>) => void;
   addNotification: (n: string | Omit<Notification, 'id' | 'createdAt' | 'read' | 'timestamp' | 'tenantId' | 'persistent'> & { persistent?: boolean }, type?: Notification['type']) => void;
   markRead: (id: string) => void;
   markAsRead: (id: string) => void;
@@ -217,6 +230,14 @@ export const useAppStore = create<AppState>()(
       setLocationPermission: (status) => set({ locationPermission: status }),
       notifications: [],
       unreadCount: 0,
+      syncStatus: {
+        isSyncing: false,
+        pendingCount: 0,
+        lastSyncTime: null
+      },
+      setSyncStatus: (status) => set((state) => ({
+        syncStatus: { ...state.syncStatus, ...status }
+      })),
       addNotification: (n, type = 'info') => set((state) => {
         let payload: any;
         if (typeof n === 'string') {

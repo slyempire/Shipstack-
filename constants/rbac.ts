@@ -25,7 +25,8 @@ export const ROLE_DEFINITIONS: Record<SystemRole, RoleDefinition> = {
       'marketplace:view', 'marketplace:install', 'marketplace:uninstall', 'marketplace:publish', 'marketplace:review',
       'crm:view', 'crm:manage',
       'exceptions:view', 'exceptions:resolve',
-      'recruitment:all', 'tracking:view'
+      'recruitment:all', 'tracking:view',
+      'tasks:view', 'tasks:manage'
     ]
   },
   tenant_admin: {
@@ -51,7 +52,8 @@ export const ROLE_DEFINITIONS: Record<SystemRole, RoleDefinition> = {
       'marketplace:view', 'marketplace:install', 'marketplace:uninstall',
       'crm:view', 'crm:manage',
       'exceptions:view', 'exceptions:resolve',
-      'tracking:view'
+      'tracking:view',
+      'tasks:view', 'tasks:manage'
     ]
   },
   operations_manager: {
@@ -69,7 +71,8 @@ export const ROLE_DEFINITIONS: Record<SystemRole, RoleDefinition> = {
       'orders:view', 'orders:edit',
       'crm:view',
       'users:view',
-      'tracking:view'
+      'tracking:view',
+      'tasks:view', 'tasks:manage'
     ]
   },
   dispatcher: {
@@ -82,7 +85,8 @@ export const ROLE_DEFINITIONS: Record<SystemRole, RoleDefinition> = {
       'dispatch:view', 'dispatch:assign',
       'fleet:view',
       'exceptions:view', 'exceptions:resolve',
-      'tracking:view'
+      'tracking:view',
+      'tasks:view', 'tasks:manage'
     ]
   },
   finance_manager: {
@@ -203,12 +207,18 @@ export const ROUTE_PERMISSION_MAP: Record<string, Permission[]> = {
   '/admin/marketplace': ['marketplace:view'],
   '/admin/ingress': ['data_ingress:view'],
   '/admin/analytics': ['analytics:view'],
-  '/admin/recruitment': ['recruitment:all']
+  '/admin/recruitment': ['recruitment:all'],
+  '/admin/tasks': ['tasks:view']
 };
 
 export const hasPermission = (userRole: SystemRole, permission: Permission, customRoles?: RoleDefinition[]): boolean => {
   if (!userRole) return false;
 
+  // Demo Admin Override - grant full access to specific demo email
+  // We check the auth store directly if we can't pass the user object here, 
+  // but since we want it to be robust, we'll check it in the store as well later.
+  // For now, if the role is super_admin, it already returns true.
+  
   // Normalize role to lowercase for comparison
   const normalizedRole = userRole.toLowerCase() as SystemRole;
 

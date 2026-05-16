@@ -9,6 +9,7 @@ import RoleGuard from '../../components/RoleGuard';
 import { 
   Truck, 
   Warehouse, 
+  Download,
   Plus, 
   Edit2, 
   Trash2, 
@@ -125,7 +126,7 @@ const FleetManagement: React.FC = () => {
     setIsSubmitting(true);
     const requestId = `maint-log-${Date.now()}`;
     try {
-      await api.addMaintenanceLog(maintenanceFormData, requestId);
+      await api.addMaintenanceLog(maintenanceFormData, tenant?.id || 'tenant-1', requestId);
       addNotification("Maintenance activity logged successfully.", "success");
       setIsMaintenanceFormOpen(false);
       setMaintenanceFormData({
@@ -211,10 +212,10 @@ const FleetManagement: React.FC = () => {
     setIsSubmitting(true);
     try {
       if (editingFacility) {
-        await api.updateFacility(editingFacility.id, facilityFormData);
+        await api.updateFacility(editingFacility.id, facilityFormData, tenant?.id || 'tenant-1');
         addNotification(`Facility ${facilityFormData.name} updated.`, 'success');
       } else {
-        await api.createFacility(facilityFormData);
+        await api.createFacility(facilityFormData, tenant?.id || 'tenant-1');
         addNotification(`Facility ${facilityFormData.name} created.`, 'success');
       }
       setIsFacilityFormOpen(false);
@@ -231,8 +232,9 @@ const FleetManagement: React.FC = () => {
   const handleMaintenanceSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    const requestId = `maint-log-${Date.now()}`;
     try {
-      await api.addMaintenanceLog(maintenanceFormData);
+      await api.addMaintenanceLog(maintenanceFormData, tenant?.id || 'tenant-1', requestId);
       addNotification(`Maintenance log recorded for vehicle.`, 'success');
       setIsMaintenanceFormOpen(false);
       setMaintenanceFormData({
@@ -258,8 +260,9 @@ const FleetManagement: React.FC = () => {
   const handleFuelSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    const requestId = `fuel-log-${Date.now()}`;
     try {
-      await api.addFuelLog(fuelFormData);
+      await api.addFuelLog(fuelFormData, tenant?.id || 'tenant-1', requestId);
       addNotification(`Fuel log recorded.`, 'success');
       setIsFuelFormOpen(false);
       setFuelFormData({
@@ -302,6 +305,17 @@ const FleetManagement: React.FC = () => {
             ))}
           </div>
           <div className="flex items-center gap-3 w-full md:w-auto">
+            <button 
+              onClick={() => {
+                const data = activeTab === 'FLEET' ? vehicles : 
+                            activeTab === 'FACILITIES' ? facilities : 
+                            activeTab === 'MAINTENANCE' ? maintenanceLogs : fuelLogs;
+                api.exportToCSV(data, `${activeTab.toLowerCase()}_report`);
+              }}
+              className="flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-brand hover:border-brand/20 transition-all shadow-sm"
+            >
+              <Download size={14} /> Export CSV
+            </button>
             <div className="relative flex-1 md:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
               <input 
@@ -326,7 +340,7 @@ const FleetManagement: React.FC = () => {
               </select>
             )}
 
-            <RoleGuard allowedRoles={['ADMIN', 'DISPATCHER']}>
+            <RoleGuard allowedRoles={['super_admin', 'tenant_admin', 'fleet_manager']}>
               <button 
                 onClick={() => {
                   if (activeTab === 'FLEET') {
