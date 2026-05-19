@@ -2,14 +2,13 @@
 /**
  * Frappe API Service
  * 
- * This service handles communication with the Frappe backend.
+ * This service handles communication with the Frappe backend via a secure Node.js proxy.
  * It implements security mechanisms and follows ISO 27001 standards for 
  * secure data transmission and access control.
  */
 
-const BASE_URL = import.meta.env.VITE_FRAPPE_BASE_URL || '';
-const API_KEY = import.meta.env.VITE_FRAPPE_API_KEY || '';
-const API_SECRET = import.meta.env.VITE_FRAPPE_API_SECRET || '';
+// Now pointing to our own backend proxy instead of direct Frappe URL
+const PROXY_BASE_URL = '/api/frappe';
 
 interface FrappeResponse<T> {
   data: T;
@@ -19,16 +18,10 @@ interface FrappeResponse<T> {
 
 export class FrappeService {
   private static getHeaders() {
-    const headers: HeadersInit = {
+    return {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
-
-    if (API_KEY && API_SECRET) {
-      headers['Authorization'] = `token ${API_KEY}:${API_SECRET}`;
-    }
-
-    return headers;
   }
 
   /**
@@ -37,7 +30,7 @@ export class FrappeService {
    */
   private static async logAudit(action: string, details: any) {
     try {
-      await this.request('POST', 'api/method/shipstack.api.log_audit', {
+      await this.callMethod('shipstack.api.log_audit', {
         action,
         details,
         timestamp: new Date().toISOString(),
@@ -48,7 +41,7 @@ export class FrappeService {
   }
 
   private static async request<T>(method: string, endpoint: string, body?: any): Promise<T> {
-    const url = `${BASE_URL}/${endpoint}`;
+    const url = `${PROXY_BASE_URL}/${endpoint}`;
     
     try {
       const response = await fetch(url, {
@@ -59,24 +52,22 @@ export class FrappeService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `API Error: ${response.status}`);
+        throw new Error(errorData.message || `Proxy Error: ${response.status}`);
       }
 
       const result: FrappeResponse<T> = await response.json();
       return result.data;
     } catch (error) {
-      // Don't log noisy network errors if we're going to handle them in the caller
-      if (error instanceof TypeError && error.message === 'Failed to fetch') {
-        // This is a network error, the caller (api.ts) will handle it and set isFrappeHealthy = false
-      } else {
-        console.error(`Frappe API Error [${method} ${endpoint}]:`, error);
+      if (!(error instanceof TypeError && error.message === 'Failed to fetch')) {
+        console.error(`Frappe Proxy Error [${method} ${endpoint}]:`, error);
       }
       throw error;
     }
   }
 
   static async callMethod<T>(method: string, args: any = {}): Promise<T> {
-    return this.request<T>('POST', `api/method/${method}`, args);
+    // Correctly routes through the generic method caller proxy
+    return this.request<T>('POST', 'call-method', { method, args });
   }
 
   // --- Generic Resource Methods ---
@@ -89,37 +80,49 @@ export class FrappeService {
       limit_page_length: limit_page_length.toString(),
       limit_start: limit_start.toString(),
     });
-    return this.request<T[]>('GET', `api/resource/${doctype}?${params.toString()}`);
+    
+    // Select the appropriate proxy endpoint
+    let endpoint = '';
+    if (doctype === 'User') endpoint = 'users';
+    else if (doctype === 'Delivery Note') endpoint = 'delivery-notes';
+    else {
+      // Generic fallback if needed, or handle specifically
+      return this.callMethod<T[]>(`frappe.client.get_list`, { doctype, filters, fields, limit_page_length, limit_start });
+    }
+
+    return this.request<T[]>('GET', `${endpoint}?${params.toString()}`);
   }
 
   static async getDoc<T>(doctype: string, name: string): Promise<T> {
-    return this.request<T>('GET', `api/resource/${doctype}/${name}`);
+    return this.callMethod<T>('frappe.client.get_value', { doctype, name, fieldname: '*' });
   }
 
   static async createDoc<T>(doctype: string, data: any): Promise<T> {
     await this.logAudit(`CREATE_${doctype.toUpperCase()}`, data);
-    return this.request<T>('POST', `api/resource/${doctype}`, data);
+    if (doctype === 'Shipment') {
+      return this.request<T>('POST', 'create-shipment', data);
+    }
+    return this.callMethod<T>('frappe.client.insert', { doc: { doctype, ...data } });
   }
 
   static async updateDoc<T>(doctype: string, name: string, data: any): Promise<T> {
     await this.logAudit(`UPDATE_${doctype.toUpperCase()}`, { name, data });
-    return this.request<T>('PUT', `api/resource/${doctype}/${name}`, data);
+    return this.callMethod<T>('frappe.client.set_value', { doctype, name, values: data });
   }
 
   static async deleteDoc(doctype: string, name: string): Promise<void> {
     await this.logAudit(`DELETE_${doctype.toUpperCase()}`, { name });
-    await this.request('DELETE', `api/resource/${doctype}/${name}`);
+    await this.callMethod('frappe.client.delete', { doctype, name });
   }
 
   // --- Specialized Methods ---
 
   static async checkHealth(): Promise<boolean> {
-    if (!BASE_URL) return false;
     try {
-      // Try to call a simple method or just check if the base URL is reachable
-      const response = await fetch(`${BASE_URL}/api/method/frappe.ping`, {
-        method: 'GET',
+      const response = await fetch(`${PROXY_BASE_URL}/call-method`, {
+        method: 'POST',
         headers: this.getHeaders(),
+        body: JSON.stringify({ method: 'frappe.ping' })
       });
       return response.ok;
     } catch (err) {

@@ -1,6 +1,6 @@
 {
   "name": "Shipstack",
-  "description": "Premium logistics OS with vertical-specific intelligence. Features a streamlined multi-step onboarding, role-based access for Healthcare/Pharma, Agri-logistics, and E-commerce, and advanced cold-chain automation.",
+  "description": "The Operating System for African Logistics. A high-performance core designed for operators in frontier markets, featuring smart route optimization, multi-hub sync, and integrated payout infrastructure.",
   "requestFramePermissions": [
     "camera",
     "microphone",

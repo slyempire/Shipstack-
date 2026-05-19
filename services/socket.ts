@@ -1,5 +1,6 @@
 import { io, Socket } from "socket.io-client";
 import { signPayload } from "../utils/security";
+import { useAuthStore } from "../store";
 
 let socket: Socket | null = null;
 
@@ -7,12 +8,15 @@ export const telemetryService = {
   connect() {
     if (socket?.connected) return;
 
-    // Standard socket connection
+    const token = useAuthStore.getState().token;
+
+    // Standard socket connection with auth token
     socket = io({
       reconnectionAttempts: 5,
       reconnectionDelay: 2000,
       autoConnect: true,
-      transports: ['websocket', 'polling'], // Favor websocket, fallback to polling
+      transports: ['websocket', 'polling'],
+      auth: { token }
     });
 
     socket.on("connect", () => {
@@ -51,9 +55,13 @@ export const telemetryService = {
 
     // Fallback to HTTP POST
     try {
+      const token = useAuthStore.getState().token;
       const response = await fetch('/api/telemetry', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
+        },
         body: JSON.stringify(signedData)
       });
       
