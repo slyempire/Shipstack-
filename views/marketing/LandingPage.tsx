@@ -38,7 +38,8 @@ import {
   Database,
   History,
   ClipboardCheck,
-  MousePointer2
+  MousePointer2,
+  Cog
 } from 'lucide-react';
 
 import MarketingLayout from '../../components/marketing/MarketingLayout';

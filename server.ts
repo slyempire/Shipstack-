@@ -47,13 +47,13 @@ const redis = (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_R
   : null;
 
 // Enforce backend SECURITY_SECRET
-const SECURITY_SECRET = process.env.SECURITY_SECRET;
-if (!SECURITY_SECRET) {
+const SECURITY_SECRET = process.env.SECURITY_SECRET || 'dev_secret_key';
+if (!process.env.SECURITY_SECRET) {
   if (process.env.NODE_ENV === "production") {
     console.error("CRITICAL ERROR: SECURITY_SECRET environment variable is missing. Refusing to start in production.");
     process.exit(1);
   } else {
-    console.warn("WARNING: SECURITY_SECRET is missing. Applications will fail to verify signatures accurately.");
+    console.warn("WARNING: SECURITY_SECRET is missing. Using 'dev_secret_key' for development.");
   }
 }
 
@@ -413,13 +413,14 @@ async function startServer() {
       const filteredDocs = docs.filter(Boolean).map(d => JSON.parse(d as string));
       
       res.json(filteredDocs);
-    } catch (err) {
-      res.status(500).json({ error: "Failed to fetch document list" });
+    } catch (err: any) {
+      console.error("[DMS] List documents failed:", err);
+      res.status(500).json({ error: "Failed to fetch document list", details: err.message });
     }
   });
 
   app.get("/api/documents/:id", sessionOrInternalAuth, async (req, res) => {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     if (!redis) return res.status(503).json({ error: "Storage Unavailable" });
 
@@ -441,7 +442,7 @@ async function startServer() {
   });
 
   app.delete("/api/documents/:id", sessionOrInternalAuth, async (req, res) => {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     if (!redis) return res.status(503).json({ error: "Storage Unavailable" });
 
@@ -694,7 +695,7 @@ async function startServer() {
   });
 
   // API Fallback (prevent HTML responses for missing API routes)
-  app.all("/api/*", (req, res) => {
+  app.all("/api/*all", (req, res) => {
     res.status(404).json({ error: "API Route Not Found", path: req.url });
   });
 
