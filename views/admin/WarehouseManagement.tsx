@@ -25,13 +25,14 @@ import Layout from '../../components/Layout';
 import { useAppStore, useAuthStore } from '../../store';
 import { Badge } from '../../packages/ui/Badge';
 import RoleGuard from '../../components/RoleGuard';
+import DocumentManager from '../../components/DocumentManager';
 
 import { useTenant } from '../../hooks/useTenant';
 
 const WarehouseManagement: React.FC = () => {
   const { tenant } = useTenant();
   const { user } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<'inventory' | 'movements' | 'bins'>('inventory');
+  const [activeTab, setActiveTab] = useState<'inventory' | 'movements' | 'bins' | 'documents'>('inventory');
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [movements, setMovements] = useState<WarehouseMovement[]>([]);
   const [bins, setBins] = useState<BinLocation[]>([]);
@@ -362,6 +363,7 @@ const WarehouseManagement: React.FC = () => {
           { id: 'inventory', label: 'Inventory', icon: Box },
           { id: 'movements', label: 'Movements', icon: History },
           { id: 'bins', label: 'Bin Locations', icon: Layers },
+          { id: 'documents', label: 'Documents', icon: FileText },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -647,6 +649,18 @@ const WarehouseManagement: React.FC = () => {
                   ))}
                 </tbody>
               </table>
+            </motion.div>
+          )}
+          {activeTab === 'documents' && (
+            <motion.div
+              key="documents"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="p-10"
+            >
+              <DocumentManager entityType="Warehouse" entityId={tenant?.id || 'GLOBAL'} />
             </motion.div>
           )}
         </AnimatePresence>

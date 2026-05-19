@@ -11,9 +11,32 @@ import { fileURLToPath } from "url";
 import CryptoJS from 'crypto-js';
 import { Redis } from "@upstash/redis";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import multer from "multer";
+import fs from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Set up Document Storage
+const DOCUMENTS_DIR = path.join(process.cwd(), 'storage', 'documents');
+if (!fs.existsSync(DOCUMENTS_DIR)) {
+  fs.mkdirSync(DOCUMENTS_DIR, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, DOCUMENTS_DIR);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+});
 
 // --- AI & Redis Initialization ---
 const redis = (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN)
@@ -309,6 +332,147 @@ async function startServer() {
   app.post("/api/frappe/call-method", sessionOrInternalAuth, async (req, res) => {
     const { method, args } = req.body;
     await proxyToFrappe(`${FRAPPE_URL}/api/method/${method}`, 'POST', args, res);
+  });
+
+  // --- Document Management System (DMS) Endpoints ---
+
+  app.post("/api/documents", sessionOrInternalAuth, upload.single('file'), async (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    const { entityType, entityId, documentType, tags, uploadedBy } = req.body;
+
+    const documentMetadata = {
+      id: `doc-${Date.now()}`,
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+      entityType,
+      entityId,
+      documentType,
+      tags: tags ? (typeof tags === 'string' ? JSON.parse(tags) : tags) : [],
+      uploadedBy,
+      uploadTimestamp: new Date().toISOString(),
+      status: 'PENDING'
+    };
+
+    // Store metadata in Redis if available
+    if (redis) {
+      await redis.hset('shipstack:documents', { [documentMetadata.id]: JSON.stringify(documentMetadata) });
+      // Index by entity
+      if (entityType && entityId) {
+        await redis.sadd(`shipstack:entity_documents:${entityType}:${entityId}`, documentMetadata.id);
+      }
+    }
+
+    // Proxy metadata to Frappe for permanent record
+    if (FRAPPE_URL) {
+      try {
+        await proxyToFrappe(`${FRAPPE_URL}/api/resource/Logistics Document`, 'POST', {
+          doc_id: documentMetadata.id,
+          filename: documentMetadata.originalName,
+          file_url: `/api/documents/${documentMetadata.id}`,
+          entity_type: entityType,
+          entity_id: entityId,
+          document_type: documentType,
+          uploaded_by: uploadedBy,
+          status: 'PENDING',
+          tags: JSON.stringify(documentMetadata.tags)
+        });
+      } catch (err) {
+        console.warn("[DMS] Metadata proxy to Frappe failed, but local storage succeeded.");
+      }
+    }
+
+    console.log(`[DMS] Document uploaded: ${documentMetadata.originalName} for ${entityType}:${entityId}`);
+    res.status(201).json(documentMetadata);
+  });
+
+  app.get("/api/documents", sessionOrInternalAuth, async (req, res) => {
+    const { entityType, entityId } = req.query;
+
+    if (!redis) {
+      return res.status(503).json({ error: "Storage/Metadata Service Unavailable" });
+    }
+
+    try {
+      let docIds: string[] = [];
+      if (entityType && entityId) {
+        docIds = await redis.smembers(`shipstack:entity_documents:${entityType}:${entityId}`);
+      } else {
+        // This is slow in production, but okay for reconstruct
+        const allDocs = await redis.hgetall('shipstack:documents') || {};
+        docIds = Object.keys(allDocs);
+      }
+
+      if (docIds.length === 0) return res.json([]);
+
+      const docs = await Promise.all(docIds.map(id => redis?.hget('shipstack:documents', id)));
+      const filteredDocs = docs.filter(Boolean).map(d => JSON.parse(d as string));
+      
+      res.json(filteredDocs);
+    } catch (err) {
+      res.status(500).json({ error: "Failed to fetch document list" });
+    }
+  });
+
+  app.get("/api/documents/:id", sessionOrInternalAuth, async (req, res) => {
+    const { id } = req.params;
+
+    if (!redis) return res.status(503).json({ error: "Storage Unavailable" });
+
+    try {
+      const docData = await redis.hget('shipstack:documents', id);
+      if (!docData) return res.status(404).json({ error: "Document not found" });
+
+      const doc = JSON.parse(docData as string);
+      const filePath = path.join(DOCUMENTS_DIR, doc.filename);
+
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: "Physical file missing" });
+      }
+
+      res.download(filePath, doc.originalName);
+    } catch (err) {
+      res.status(500).json({ error: "Download failed" });
+    }
+  });
+
+  app.delete("/api/documents/:id", sessionOrInternalAuth, async (req, res) => {
+    const { id } = req.params;
+
+    if (!redis) return res.status(503).json({ error: "Storage Unavailable" });
+
+    try {
+      const docData = await redis.hget('shipstack:documents', id);
+      if (!docData) return res.status(404).json({ error: "Document not found" });
+
+      const doc = JSON.parse(docData as string);
+      const filePath = path.join(DOCUMENTS_DIR, doc.filename);
+
+      // Delete file
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+
+      // Delete metadata
+      await redis.hdel('shipstack:documents', id);
+      if (doc.entityType && doc.entityId) {
+        await redis.srem(`shipstack:entity_documents:${doc.entityType}:${doc.entityId}`, id);
+      }
+
+      // Proxy delete to Frappe if needed
+      if (FRAPPE_URL) {
+        // We'd typically search for the record first, or use the doc_id as name if we set it that way
+        // Simplified for now
+      }
+
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ error: "Delete failed" });
+    }
   });
 
   /**

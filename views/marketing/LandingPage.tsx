@@ -30,7 +30,15 @@ import {
   BarChart3,
   Smartphone,
   Bell,
-  Users
+  Users,
+  Navigation,
+  Wallet,
+  LayoutDashboard,
+  Search,
+  Database,
+  History,
+  ClipboardCheck,
+  MousePointer2
 } from 'lucide-react';
 
 import MarketingLayout from '../../components/marketing/MarketingLayout';
@@ -266,27 +274,28 @@ const LandingPage: React.FC = () => {
   return (
     <MarketingLayout>
       {/* Hero Section */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center pt-32 pb-24 bg-white overflow-hidden">
+      <section className="relative min-h-screen flex flex-col items-center justify-center pt-32 pb-24 bg-[#0F172A] overflow-hidden">
         {/* Background Image Overlay */}
         <div className="absolute inset-0 z-0">
           <img 
-            src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=2600&auto=format&fit=crop" 
-            alt="Logistics Background" 
-            className="w-full h-full object-cover opacity-[0.18] scale-110"
+            src="https://images.unsplash.com/photo-1573164713988-8665fc963095?q=80&w=2600&auto=format&fit=crop" 
+            alt="Logistics Operations Control" 
+            className="w-full h-full object-cover opacity-20 scale-105 mix-blend-luminosity"
             referrerPolicy="no-referrer"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-white via-white/80 to-white" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0F172A]/80 via-[#0F172A]/40 to-[#0F172A]" />
         </div>
 
         <div className="container-responsive relative z-10">
           <motion.div
-            initial={{ opacity: 0, scale: 0.8, rotate: -5 }}
-            animate={{ opacity: 1, scale: 1, rotate: 3 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
             className="mb-12 flex justify-center"
           >
-            <div className="h-20 w-20 bg-slate-900 text-white rounded-[2rem] flex items-center justify-center shadow-2xl shadow-slate-900/20">
-              <Layers size={40} strokeWidth={2.5} />
+            <div className="inline-flex items-center gap-3 px-6 py-3 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-md">
+              <span className="flex h-2 w-2 rounded-full bg-brand animate-pulse" />
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">Live Control Tower V2.4 Active</span>
             </div>
           </motion.div>
 
@@ -296,10 +305,9 @@ const LandingPage: React.FC = () => {
             transition={{ duration: 1, ease: "circOut" }}
             className="text-center"
           >
-            <h1 className="text-5xl md:text-[8rem] font-black tracking-tighter leading-[0.85] mb-12 uppercase text-slate-900">
-              Launch your first <br />
-              logistics control <br />
-              tower in <span className="text-brand">30 minutes</span>
+            <h1 className="text-5xl md:text-[8.5rem] font-black tracking-tighter leading-[0.8] mb-12 uppercase text-white">
+              The OS for <br />
+              African <span className="text-brand">Trade.</span>
             </h1>
           </motion.div>
 
@@ -309,9 +317,9 @@ const LandingPage: React.FC = () => {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="text-center max-w-4xl mx-auto mb-20"
           >
-            <p className="text-xl md:text-2xl text-slate-600 font-bold uppercase tracking-tight leading-tight">
-              Designed for African trade and transport teams. <br className="hidden md:block" />
-              Pilot-ready logistics operations software built with operators.
+            <p className="text-xl md:text-2xl text-slate-400 font-bold uppercase tracking-tight leading-tight">
+              A high-precision control tower for transport teams. <br className="hidden md:block" />
+              Manage fleet telemetry, driver payouts, and ERP reconciliation in one interface.
             </p>
           </motion.div>
 
@@ -323,16 +331,17 @@ const LandingPage: React.FC = () => {
           >
             <button 
               onClick={() => isAuthenticated ? handleDashboardRedirect() : navigate('/register')}
-              className="w-full sm:w-auto px-16 py-8 bg-brand hover:bg-orange-600 text-white text-base font-black uppercase tracking-widest shadow-2xl transition-all hover:translate-y-[-4px] active:scale-95 rounded-2xl"
+              className="w-full sm:w-auto px-16 py-8 bg-brand hover:bg-orange-600 text-white text-base font-black uppercase tracking-widest shadow-[0_20px_50px_rgba(255,140,66,0.2)] transition-all hover:translate-y-[-4px] active:scale-95 rounded-2xl flex items-center justify-center gap-3"
             >
-              {isAuthenticated ? 'Enter Console' : 'Join Early Access Pilot'}
+              Start Pilot Node
+              <ArrowRight size={20} />
             </button>
             {!isAuthenticated && (
               <button 
                 onClick={() => navigate('/product')}
-                className="w-full sm:w-auto px-16 py-8 bg-white border-2 border-slate-900 text-slate-900 text-base font-black uppercase tracking-widest transition-all hover:bg-slate-50 flex items-center justify-center gap-3 rounded-2xl shadow-sm"
+                className="w-full sm:w-auto px-16 py-8 bg-white/5 border-2 border-white/10 text-white text-base font-black uppercase tracking-widest transition-all hover:bg-white/10 flex items-center justify-center gap-3 rounded-2xl"
               >
-                Explore Product Tour
+                Logistics Tour
               </button>
             )}
           </motion.div>
@@ -387,13 +396,13 @@ const LandingPage: React.FC = () => {
       </div>
 
       {/* Benefits Section */}
-      <SectionWrapper className="py-48 bg-white relative overflow-hidden">
+      <SectionWrapper className="py-48 bg-slate-50 relative overflow-hidden">
         {/* Subtle background image for impact */}
-        <div className="absolute top-0 right-0 w-1/2 h-full opacity-[0.06] pointer-events-none">
+        <div className="absolute inset-0 opacity-5 pointer-events-none">
            <img 
              src="https://images.unsplash.com/photo-1549194388-f61be84a6e9e?q=80&w=2000&auto=format&fit=crop" 
              alt="Logistics Impact" 
-             className="w-full h-full object-cover"
+             className="w-full h-full object-cover grayscale"
              referrerPolicy="no-referrer"
            />
         </div>
@@ -402,30 +411,30 @@ const LandingPage: React.FC = () => {
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-32">
             <div className="max-w-3xl">
               <h2 className="text-5xl md:text-8xl font-black uppercase tracking-tighter text-slate-900 mb-8 leading-none">
-                Pilot-Ready<br />
-                Control.
+                Hardened<br />
+                Operations.
               </h2>
-              <p className="text-xl md:text-2xl text-slate-600 font-bold uppercase tracking-tight">Move from spreadsheets to a digital control tower today.</p>
+              <p className="text-xl md:text-2xl text-slate-600 font-bold uppercase tracking-tight">Enterprise visibility for frontier logistics markets.</p>
             </div>
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <FeatureCard 
-              icon={ShieldCheck} 
-              title="Operationally Hardened" 
-              desc="Built with ground-level logistics operators to handle real-world African trade constraints."
+              icon={LayoutDashboard} 
+              title="Unified View" 
+              desc="Consolidate multiple carriers and internal fleets into a single high-fidelity control panel."
               delay={0}
             />
             <FeatureCard 
-              icon={Zap} 
-              title="Immediate Setup" 
-              desc="No long consultants or integration cycles. Your first control tower node live in minutes."
+              icon={Wallet} 
+              title="Settlement Engine" 
+              desc="Automated driver payments and carrier reconciliation integrated with local mobile money networks."
               delay={0.1}
             />
             <FeatureCard 
-              icon={MapPin} 
-              title="Real-time Telemetry" 
-              desc="Sub-second GPS tracking and fleet status across urban and rural corridors."
+              icon={Navigation} 
+              title="Fleet Telemetry" 
+              desc="Sub-second GPS precision and vehicle health diagnostics streaming from every active node."
               delay={0.2}
             />
           </div>
@@ -506,54 +515,77 @@ const LandingPage: React.FC = () => {
       </SectionWrapper>
 
       {/* Features section with background */}
-      <SectionWrapper className="py-48 bg-slate-900 relative overflow-hidden">
-        <div className="absolute inset-0 z-0 opacity-40">
+      <SectionWrapper className="py-48 bg-[#0F172A] relative overflow-hidden">
+        <div className="absolute inset-0 z-0 overflow-hidden">
+           <div className="absolute inset-0 bg-[#0F172A]/90 z-10" />
            <img 
-             src="https://images.unsplash.com/photo-1519003722824-194d4455a60c?q=80&w=2600&auto=format&fit=crop" 
-             alt="Network Background" 
-             className="w-full h-full object-cover"
+             src="https://images.unsplash.com/photo-1512413316925-fd47934313f1?q=80&w=2600&auto=format&fit=crop" 
+             alt="African Logistics Port" 
+             className="w-full h-full object-cover grayscale opacity-20 scale-105"
              referrerPolicy="no-referrer"
            />
-           <div className="absolute inset-0 bg-slate-900/60" />
         </div>
         <div className="container-responsive relative z-10">
           <div className="grid lg:grid-cols-2 gap-24 items-center mb-32">
              <div className="max-w-2xl">
-                <h2 className="text-5xl md:text-8xl font-black uppercase tracking-tighter text-white mb-8 leading-none">Core Modules.</h2>
-                <p className="text-xl text-slate-400 font-bold uppercase tracking-tight">The complete logistics stack, built for high-throughput performance across the continent.</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-brand mb-6">Operations Infrastructure</p>
+                <h2 className="text-5xl md:text-8xl font-black uppercase tracking-tighter text-white mb-8 leading-none">The Core Stack.</h2>
+                <p className="text-xl text-slate-400 font-bold uppercase tracking-tight">Precision-engineered for the frontier.</p>
              </div>
-             <div className="aspect-video rounded-[3rem] overflow-hidden shadow-2xl border border-white/5 relative group">
-                <img 
-                   src="https://images.unsplash.com/photo-1540910419892-f0c74b0e8966?q=80&w=2070&auto=format&fit=crop" 
-                   alt="Modern Logistics"
-                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
-                   referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 bg-brand/30 mix-blend-multiply opacity-20" />
+             <div className="rounded-[3rem] overflow-hidden shadow-[0_0_80px_rgba(255,140,66,0.1)] border border-white/5 relative group bg-slate-900 aspect-video flex items-center justify-center p-8">
+                <div className="absolute inset-0 bg-brand/5 opacity-50" />
+                <div className="relative w-full h-full bg-slate-950 rounded-2xl border border-white/10 flex flex-col p-4 shadow-2xl">
+                   {/* Mock UI elements */}
+                   <div className="flex items-center justify-between mb-4 pb-4 border-b border-white/5">
+                      <div className="flex items-center gap-2">
+                         <div className="h-3 w-3 bg-emerald-500 rounded-full animate-pulse" />
+                         <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">System Link: Online</span>
+                      </div>
+                      <div className="flex gap-1">
+                         <div className="h-2 w-8 bg-brand/20 rounded-full" />
+                         <div className="h-2 w-12 bg-white/5 rounded-full" />
+                      </div>
+                   </div>
+                   <div className="grid grid-cols-3 gap-3 flex-grow">
+                      <div className="col-span-2 bg-white/5 rounded-xl border border-white/5 p-3 flex flex-col justify-end gap-2 overflow-hidden relative">
+                         <MapPin size={40} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-brand opacity-20" />
+                         <div className="h-2 w-2/3 bg-white/20 rounded-full" />
+                         <div className="h-2 w-1/2 bg-white/10 rounded-full" />
+                      </div>
+                      <div className="flex flex-col gap-3">
+                         <div className="h-1/2 bg-white/5 rounded-xl border border-white/5 p-2 flex items-center justify-center">
+                            <Activity size={16} className="text-brand" />
+                         </div>
+                         <div className="h-1/2 bg-white/5 rounded-xl border border-white/5 p-2 flex items-center justify-center">
+                            <Shield size={16} className="text-emerald-500" />
+                         </div>
+                      </div>
+                   </div>
+                </div>
              </div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-16 gap-x-24 text-white">
             {[
-              { title: "Smart Dispatch", desc: "Automated route optimization and driver assignment based on local context.", icon: Truck },
-              { title: "Telematics", desc: "IoT integration for real-time vehicle diagnostics and remote fuel monitoring.", icon: Activity },
-              { title: "Fintech", desc: "Instant mobile money payouts, driver wallets, and automated reconciliation.", icon: CreditCard },
-              { title: "Visibility", desc: "Glass-pipe tracking dashboards for customers, hubs, and regional managers.", icon: Globe },
-              { title: "Warehouse", desc: "Decentralized inventory management with multi-hub synchronization.", icon: Building },
-              { title: "API First", desc: "Extensible developer infrastructure to build custom logics on the Shipstack core.", icon: Layers }
+              { title: "Smart Routing", desc: "Dynamic route optimization taking into account local terrain, safety zones, and efficiency.", icon: Navigation },
+              { title: "Edge Telemetry", desc: "Direct vehicle health diagnostics and location history stored on an immutable ledger.", icon: Database },
+              { title: "Mobile Payouts", desc: "Instant carrier settlements via M-Pesa, Wave, and bank corridors. 0% friction.", icon: Wallet },
+              { title: "Central Command", desc: "Total visibility for dispatchers and ops managers in a real-time stream.", icon: LayoutDashboard },
+              { title: "Inventory Sync", desc: "Multi-hub warehouse management with real-time SKU tracking across regions.", icon: ClipboardCheck },
+              { title: "API Gateway", desc: "Connect Shipstack to your existing SAP, Frappe, or custom ERP systems.", icon: Cog }
             ].map((item, i) => (
               <div key={i} className="flex flex-col gap-6 group">
                 <div className="flex items-center justify-between">
-                   <div className="h-14 w-14 bg-white/5 text-white rounded-2xl flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-all duration-300 shadow-sm border border-white/5">
-                      <item.icon size={28} />
+                   <div className="h-14 w-14 bg-white/5 text-slate-400 rounded-2xl flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-all duration-300 shadow-sm border border-white/5">
+                      <item.icon size={26} />
                    </div>
-                   <span className="text-[10px] font-black text-white/20">0{i+1}</span>
+                   <span className="text-[10px] font-black text-white/10 uppercase tracking-widest">Module 0{i+1}</span>
                 </div>
                 <div className="space-y-4">
-                   <h4 className="text-2xl font-black uppercase tracking-tight text-white">{item.title}</h4>
+                   <h4 className="text-2xl font-black uppercase tracking-tight text-white group-hover:text-brand transition-colors">{item.title}</h4>
                    <p className="text-slate-400 font-medium leading-relaxed">{item.desc}</p>
                 </div>
-                <div className="h-[1px] w-12 bg-brand group-hover:w-full transition-all duration-700 opacity-40" />
+                <div className="h-[2px] w-8 bg-brand/50 group-hover:w-full transition-all duration-700" />
               </div>
             ))}
           </div>
@@ -709,53 +741,88 @@ const LandingPage: React.FC = () => {
       </SectionWrapper>
 
       {/* Payment Methods Section */}
-      <SectionWrapper className="py-32 bg-[#FF8C42]/5">
+      <SectionWrapper className="py-48 bg-[#0F172A] border-y border-white/5 overflow-hidden">
         <div className="container-responsive">
           <div className="grid lg:grid-cols-2 gap-20 items-center">
             <div>
-              <h2 className="text-4xl md:text-7xl font-black uppercase tracking-tighter text-[#1A2B4D] mb-8">
-                <span className="text-brand">Pay</span> Your Way.
+              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-brand mb-6">Fintech Infrastructure</p>
+              <h2 className="text-5xl md:text-[7rem] font-black uppercase tracking-tighter text-white mb-10 leading-[0.9]">
+                Frictionless <br />
+                <span className="text-brand">Payouts.</span>
               </h2>
-              <p className="text-lg text-slate-600 font-medium leading-relaxed mb-12">
-                We support all major payment methods across Africa—no friction, no barriers. Whether it's mobile money or bank transfers, we've got you covered.
+              <p className="text-xl text-slate-400 font-medium leading-relaxed mb-16 max-w-xl">
+                We handle the complexity of multi-regional settlements. Pay your drivers and carriers instantly after every successful trip reconciliation.
               </p>
-              <div className="grid grid-cols-2 gap-8">
-                {[
-                  { icon: Activity, label: "M-Pesa", color: "text-emerald-600 bg-emerald-50" },
-                  { icon: CreditCard, label: "Visa/Mastercard", color: "text-blue-600 bg-blue-50" },
-                  { icon: FileText, label: "Invoice/Billing", color: "text-brand bg-orange-50" },
-                  { icon: Building, label: "Bank Transfer", color: "text-slate-600 bg-slate-50" }
-                ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-4">
-                    <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${item.color}`}>
-                      <item.icon size={24} />
-                    </div>
-                    <span className="text-sm font-black uppercase tracking-tight text-[#1A2B4D]">{item.label}</span>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
+                <div className="flex flex-col gap-4 p-8 bg-white/5 rounded-[2.5rem] border border-white/5 group hover:border-brand/20 transition-all">
+                  <div className="h-12 w-12 bg-brand text-white rounded-2xl flex items-center justify-center shadow-lg shadow-brand/20">
+                    <Activity size={24} />
                   </div>
-                ))}
+                  <h4 className="text-lg font-black text-white uppercase tracking-tight">Mobile Money</h4>
+                  <p className="text-xs text-slate-500 font-medium">Direct M-Pesa, Wave, and MTN integrations across East & West Africa.</p>
+                </div>
+                <div className="flex flex-col gap-4 p-8 bg-white/5 rounded-[2.5rem] border border-white/5 group hover:border-brand/20 transition-all">
+                  <div className="h-12 w-12 bg-[#3B82F6] text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+                    <CreditCard size={24} />
+                  </div>
+                  <h4 className="text-lg font-black text-white uppercase tracking-tight">Enterprise Card</h4>
+                  <p className="text-xs text-slate-500 font-medium">Issue virtual fuel cards and maintenance wallets to your entire fleet.</p>
+                </div>
               </div>
             </div>
+            
             <div className="relative">
-               <div className="aspect-video bg-[#1A2B4D] rounded-[3rem] p-10 border border-white/10 shadow-2xl overflow-hidden relative">
-                  <div className="absolute top-0 right-0 p-12 opacity-10">
-                    <Plus size={200} className="text-brand" />
+               {/* Visual representation of a reconciliation flow */}
+               <div className="bg-slate-900 rounded-[3.5rem] p-4 border border-white/10 shadow-2xl overflow-hidden aspect-[4/3] relative flex flex-col">
+                  <div className="bg-slate-800 rounded-t-[2.5rem] h-12 flex items-center px-6 gap-2 border-b border-white/5">
+                     <div className="h-2 w-2 bg-slate-600 rounded-full" />
+                     <div className="h-2 w-2 bg-slate-600 rounded-full" />
+                     <div className="h-2 w-2 bg-slate-600 rounded-full" />
                   </div>
-                  <div className="relative z-10 h-full flex flex-col justify-center">
-                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-brand mb-4">Payout Infrastructure</p>
-                    <h4 className="text-4xl font-black text-white mb-8">Instant Settlement Flow</h4>
-                    <div className="space-y-4">
-                       {[1,2].map(i => (
-                         <div key={i} className="h-16 w-full bg-white/5 rounded-2xl border border-white/10 flex items-center justify-between px-6">
-                            <div className="flex items-center gap-4">
-                               <div className="h-8 w-8 bg-white/10 rounded-full" />
-                               <div className="h-3 w-32 bg-white/10 rounded-full" />
-                            </div>
-                            <div className="h-6 w-16 bg-emerald-500/20 rounded-full" />
-                         </div>
-                       ))}
-                    </div>
+                  <div className="p-8 flex flex-col gap-6 flex-grow">
+                     <div className="flex justify-between items-center bg-white/5 p-5 rounded-2xl border border-white/5">
+                        <div className="flex items-center gap-4">
+                           <div className="h-10 w-10 bg-brand/20 rounded-xl flex items-center justify-center text-brand">
+                              <Wallet size={20} />
+                           </div>
+                           <div>
+                              <p className="text-[10px] font-black text-slate-500 uppercase">Payout Pending</p>
+                              <p className="text-white font-black">2,450.00 KES</p>
+                           </div>
+                        </div>
+                        <div className="h-8 w-20 bg-brand text-white text-[8px] font-black uppercase tracking-widest rounded-full flex items-center justify-center">Reconcile</div>
+                     </div>
+
+                     <div className="flex-grow flex flex-col gap-3">
+                        <div className="h-2 w-full bg-white/5 rounded-full" />
+                        <div className="h-2 w-2/3 bg-white/5 rounded-full" />
+                        <div className="grid grid-cols-4 gap-4 mt-4">
+                           {[1,2,3,4].map(i => (
+                             <div key={i} className="h-12 bg-white/5 rounded-xl border border-white/5" />
+                           ))}
+                        </div>
+                     </div>
                   </div>
+                  <div className="absolute bottom-[-20%] left-[-10%] h-80 w-80 bg-brand/10 blur-[100px] rounded-full" />
                </div>
+               
+               {/* Floating elements */}
+               <motion.div 
+                 animate={{ y: [0, -10, 0] }}
+                 transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                 className="absolute top-10 -right-10 bg-[#0F172A] border border-white/10 p-6 rounded-3xl shadow-2xl backdrop-blur-xl z-20"
+               >
+                  <div className="flex items-center gap-3">
+                     <div className="h-8 w-8 bg-emerald-500 rounded-full flex items-center justify-center text-white">
+                        <CheckCircle size={16} />
+                     </div>
+                     <div>
+                        <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Status</p>
+                        <p className="text-white font-black text-xs">Settlement Paid</p>
+                     </div>
+                  </div>
+               </motion.div>
             </div>
           </div>
         </div>
