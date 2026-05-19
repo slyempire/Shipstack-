@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import { api } from '../../api';
-import { DeliveryNote, DNStatus, Trip, Zone, DeliveryItem } from '../../types';
+import { DeliveryNote, DNStatus, Trip, Zone, DeliveryItem, LogisticsType, Priority, IndustryType } from '../../types';
 import { Badge } from '../../packages/ui/Badge';
 import { useAuthStore, useAppStore } from '../../store';
 import { useTenant } from '../../hooks/useTenant';
@@ -69,6 +69,19 @@ const OperationsHub: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingDn, setEditingDn] = useState<Partial<DeliveryNote> | null>(null);
   const navigate = useNavigate();
+
+  // Handle deep linking from search results
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const dnId = params.get('id');
+    if (dnId && dns.length > 0) {
+      const dn = dns.find(d => d.id === dnId);
+      if (dn) {
+        setEditingDn(dn);
+        setShowEditModal(true);
+      }
+    }
+  }, [dns]);
 
   useEffect(() => { loadData(); }, [page, activeTab, search, filterPriority, filterIndustry, filterZone, filterType]);
 
@@ -172,6 +185,8 @@ const OperationsHub: React.FC = () => {
   };
 
   const tabConfigs = [
+    { id: 'ALL' as const, label: 'All Shipments', icon: Activity, color: 'text-slate-500', bg: 'from-slate-50 to-white', border: 'border-l-slate-500', trend: 'Global' },
+    { id: DNStatus.PENDING, label: 'Drafts', icon: Edit, color: 'text-gray-500', bg: 'from-gray-50 to-white', border: 'border-l-gray-500', trend: 'Awaiting' },
     { id: DNStatus.RECEIVED, label: 'Ingested', icon: Inbox, color: 'text-emerald-500', bg: 'from-emerald-50 to-white', border: 'border-l-emerald-500', trend: '+12 today' },
     { id: DNStatus.VALIDATED, label: 'Verified', icon: CheckSquare, color: 'text-blue-500', bg: 'from-blue-50 to-white', border: 'border-l-blue-500', trend: '+5 today' },
     { id: DNStatus.READY_FOR_DISPATCH, label: 'Ready', icon: Zap, color: 'text-amber-500', bg: 'from-amber-50 to-white', border: 'border-l-amber-500', trend: '+8 today' },
@@ -203,10 +218,11 @@ const OperationsHub: React.FC = () => {
 
     try {
       if (editingDn.id) {
-        await api.updateDeliveryNote(editingDn.id, editingDn);
+        await api.updateDeliveryNote(editingDn.id, editingDn, tenant?.id || 'tenant-1');
         addNotification('Delivery Note updated.', 'success');
       } else {
-        await api.createDeliveryNote(editingDn);
+        const requestId = `dn-create-${Date.now()}`;
+        await api.createDeliveryNote(editingDn, tenant?.id || 'tenant-1', requestId);
         addNotification('Delivery Note created.', 'success');
       }
       setShowEditModal(false);
@@ -308,7 +324,7 @@ const OperationsHub: React.FC = () => {
                   <div className="flex items-center gap-3 shrink-0">
                     <button 
                       onClick={() => api.exportToCSV(dns, 'delivery_notes_manifest')}
-                      className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-brand hover:border-brand/20 transition-all shadow-sm"
+                      className="hidden md:flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-brand hover:border-brand/20 transition-all shadow-sm"
                     >
                       <ArrowUpDown size={14} /> Export CSV
                     </button>

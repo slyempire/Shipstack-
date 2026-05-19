@@ -29,7 +29,10 @@ import {
   AlertCircle,
   Settings,
   FileJson,
-  Table
+  Table,
+  Package,
+  Database,
+  Users
 } from 'lucide-react';
 import Papa from 'papaparse';
 
@@ -870,16 +873,45 @@ const IngressWizard = ({ onComplete }: { onComplete: () => void }) => {
   const { user } = useAuthStore();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [importType, setImportType] = useState<'DELIVERY_NOTES' | 'INVENTORY' | 'CUSTOMERS'>('DELIVERY_NOTES');
   const [previewRows, setPreviewRows] = useState<ImportPreviewRow[]>([]);
   const [rawFileContent, setRawFileContent] = useState<any[]>([]);
   const [fileName, setFileName] = useState<string | null>(null);
   const [fileType, setFileType] = useState<'CSV' | 'JSON' | null>(null);
-  const [mappings, setMappings] = useState<Record<string, string>>({
-    'externalId': '',
-    'clientName': '',
-    'address': '',
-    'qty': ''
-  });
+  
+  const initialMappings: Record<string, Record<string, string>> = {
+    'DELIVERY_NOTES': {
+      'externalId': '',
+      'clientName': '',
+      'address': '',
+      'qty': '',
+      'sku': '',
+      'priority': '',
+      'industry': '',
+      'weightKg': ''
+    },
+    'INVENTORY': {
+      'sku': '',
+      'name': '',
+      'category': '',
+      'qty': '',
+      'unit': '',
+      'warehouseId': '',
+      'binLocation': ''
+    },
+    'CUSTOMERS': {
+      'name': '',
+      'email': '',
+      'phone': '',
+      'address': ''
+    }
+  };
+
+  const [mappings, setMappings] = useState<Record<string, string>>(initialMappings['DELIVERY_NOTES']);
+
+  useEffect(() => {
+    setMappings(initialMappings[importType]);
+  }, [importType]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -933,16 +965,17 @@ const IngressWizard = ({ onComplete }: { onComplete: () => void }) => {
     const newMappings = { ...mappings };
     
     const findMatch = (target: string, options: string[]) => {
-      return options.find(opt => 
-        opt.toLowerCase().includes(target.toLowerCase()) || 
-        target.toLowerCase().includes(opt.toLowerCase())
-      );
+      const normalizedTarget = target.toLowerCase().replace(/[^a-z0-9]/g, '');
+      return options.find(opt => {
+        const normalizedOpt = opt.toLowerCase().replace(/[^a-z0-9]/g, '');
+        return normalizedOpt.includes(normalizedTarget) || normalizedTarget.includes(normalizedOpt);
+      });
     };
 
-    if (findMatch('externalId', keys)) newMappings.externalId = findMatch('externalId', keys)!;
-    if (findMatch('clientName', keys)) newMappings.clientName = findMatch('clientName', keys)!;
-    if (findMatch('address', keys)) newMappings.address = findMatch('address', keys)!;
-    if (findMatch('qty', keys)) newMappings.qty = findMatch('qty', keys)!;
+    Object.keys(newMappings).forEach(field => {
+      const match = findMatch(field, keys);
+      if (match) newMappings[field] = match;
+    });
 
     setMappings(newMappings);
   };
@@ -958,12 +991,22 @@ const IngressWizard = ({ onComplete }: { onComplete: () => void }) => {
       });
 
       const errors: Record<string, string> = {};
-      if (!data.externalId) errors.externalId = 'Reference ID is required';
-      if (!data.clientName) errors.clientName = 'Client Name is required';
-      if (!data.address) errors.address = 'Address is required';
       
-      if (data.address && data.address.toLowerCase().includes('invalid')) {
-        errors.address = 'Geo-Resolution Failed: Unrecognized Terrain';
+      // Type-specific validation
+      if (importType === 'DELIVERY_NOTES') {
+        if (!data.externalId) errors.externalId = 'Reference ID is required';
+        if (!data.clientName) errors.clientName = 'Client Name is required';
+        if (!data.address) errors.address = 'Address is required';
+        if (data.address && data.address.toLowerCase().includes('invalid')) {
+          errors.address = 'Geo-Resolution Failed: Unrecognized Terrain';
+        }
+      } else if (importType === 'INVENTORY') {
+        if (!data.sku) errors.sku = 'SKU is required';
+        if (!data.name) errors.name = 'Item Name is required';
+        if (isNaN(Number(data.qty))) errors.qty = 'Quantity must be a number';
+      } else if (importType === 'CUSTOMERS') {
+        if (!data.name) errors.name = 'Customer Name is required';
+        if (data.email && !data.email.includes('@')) errors.email = 'Invalid email format';
       }
 
       return {
@@ -978,18 +1021,37 @@ const IngressWizard = ({ onComplete }: { onComplete: () => void }) => {
     setPreviewRows(mappedData);
     setIsProcessing(false);
     setStep(3);
-    addNotification("Diagnostic scan complete. Anomalies detected.", "info");
+    addNotification(`Diagnostic scan complete. ${mappedData.filter(r => !r.isValid).length} anomalies detected.`, "info");
   };
 
   const finalizeIngress = async () => {
     setIsProcessing(true);
-    await new Promise(r => setTimeout(r, 1500));
-    const validData = previewRows.filter(r => r.isValid).map(r => r.data);
-    await api.processImport(validData, user?.tenantId || 'tenant-1');
-    setIsProcessing(false);
-    setStep(4);
-    addNotification("Data ingress successful. Records manifested.", "success");
-    onComplete();
+    try {
+      await new Promise(r => setTimeout(r, 1500));
+      const validData = previewRows.filter(r => r.isValid).map(r => r.data);
+      
+      if (importType === 'DELIVERY_NOTES') {
+        await api.processImport(validData, user?.tenantId || 'tenant-1');
+      } else if (importType === 'INVENTORY') {
+        // Mock bulk inventory import
+        for (const item of validData) {
+          await api.updateInventory(item.sku, item);
+        }
+      } else if (importType === 'CUSTOMERS') {
+        // Mock bulk customer import
+        for (const cust of validData) {
+          await api.createCustomer(cust, user?.tenantId || 'tenant-1');
+        }
+      }
+
+      setIsProcessing(false);
+      setStep(4);
+      addNotification(`Data ingress successful. ${validData.length} records manifested.`, "success");
+      onComplete();
+    } catch (err) {
+      addNotification("Critical failure during final manifest commit.", "error");
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -1001,21 +1063,42 @@ const IngressWizard = ({ onComplete }: { onComplete: () => void }) => {
              </div>
              <div>
                 <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter">Ingress Wizard</h3>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Multi-Step Data Manifesting</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Multi-Step Data Manifesting • {importType.replace('_', ' ')}</p>
              </div>
           </div>
           <div className="flex items-center gap-3">
              {[1, 2, 3, 4].map(s => (
-               <div key={s} className={`h-2.5 w-2.5 rounded-full transition-all ${step >= s ? 'bg-brand scale-125' : 'bg-slate-200'}`} />
+                <div key={s} className={`h-2.5 w-2.5 rounded-full transition-all ${step >= s ? 'bg-brand scale-125' : 'bg-slate-200'}`} />
              ))}
           </div>
        </div>
 
        <div className="p-12">
           {step === 1 && (
-            <div className="max-w-xl mx-auto text-center space-y-8 py-10">
-               <div className="h-24 w-24 bg-slate-50 rounded-[2rem] flex items-center justify-center text-slate-300 mx-auto border-2 border-dashed border-slate-200 group hover:border-brand transition-all relative overflow-hidden">
-                  <Upload size={40} className="group-hover:scale-110 transition-transform" />
+            <div className="max-w-xl mx-auto space-y-8 py-10">
+               <div className="space-y-4">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Target Data Domain</label>
+                  <div className="grid grid-cols-3 gap-4">
+                    {[
+                      { id: 'DELIVERY_NOTES', label: 'Shipments', icon: Package },
+                      { id: 'INVENTORY', label: 'Inventory', icon: Database },
+                      { id: 'CUSTOMERS', label: 'Customers', icon: Users }
+                    ].map(type => (
+                      <button 
+                        key={type.id}
+                        onClick={() => setImportType(type.id as any)}
+                        className={`p-6 rounded-3xl border-2 transition-all flex flex-col items-center gap-3 ${importType === type.id ? 'border-brand bg-brand/5 text-brand shadow-xl' : 'border-slate-100 text-slate-400 hover:border-slate-200'}`}
+                      >
+                         <type.icon size={24} />
+                         <p className="text-[10px] font-black uppercase tracking-tight">{type.label}</p>
+                      </button>
+                    ))}
+                  </div>
+               </div>
+
+               <div className="h-48 w-full bg-slate-50 rounded-[2rem] flex flex-col items-center justify-center text-slate-300 border-2 border-dashed border-slate-200 group hover:border-brand transition-all relative overflow-hidden">
+                  <Upload size={48} className="group-hover:scale-110 transition-transform mb-4" />
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Drop Manifest (CSV/JSON)</p>
                   <input 
                     type="file" 
                     accept=".csv,.json" 
@@ -1023,12 +1106,14 @@ const IngressWizard = ({ onComplete }: { onComplete: () => void }) => {
                     className="absolute inset-0 opacity-0 cursor-pointer"
                   />
                </div>
-               <div>
-                  <h4 className="text-2xl font-black text-slate-900 uppercase tracking-tighter mb-2">Upload Manifest</h4>
+               
+               <div className="text-center space-y-4">
+                  <h4 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">Upload Manifest</h4>
                   <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
-                     Drag and drop your CSV or JSON file here. Our parser will automatically detect the schema and prepare for mapping.
+                     Drag and drop your manifest file. Our parser will automatically detect the schema and prepare for mapping.
                   </p>
                </div>
+
                <div className="flex items-center justify-center gap-4">
                   <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100">
                      <FileText size={14} className="text-slate-400" />
@@ -1057,21 +1142,22 @@ const IngressWizard = ({ onComplete }: { onComplete: () => void }) => {
                   </div>
                   <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl border border-blue-100">
                      <Wand2 size={14} />
-                     <span className="text-[9px] font-black uppercase tracking-widest">Auto-mapped {Object.values(mappings).filter(Boolean).length}/4 fields</span>
+                     <span className="text-[9px] font-black uppercase tracking-widest">Auto-mapped {Object.values(mappings).filter(Boolean).length}/{Object.keys(mappings).length} fields</span>
                   </div>
                </div>
 
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {Object.keys(mappings).map(field => (
-                    <div key={field} className="p-6 bg-slate-50 rounded-2xl border border-slate-100 space-y-4">
+                    <div key={field} className="p-5 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
                        <div className="flex justify-between items-center">
-                          <label className="text-[10px] font-black text-slate-900 uppercase tracking-widest">{field.replace(/([A-Z])/g, ' $1')}</label>
-                          <Badge variant="neutral" className="scale-75">Required</Badge>
+                          <label className="text-[10px] font-black text-slate-900 uppercase tracking-widest leading-none">
+                            {field.replace(/([A-Z])/g, ' $1')}
+                          </label>
                        </div>
                        <select 
                          value={mappings[field]}
                          onChange={(e) => setMappings({ ...mappings, [field]: e.target.value })}
-                         className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 outline-none focus:border-brand"
+                         className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-[10px] font-black text-slate-700 uppercase tracking-tight outline-none focus:border-brand"
                        >
                           <option value="">Select Source Column</option>
                           {rawFileContent[0] && Object.keys(rawFileContent[0]).map(k => (
@@ -1101,7 +1187,7 @@ const IngressWizard = ({ onComplete }: { onComplete: () => void }) => {
                <div className="flex justify-between items-end">
                   <div>
                      <h4 className="text-xl font-black text-slate-900 uppercase tracking-tighter mb-1">Diagnostic Results</h4>
-                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Validation & Geo-Resolution Check</p>
+                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Validation & Data Consistency Check</p>
                   </div>
                   <div className="flex gap-4">
                      <div className="text-right">
@@ -1115,57 +1201,68 @@ const IngressWizard = ({ onComplete }: { onComplete: () => void }) => {
                   </div>
                </div>
 
-               <div className="border border-slate-100 rounded-2xl overflow-hidden">
-                  <table className="w-full text-left border-collapse">
-                     <thead>
-                        <tr className="bg-slate-50 border-b border-slate-100">
-                           <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Row</th>
-                           <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Reference</th>
-                           <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Customer</th>
-                           <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                           <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Diagnostics</th>
-                        </tr>
-                     </thead>
-                     <tbody className="divide-y divide-slate-50">
-                        {previewRows.slice(0, 5).map(row => (
-                          <tr key={row.index} className="hover:bg-slate-50/50 transition-colors">
-                             <td className="px-6 py-4 text-[10px] font-bold text-slate-400">#{row.index}</td>
-                             <td className="px-6 py-4">
-                                <span className={`text-[10px] font-black uppercase ${row.errors.externalId ? 'text-red-500' : 'text-slate-900'}`}>
-                                   {row.data.externalId || 'MISSING'}
-                                </span>
-                             </td>
-                             <td className="px-6 py-4">
-                                <p className={`text-[10px] font-black uppercase ${row.errors.clientName ? 'text-red-500' : 'text-slate-900'}`}>{row.data.clientName}</p>
-                             </td>
-                             <td className="px-6 py-4">
-                                <div className={`h-2 w-2 rounded-full ${row.isValid ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                             </td>
-                             <td className="px-6 py-4">
-                                {row.isValid ? (
-                                  <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1">
-                                     <Check size={12} /> Ready
-                                  </span>
-                                ) : (
-                                  <div className="space-y-1">
-                                     {Object.values(row.errors).map((err, i) => (
-                                       <p key={i} className="text-[8px] font-black text-red-500 uppercase tracking-widest flex items-center gap-1">
-                                          <AlertCircle size={10} /> {err as string}
-                                       </p>
-                                     ))}
-                                  </div>
-                                )}
-                             </td>
+               <div className="border border-slate-100 rounded-3xl overflow-hidden shadow-sm bg-white">
+                  <div className="overflow-x-auto no-scrollbar">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                          <tr className="bg-slate-50 border-b border-slate-100">
+                            <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Row</th>
+                            {Object.keys(mappings).slice(0, 4).map(field => (
+                              <th key={field} className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">{field}</th>
+                            ))}
+                            <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                            <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">Action</th>
                           </tr>
-                        ))}
-                     </tbody>
-                  </table>
-                  {previewRows.length > 5 && (
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                          {previewRows.slice(0, 10).map(row => (
+                            <tr key={row.index} className="group hover:bg-slate-50/50 transition-colors">
+                              <td className="px-6 py-4 text-[10px] font-bold text-slate-400">#{row.index}</td>
+                              {Object.keys(mappings).slice(0, 4).map(field => (
+                                <td key={field} className="px-6 py-4">
+                                  <span className={`text-[10px] font-black uppercase ${row.errors[field] ? 'text-red-500' : 'text-slate-900'} truncate block max-w-[150px]`}>
+                                    {row.data[field] || '—'}
+                                  </span>
+                                </td>
+                              ))}
+                              <td className="px-6 py-4">
+                                  <div className={`h-2.5 w-2.5 rounded-full ${row.isValid ? 'bg-emerald-500 shadow-sm shadow-emerald-500/50' : 'bg-red-500 shadow-sm shadow-red-500/50'}`} />
+                              </td>
+                              <td className="px-6 py-4 text-right">
+                                  {!row.isValid && (
+                                     <div className="flex justify-end gap-1">
+                                        <AlertCircle size={14} className="text-red-400" />
+                                        <span className="text-[8px] font-black text-red-500 uppercase">Error</span>
+                                     </div>
+                                  )}
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {previewRows.length > 10 && (
                     <div className="p-4 bg-slate-50/50 text-center border-t border-slate-100">
-                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">And {previewRows.length - 5} more records...</p>
+                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">And {previewRows.length - 10} more records...</p>
                     </div>
                   )}
                </div>
+
+               {previewRows.some(r => !r.isValid) && (
+                 <div className="p-6 bg-red-50 rounded-2xl border border-red-100">
+                   <div className="flex items-center gap-3 mb-4">
+                      <AlertTriangle className="text-red-500" size={20} />
+                      <h5 className="text-[11px] font-black text-red-900 uppercase tracking-widest">Anomaly Signature Detected</h5>
+                   </div>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {Array.from(new Set(previewRows.flatMap(r => Object.values(r.errors)))).slice(0, 4).map((err, i) => (
+                        <div key={i} className="flex items-center gap-2 text-[9px] font-bold text-red-600 uppercase tracking-widest">
+                           <X size={10} /> {err as string}
+                        </div>
+                      ))}
+                   </div>
+                 </div>
+               )}
 
                <div className="pt-6 border-t border-slate-100 flex justify-between items-center">
                   <button onClick={() => setStep(2)} className="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-all">Back to Mapping</button>

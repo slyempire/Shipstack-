@@ -43,6 +43,15 @@ import { TaskManagement } from '../../components/TaskManagement';
 import { VerticalIntelligence } from '../../components/verticals';
 
 import { aiService } from '../../services/aiService';
+import { 
+  ShipmentTrendChart, 
+  StatusDistributionChart, 
+  EfficiencyRadarChart,
+  ComparisonBarChart,
+  MiniSparkline,
+  ComplianceGaugeChart
+} from '../../components/DashboardCharts';
+import { Thermometer } from 'lucide-react';
 
 const ChecklistItem = ({ icon: Icon, title, desc, done, onClick, index }: { 
   icon: any, 
@@ -88,37 +97,54 @@ const ChecklistItem = ({ icon: Icon, title, desc, done, onClick, index }: {
   </motion.button>
 );
 
-const StatCard = ({ title, value, icon: Icon, color, subValue, trend, index }: any) => (
-  <motion.div 
-    initial={{ opacity: 0, scale: 0.9, y: 20 }}
-    whileInView={{ opacity: 1, scale: 1, y: 0 }}
-    viewport={{ once: true }}
-    transition={{ delay: 0.05 * index, duration: 0.5, type: "spring", stiffness: 100 }}
-    whileHover={{ y: -8, boxShadow: "0 25px 50px -12px rgb(0 0 0 / 0.5)" }}
-    className="card-logistics flex flex-col justify-between group cursor-default"
-  >
-    <div className="flex items-start justify-between mb-6">
-      <div className={`p-4 rounded-xl transition-all group-hover:scale-110 shadow-sm ${color}`}>
-        <Icon size={24} />
-      </div>
-            <div className="text-right">
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{title}</p>
-        <h3 className="text-3xl font-bold text-gray-900 tracking-tight leading-none">{value}</h3>
-      </div>
-    </div>
-    <div className="pt-6 border-t border-slate-50 flex items-center justify-between">
-      <span className="text-[10px] font-medium text-gray-400">{subValue}</span>
-      {trend && (
-        <div className={`flex items-center gap-1 text-[10px] font-bold ${trend > 0 ? 'text-emerald' : 'text-red'}`}>
-          {trend > 0 ? '↑' : '↓'} {Math.abs(trend)}%
+const StatCard = ({ title, value, icon: Icon, color, subValue, trend, index }: any) => {
+  const sparkData = [
+    { value: 10 + Math.random() * 20 },
+    { value: 15 + Math.random() * 20 },
+    { value: 12 + Math.random() * 20 },
+    { value: 18 + Math.random() * 20 },
+    { value: 25 + Math.random() * 20 },
+    { value: 20 + Math.random() * 20 },
+    { value: 30 + Math.random() * 20 },
+  ];
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.9, y: 20 }}
+      whileInView={{ opacity: 1, scale: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay: 0.05 * index, duration: 0.5, type: "spring", stiffness: 100 }}
+      whileHover={{ y: -8, boxShadow: "0 25px 50px -12px rgb(0 0 0 / 0.5)" }}
+      className="card-logistics flex flex-col justify-between group cursor-default"
+    >
+      <div className="flex items-start justify-between mb-6">
+        <div className={`p-4 rounded-xl transition-all group-hover:scale-110 shadow-sm ${color}`}>
+          <Icon size={24} />
         </div>
-      )}
-    </div>
-  </motion.div>
-);
+        <div className="text-right flex flex-col items-end">
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{title}</p>
+          <div className="flex items-baseline gap-3">
+             <h3 className="text-3xl font-bold text-gray-900 tracking-tight leading-none">{value}</h3>
+          </div>
+        </div>
+      </div>
+      <div className="pt-6 border-t border-slate-50 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <MiniSparkline data={sparkData} color={trend > 0 ? '#10B981' : '#EF4444'} />
+          <span className="text-[10px] font-medium text-gray-400">{subValue}</span>
+        </div>
+        {trend && (
+          <div className={`flex items-center gap-1 text-[10px] font-bold ${trend > 0 ? 'text-emerald' : 'text-red'}`}>
+            {trend > 0 ? '↑' : '↓'} {Math.abs(trend)}%
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+};
 
 const AdminDashboard: React.FC = () => {
-  const { user } = useAuthStore();
+  const { user, currentUserRole } = useAuthStore();
   const [dns, setDns] = useState<DeliveryNote[]>([]);
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -126,7 +152,7 @@ const AdminDashboard: React.FC = () => {
   const [health, setHealth] = useState<HealthMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [troubleshooting, setTroubleshooting] = useState(false);
-  const [activeTab, setActiveTab] = useState<'HEALTH' | 'INTELLIGENCE' | 'VERTICAL'>('HEALTH');
+  const [activeTab, setActiveTab] = useState<'HEALTH' | 'INTELLIGENCE' | 'VERTICAL'>(currentUserRole === 'super_admin' ? 'HEALTH' : 'VERTICAL');
   const navigate = useNavigate();
   const { addNotification } = useAppStore();
   const { isModuleEnabled, tenant } = useTenant();
@@ -184,6 +210,30 @@ const AdminDashboard: React.FC = () => {
 
   const labels = verticalLabels[activeIndustry] || verticalLabels['E-COMMERCE'];
   const revenueDisplay = monthlyRevenue > 0 ? `$${(monthlyRevenue / 1000).toFixed(1)}k` : "$14.2k";
+
+  // Data for enhanced charts
+  const statusData = [
+    { name: 'In Transit', value: dns.filter(d => d.status === DNStatus.IN_TRANSIT).length || 12 },
+    { name: 'Delivered', value: dns.filter(d => d.status === DNStatus.DELIVERED || d.status === DNStatus.COMPLETED).length || 45 },
+    { name: 'Pending', value: dns.filter(d => d.status === DNStatus.PENDING).length || 8 },
+    { name: 'Exceptions', value: dns.filter(d => d.exceptionType).length || 3 },
+  ];
+
+  const efficiencyData = [
+    { subject: 'Speed', A: 85, fullMark: 100 },
+    { subject: 'Reliability', A: 92, fullMark: 100 },
+    { subject: 'Cost', A: 78, fullMark: 100 },
+    { subject: 'Safety', A: 95, fullMark: 100 },
+    { subject: 'Sustainability', A: 65, fullMark: 100 },
+  ];
+
+  const comparisonData = [
+    { name: 'Nairobi', value: 820 },
+    { name: 'Mombasa', value: 450 },
+    { name: 'Kisumu', value: 320 },
+    { name: 'Nakuru', value: 240 },
+    { name: 'Eldoret', value: 180 },
+  ];
 
   // Weekly Volume Data (Mocking distribution for the chart)
   const weeklyData = [
@@ -254,51 +304,165 @@ const AdminDashboard: React.FC = () => {
   };
 
   return (
-    <Layout title="Dashboard">
-      <div className="space-y-8">
+    <Layout title="Dashboard" fullWidth>
+      <div className="space-y-0 w-full overflow-hidden">
         {loading && (
           <div className="fixed top-24 right-8 z-[100] flex items-center gap-2 px-4 py-2 bg-white/90 backdrop-blur shadow-sm rounded-full border border-slate-200">
             <RefreshCw className="animate-spin text-brand" size={14} />
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Syncing...</span>
           </div>
         )}
-        <div className="flex justify-between items-end pt-4">
-           <div>
-              <h2 className="text-3xl font-bold tracking-tight text-gray-900 mb-1">Operational health</h2>
-              <p className="text-sm text-gray-500 font-medium">Unified logistics oversight</p>
-           </div>
-           <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl border border-slate-200 mr-4">
-                <button 
-                  onClick={() => setActiveTab('HEALTH')}
-                  className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'HEALTH' ? 'bg-white text-brand shadow-sm' : 'text-slate-400 hover:text-brand'}`}
-                >
-                  System Health
-                </button>
-                <button 
-                  onClick={() => setActiveTab('VERTICAL')}
-                  className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'VERTICAL' ? 'bg-white text-brand shadow-sm' : 'text-slate-400 hover:text-brand'}`}
-                >
-                  {tenant?.industry || 'Vertical'} Hub
-                </button>
-              </div>
-              <div className="flex items-center gap-3 px-6 py-3 bg-emerald/10 text-emerald rounded-xl border border-emerald/20 shadow-sm">
-                 <div className="h-2 w-2 rounded-full bg-emerald animate-pulse" />
-                 <span className="text-[10px] font-black uppercase tracking-widest">All Systems Nominal</span>
-              </div>
-           </div>
-        </div>
 
-        <AnimatePresence mode="wait">
-          {activeTab === 'HEALTH' ? (
-            <motion.div 
-              key="health"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="space-y-8"
-            >
-              <div id="dashboard-kpis" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Stunning Hero Section for Bleed Design */}
+        <section className="relative w-full h-[500px] bg-slate-950 flex flex-col items-center justify-center px-10 overflow-hidden">
+           {/* Background Mesh/Images */}
+           <div className="absolute inset-0 z-0 opacity-20 transition-opacity duration-1000">
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-slate-900 to-slate-950 z-10" />
+              <img 
+                src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&q=80&w=2000" 
+                className="w-full h-full object-cover grayscale transition-transform duration-[20s] scale-110 hover:scale-100" 
+                alt="Logistics Background"
+              />
+           </div>
+           
+           <div className="relative z-10 max-w-4xl w-full text-center">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.8 }}
+                className="inline-flex items-center gap-3 px-4 py-2 bg-brand/20 border border-brand/30 rounded-full mb-8 backdrop-blur-md"
+              >
+                 <ShieldCheck size={14} className="text-brand-accent animate-pulse" />
+                 <span className="text-[10px] font-black uppercase tracking-widest text-white">Advanced Telemetry Node Active</span>
+              </motion.div>
+              
+              <motion.h1 
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.8 }}
+                className="text-6xl md:text-8xl font-black text-white italic tracking-tighter leading-[0.8] mb-8 uppercase"
+              >
+                Control.<br />
+                <span className="text-brand-accent">Precision.</span>
+              </motion.h1>
+              
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.6 }}
+                className="flex flex-wrap justify-center gap-8 md:gap-12"
+              >
+                 <div className="text-center group">
+                    <p className="text-xs font-black text-white/40 uppercase tracking-widest mb-1 group-hover:text-brand-accent transition-colors">Shipments</p>
+                    <p className="text-3xl font-black text-white tracking-tighter">{dns.length}</p>
+                 </div>
+                 <div className="w-px h-10 bg-white/10 hidden md:block" />
+                 <div className="text-center group">
+                    <p className="text-xs font-black text-white/40 uppercase tracking-widest mb-1 group-hover:text-brand-accent transition-colors">Fleet Nodes</p>
+                    <p className="text-3xl font-black text-white tracking-tighter">{vehicles.length}</p>
+                 </div>
+                 <div className="w-px h-10 bg-white/10 hidden md:block" />
+                 <div className="text-center group">
+                    <p className="text-xs font-black text-white/40 uppercase tracking-widest mb-1 group-hover:text-brand-accent transition-colors">Hub Efficiency</p>
+                    <p className="text-3xl font-black text-white tracking-tighter">{onTimeRate}%</p>
+                 </div>
+              </motion.div>
+           </div>
+
+           {/* Floating UI elements for "Pulse" */}
+           <div className="absolute bottom-[-50px] left-[-50px] opacity-10 pointer-events-none">
+              <Zap size={300} className="text-brand animate-pulse" />
+           </div>
+        </section>
+
+        <div className="px-10 py-12 space-y-12">
+          <div className="flex justify-between items-end">
+             <div>
+                <h2 className="text-4xl font-black tracking-tighter text-gray-900 mb-1 uppercase">Command Hub</h2>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Tactical Oversight Layer v2.4</p>
+             </div>
+             <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-2xl border border-slate-200 mr-4">
+                  {currentUserRole === 'super_admin' && (
+                    <button 
+                      onClick={() => setActiveTab('HEALTH')}
+                      className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'HEALTH' ? 'bg-white text-brand shadow-xl' : 'text-slate-400 hover:text-brand'}`}
+                    >
+                      System Lifecycle
+                    </button>
+                  )}
+                  <button 
+                    onClick={() => setActiveTab('INTELLIGENCE')}
+                    className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'INTELLIGENCE' ? 'bg-white text-brand shadow-xl' : 'text-slate-400 hover:text-brand'}`}
+                  >
+                    Neural Mesh
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('VERTICAL')}
+                    className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'VERTICAL' ? 'bg-white text-brand shadow-xl' : 'text-slate-400 hover:text-brand'}`}
+                  >
+                    Industry Hubs
+                  </button>
+                </div>
+             </div>
+          </div>
+
+          <AnimatePresence mode="wait">
+            {activeTab === 'HEALTH' ? (
+              <motion.div 
+                key="health"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-12"
+              >
+                {/* Tech Seeding Utility - EXECUTABLE FOR REAL */}
+                {currentUserRole === 'super_admin' && (
+                  <div className="bg-slate-900 rounded-[3rem] p-10 border border-white/5 shadow-2xl relative overflow-hidden group">
+                     <div className="absolute inset-0 bg-gradient-to-r from-brand/10 to-transparent pointer-events-none" />
+                     <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
+                        <div className="max-w-xl">
+                           <div className="flex items-center gap-4 mb-4">
+                              <div className="h-12 w-12 bg-white/10 text-brand-accent rounded-2xl flex items-center justify-center">
+                                 <DatabaseZap size={24} />
+                              </div>
+                              <h3 className="text-2xl font-black text-white uppercase tracking-tight">Technical Audit & Seeding</h3>
+                           </div>
+                           <p className="text-sm text-white/50 font-medium leading-relaxed uppercase tracking-tight">
+                              Execute deep-store synchronization and generate high-fidelity test telemetry to audit Driver Portal progression and Routing throughput.
+                           </p>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-4 shrink-0">
+                           <button 
+                             onClick={async () => {
+                               setTroubleshooting(true);
+                               try {
+                                 const res = await api.generateTestTelemetry();
+                                 addNotification("Test Telemetry Injected: Nodes active in Driver Portal", "success");
+                                 loadData();
+                               } catch (err) {
+                                 addNotification("Seeding protocol failed", "error");
+                               } finally {
+                                 setTroubleshooting(false);
+                               }
+                             }}
+                             disabled={troubleshooting}
+                             className="px-10 py-5 bg-white text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-2xl disabled:opacity-50"
+                           >
+                             {troubleshooting ? 'Initializing...' : 'Seed Operational Data'}
+                           </button>
+                           <button 
+                             onClick={handleTroubleshoot}
+                             className="px-10 py-5 bg-white/5 border border-white/10 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+                           >
+                             Run Integrity Audit
+                           </button>
+                        </div>
+                     </div>
+                  </div>
+                )}
+
+                <div id="dashboard-kpis" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard 
                   index={0}
                   title={labels.stat1.label} 
@@ -398,6 +562,42 @@ const AdminDashboard: React.FC = () => {
                </div>
 
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
+                     <div className="flex items-center justify-between mb-4">
+                       <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Compliance Matrix</h4>
+                       <Badge variant="delivered">HEALTHCARE</Badge>
+                     </div>
+                     <ComplianceGaugeChart value={96.5} />
+                  </div>
+
+                  <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
+                    <div className="flex items-center justify-between mb-6">
+                       <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-red">Critical Anomalies</h4>
+                       <Thermometer className="text-red animate-pulse" size={18} />
+                    </div>
+                    <div className="space-y-4">
+                       {[
+                         { node: 'Mombasa-Hub-4', status: 'WARN', temp: '8.4°C' },
+                         { node: 'Nairobi-West', status: 'CRIT', temp: '12.1°C' },
+                       ].map((node, i) => (
+                         <div key={i} className="flex items-center justify-between p-3 bg-red-50/30 rounded-xl border border-red-100">
+                            <div className="flex flex-col">
+                               <span className="text-[10px] font-black text-slate-900 uppercase tracking-tighter">{node.node}</span>
+                               <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Sensor 02</span>
+                            </div>
+                            <div className="flex flex-col items-end">
+                               <span className={`text-[10px] font-black ${node.status === 'CRIT' ? 'text-red' : 'text-amber'}`}>{node.temp}</span>
+                               <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{node.status}</span>
+                            </div>
+                         </div>
+                       ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
+                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Hub Performance</h4>
+                    <ComparisonBarChart data={comparisonData} />
+                  </div>
                   {/* Dynamic Insights from aiService if needed */}
                   <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between">
                      <div>
@@ -532,40 +732,55 @@ const AdminDashboard: React.FC = () => {
                   <div className="card-logistics !p-8">
                     <div className="flex items-center justify-between mb-8">
                       <div>
-                        <h3 className="heading-primary mb-1">Weekly Shipment Trends</h3>
-                        <p className="label-logistics text-gray-400">Volume distribution across the network</p>
+                        <h3 className="heading-primary mb-1">Network Volume Matrix</h3>
+                        <p className="label-logistics text-gray-400">Tactical shipment distribution</p>
                       </div>
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-6">
                         <div className="flex items-center gap-2">
-                          <div className="h-3 w-3 rounded-full bg-brand"></div>
-                          <span className="label-logistics text-gray-400 !mb-0">Volume</span>
+                          <div className="h-3 w-3 rounded-full bg-brand shadow-[0_0_8px_#0066FF]"></div>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Live Volume</span>
                         </div>
+                        <select className="bg-slate-50 border-none text-[10px] font-black uppercase tracking-widest text-slate-400 rounded-lg focus:ring-0 cursor-pointer">
+                          <option>Last 7 Days</option>
+                          <option>Last 30 Days</option>
+                        </select>
                       </div>
                     </div>
                     
-                    <div className="h-48 w-full flex items-end justify-between gap-2 px-2">
-                      {weeklyData.map((d, i) => {
-                        const height = (d.count / maxVolume) * 100;
-                        return (
-                          <div key={i} className="flex-1 flex flex-col items-center gap-3 group">
-                            <div className="relative w-full flex justify-center items-end h-full">
-                              <motion.div 
-                                initial={{ height: 0 }}
-                                animate={{ height: `${height}%` }}
-                                transition={{ delay: 0.5 + (i * 0.1), duration: 0.8, ease: "easeOut" }}
-                                className="w-full max-w-[40px] bg-brand/10 group-hover:bg-brand/20 rounded-t-lg transition-all duration-500 relative overflow-hidden"
-                              >
-                                <div className="absolute inset-0 bg-gradient-to-t from-brand/20 to-transparent"></div>
-                                <div className="absolute top-0 left-0 right-0 h-1 bg-brand shadow-[0_0_10px_rgba(0,102,255,0.5)]"></div>
-                              </motion.div>
-                              <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-white border border-slate-200 text-gray-900 text-[10px] font-black px-3 py-1.5 rounded-lg shadow-xl z-10 whitespace-nowrap">
-                                {d.count} Shipments
-                              </div>
-                            </div>
-                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{d.day}</span>
+                    <ShipmentTrendChart data={weeklyData} />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="card-logistics !p-8">
+                      <div className="mb-6">
+                        <h4 className="label-logistics text-slate-400 mb-1">Status Distribution</h4>
+                        <h3 className="body-value">Node Lifecycle</h3>
+                      </div>
+                      <StatusDistributionChart data={statusData} />
+                      <div className="grid grid-cols-2 gap-4 mt-4">
+                        {statusData.map((s, i) => (
+                          <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{s.name}</span>
+                            <span className="text-xs font-black text-slate-900">{s.value}</span>
                           </div>
-                        );
-                      })}
+                        ))}
+                      </div>
+                    </div>
+                    <div className="card-logistics !p-8">
+                      <div className="mb-6">
+                        <h4 className="label-logistics text-slate-400 mb-1">Efficiency Mesh</h4>
+                        <h3 className="body-value">SLA Performance Radar</h3>
+                      </div>
+                      <EfficiencyRadarChart data={efficiencyData} />
+                      <div className="mt-4 p-4 bg-brand/5 border border-brand/10 rounded-xl">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Sparkles size={14} className="text-brand" />
+                          <span className="text-[9px] font-black text-brand uppercase tracking-widest">Cortex AI Insight</span>
+                        </div>
+                        <p className="text-[10px] font-medium text-slate-500 leading-relaxed uppercase">
+                          Reliability is currently your strongest vector. Suggest focusing on "Sustainability" node optimization for next fiscal quarter.
+                        </p>
+                      </div>
                     </div>
                   </div>
 
@@ -685,7 +900,7 @@ const AdminDashboard: React.FC = () => {
                     <AdminLink index={1} icon={Briefcase} label="Driver Recruitment" desc="Manage driver pipeline" onClick={() => navigate('/admin/recruitment')} />
                     {isModuleEnabled('finance') && <AdminLink index={2} icon={Scale} label="Financial Office" desc="Billing, invoices & reconciliation" onClick={() => navigate('/admin/billing')} />}
                     {isModuleEnabled('integrations') && <AdminLink index={3} icon={DatabaseZap} label="Data Integration" desc="Import and sync external records" onClick={() => navigate('/admin/ingress')} />}
-                    <AdminLink index={3.5} icon={Activity} label="System Cluster" desc="Real-time infrastructure health" onClick={() => navigate('/admin/diagnostics')} />
+                    {currentUserRole === 'super_admin' && <AdminLink index={3.5} icon={Activity} label="System Cluster" desc="Real-time infrastructure health" onClick={() => navigate('/admin/diagnostics')} />}
                     {isModuleEnabled('fleet') && <AdminLink index={4} icon={Warehouse} label="Fleet & Hubs" desc="Register vehicles & locations" onClick={() => navigate('/admin/fleet')} />}
                  </div>
 
@@ -693,7 +908,7 @@ const AdminDashboard: React.FC = () => {
                  <div className="space-y-2 mb-10">
                     {isModuleEnabled('orders') && <AdminLink index={5} icon={ShoppingBag} label="Order Orchestration" desc="Manage sales orders & approvals" onClick={() => navigate('/admin/orders')} />}
                     {isModuleEnabled('warehouse') && <AdminLink index={6} icon={Package} label="Warehouse Management" desc="Inventory & fulfillment" onClick={() => navigate('/admin/warehouse')} />}
-                    <AdminLink index={7} icon={UserCheck} label="Client Relations" desc="CRM & customer interactions" onClick={() => navigate('/admin/crm')} />
+                    {isModuleEnabled('crm') && <AdminLink index={7} icon={UserCheck} label="Client Relations" desc="CRM & customer interactions" onClick={() => navigate('/admin/crm')} />}
                     <AdminLink index={8} icon={ShieldAlert} label="Exception Logs" desc="Investigate delivery disputes" onClick={() => navigate('/admin/exceptions')} />
                  </div>
 
@@ -702,7 +917,7 @@ const AdminDashboard: React.FC = () => {
                     {(tenant?.industry === 'MEDICAL' || tenant?.industry === 'PHARMA') && (
                       <AdminLink index={4} icon={Stethoscope} label="Healthcare Command" desc="Cold Chain & Compliance" onClick={() => navigate('/industry/healthcare')} />
                     )}
-                    <AdminLink index={5} icon={Layers} label="Solution Marketplace" desc="Explore Industry Modules" onClick={() => addNotification("Marketplace coming soon.", "info")} />
+                    {currentUserRole === 'super_admin' && <AdminLink index={5} icon={Layers} label="Solution Marketplace" desc="Explore Industry Modules" onClick={() => navigate('/admin/marketplace')} />}
                  </div>
               </div>
 
@@ -722,8 +937,9 @@ const AdminDashboard: React.FC = () => {
            </div>
         </div>
       </div>
-    </Layout>
-  );
+    </div>
+  </Layout>
+);
 };
 
 const AdminLink = ({ icon: Icon, label, desc, onClick, index }: any) => (

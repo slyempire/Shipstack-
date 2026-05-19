@@ -88,6 +88,7 @@ const DriverAuxiliary: React.FC = () => {
     if (!activeTrip) return { label: 'Manifest', icon: List, path: '/driver' };
     
     switch (activeTrip.status) {
+      case DNStatus.PENDING:
       case DNStatus.RECEIVED:
       case DNStatus.DISPATCHED:
       case DNStatus.LOADED:

@@ -18,7 +18,11 @@ import {
   Cpu
 } from 'lucide-react';
 
-const DiagnosticsView: React.FC = () => {
+interface DiagnosticsViewProps {
+  embedded?: boolean;
+}
+
+const DiagnosticsView: React.FC<DiagnosticsViewProps> = ({ embedded }) => {
   const [supabaseStatus, setSupabaseStatus] = useState<'testing' | 'ok' | 'error' | 'not_configured'>('testing');
   const [redisStatus, setRedisStatus] = useState<'testing' | 'ok' | 'error' | 'not_configured'>('testing');
   const [supabaseLatency, setSupabaseLatency] = useState<number | null>(null);
@@ -71,8 +75,8 @@ const DiagnosticsView: React.FC = () => {
     return <XCircle className="text-slate-300" size={24} />;
   };
 
-  return (
-    <Layout title="System Diagnostics">
+  const Content = (
+    <>
       <div className="mb-12 flex items-center justify-between">
         <div>
            <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Cluster Health</h2>
@@ -221,6 +225,14 @@ const DiagnosticsView: React.FC = () => {
             </div>
          </div>
       </div>
+    </>
+  );
+
+  if (embedded) return Content;
+
+  return (
+    <Layout title="System Diagnostics">
+      {Content}
     </Layout>
   );
 };

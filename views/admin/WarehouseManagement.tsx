@@ -52,7 +52,7 @@ const WarehouseManagement: React.FC = () => {
     minThreshold: 10,
     warehouseId: 'wh-1',
     expiryDate: '',
-    tempRequirement: { min: 0, max: 25 }
+    tempRequirement: { min: 0, max: 25, unit: 'C' }
   });
 
   const [newMovementData, setNewMovementData] = useState<Partial<WarehouseMovement>>({
@@ -67,6 +67,20 @@ const WarehouseManagement: React.FC = () => {
   useEffect(() => {
     fetchData();
   }, [tenant?.id]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sku = params.get('sku');
+    const itemId = params.get('id');
+    
+    if (sku || itemId) {
+      const match = inventory.find(i => i.sku === sku || i.id === itemId);
+      if (match) {
+        setSearchQuery(match.sku);
+        setActiveTab('inventory');
+      }
+    }
+  }, [inventory]);
 
   const fetchData = async () => {
     if (!tenant?.id) return;
@@ -132,7 +146,7 @@ const WarehouseManagement: React.FC = () => {
           return;
         }
         const requestId = `inv-add-${Date.now()}`;
-        await api.addInventoryItem(newItemData as any, requestId);
+        await api.addInventoryItem(newItemData as any, tenant?.id || 'tenant-1', requestId);
         addNotification("Item added successfully.", "success");
       }
       fetchData();
@@ -206,7 +220,7 @@ const WarehouseManagement: React.FC = () => {
         warehouseId: 'f-1',
         currentFill: 0,
         isOccupied: false
-      } as any, requestId);
+      } as any, tenant?.id || 'tenant-1', requestId);
       addNotification("Bin location created successfully.", "success");
       fetchData();
       setIsAddBinOpen(false);
@@ -781,8 +795,8 @@ const WarehouseManagement: React.FC = () => {
                           placeholder="Min"
                           value={typeof newItemData.tempRequirement === 'object' ? newItemData.tempRequirement.min : ''}
                           onChange={e => {
-                            const current = typeof newItemData.tempRequirement === 'object' ? newItemData.tempRequirement : { min: 0, max: 0 };
-                            setNewItemData({...newItemData, tempRequirement: { ...current, min: parseInt(e.target.value) || 0 }});
+                            const current = typeof newItemData.tempRequirement === 'object' ? newItemData.tempRequirement : { min: 0, max: 0, unit: 'C' as const };
+                            setNewItemData({...newItemData, tempRequirement: { ...current, min: parseInt(e.target.value) || 0, unit: 'C' }});
                           }}
                           className="w-full bg-slate-50 border-none rounded-xl px-6 py-4 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-600 outline-none transition-all"
                         />
@@ -791,8 +805,8 @@ const WarehouseManagement: React.FC = () => {
                           placeholder="Max"
                           value={typeof newItemData.tempRequirement === 'object' ? newItemData.tempRequirement.max : ''}
                           onChange={e => {
-                            const current = typeof newItemData.tempRequirement === 'object' ? newItemData.tempRequirement : { min: 0, max: 0 };
-                            setNewItemData({...newItemData, tempRequirement: { ...current, max: parseInt(e.target.value) || 0 }});
+                            const current = typeof newItemData.tempRequirement === 'object' ? newItemData.tempRequirement : { min: 0, max: 0, unit: 'C' as const };
+                            setNewItemData({...newItemData, tempRequirement: { ...current, max: parseInt(e.target.value) || 0, unit: 'C' }});
                           }}
                           className="w-full bg-slate-50 border-none rounded-xl px-6 py-4 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-indigo-600 outline-none transition-all"
                         />

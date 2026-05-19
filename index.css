@@ -3,73 +3,73 @@
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Inter", sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   
-  --color-brand: #FF8C42;
-  --color-brand-accent: #FF8C42;
-  --color-brand-orange: #FF8C42;
-  --color-brand-orange-dark: #E07A35;
-  --color-navy: #1A2B4D;
-  --color-navy-dark: #121E36;
-  --color-charcoal: #151E2D;
-  --color-eggshell: #FBFBF9;
-  --color-brand-teal: #1FB6A6;
-  --color-amber: #FF8C00;
-  --color-emerald: #00C851;
-  --color-red: #FF3547;
-  --color-ink: var(--text-primary);
-  --color-line: var(--border-header);
-  --color-surface: var(--bg-card);
-  --color-muted: var(--text-muted);
+  --color-brand: #000000;
+  --color-brand-accent: #000000;
+  --color-brand-orange: #000000;
+  --color-brand-orange-dark: #1A1A1A;
+  --color-navy: #000000;
+  --color-navy-dark: #000000;
+  --color-charcoal: #1A1A1A;
+  --color-eggshell: #FFFFFF;
+  --color-brand-teal: #27C4BD;
+  --color-amber: #F6AD55;
+  --color-emerald: #10B981;
+  --color-red: #EF4444;
+  --color-ink: #000000;
+  --color-line: #EEEEEE;
+  --color-surface: #FFFFFF;
+  --color-muted: #666666;
 }
 
 @layer base {
   :root {
-    /* Light Mode Palette */
-    --bg-page: #F4F6FA;
-    --bg-sidebar: #FFFFFF;
+    /* Pure Minimal Palette */
+    --bg-page: #FFFFFF;
+    --bg-sidebar: #000000;
     --bg-card: #FFFFFF;
     --bg-header: #FFFFFF;
-    --bg-input: #F8FAFC;
+    --bg-input: #F6F6F6;
     
-    --text-primary: #0D1B2A;
-    --text-secondary: #64748B;
-    --text-muted: #94A3B8;
+    --text-primary: #000000;
+    --text-secondary: #555555;
+    --text-muted: #A0A0A0;
     
-    --border-sidebar: #E2E8F0;
-    --border-header: #E2E8F0;
-    --border-input: #CBD5E1;
-    --border-card: transparent;
+    --border-sidebar: #1A1A1A;
+    --border-header: #EEEEEE;
+    --border-input: #E2E2E2;
+    --border-card: #EEEEEE;
     
-    --sidebar-active-bg: #EFF6FF;
-    --sidebar-active-text: #0066FF;
-    --sidebar-text: #475569;
+    --sidebar-active-bg: #1A1A1A;
+    --sidebar-active-text: #FFFFFF;
+    --sidebar-text: #A0A0A0;
     
-    --brand-primary: #FF8C42;
-    --brand-accent: #FF8C42;
-    --brand-hover: #E07A35;
+    --brand-primary: #000000;
+    --brand-accent: #000000;
+    --brand-hover: #1A1A1A;
     
-    --status-delivered-bg: #DCFCE7;
-    --status-delivered-text: #16A34A;
-    --status-transit-bg: #FEF3C7;
-    --status-transit-text: #D97706;
-    --status-dispatched-bg: #DBEAFE;
-    --status-dispatched-text: #1D4ED8;
-    --status-exception-bg: #FEE2E2;
-    --status-exception-text: #DC2626;
+    --status-delivered-bg: #E7F6F2;
+    --status-delivered-text: #10B981;
+    --status-transit-bg: #FFFEEB;
+    --status-transit-text: #F59E0B;
+    --status-dispatched-bg: #EFF6FF;
+    --status-dispatched-text: #3B82F6;
+    --status-exception-bg: #FEF2F2;
+    --status-exception-text: #EF4444;
 
-    --shadow-card: 0 2px 8px rgba(0,0,0,0.08);
-    --shadow-brand: 0 8px 24px rgba(0,102,255,0.35);
+    --shadow-card: none;
+    --shadow-brand: 0 4px 12px rgba(0,0,0,0.1);
 
     /* Typography Variables */
-    --font-size-label: 11px;
-    --font-size-heading: 18px;
+    --font-size-label: 10px;
+    --font-size-heading: 20px;
     --font-size-body: 14px;
     --font-size-mono: 12px;
-    --font-size-badge: 10px;
-    --font-size-nav: 12px;
-    --font-size-metric: 28px;
+    --font-size-badge: 9px;
+    --font-size-nav: 11px;
+    --font-size-metric: 32px;
 
     --app-height: 100%;
   }
@@ -82,149 +82,58 @@
     font-size: 16px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    transition: background-color 0.3s ease, color 0.3s ease;
-  }
-
-  @media (max-width: 640px) {
-    html { font-size: 14px; }
   }
 
   body {
     background-color: var(--bg-page);
     color: var(--text-primary);
-    @apply min-h-screen m-0 p-0 overflow-x-hidden;
+    @apply min-h-screen m-0 p-0 overflow-x-hidden max-w-[100vw];
   }
 
   #root {
-    @apply min-h-[100dvh] flex flex-col;
+    @apply min-h-[100dvh] flex flex-col w-full overflow-x-hidden;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-display font-bold tracking-tight;
+    @apply font-display font-bold tracking-tight uppercase break-words;
+    overflow-wrap: break-word;
+  }
+  
+  p, span, div {
+    @apply break-words;
+    overflow-wrap: break-word;
   }
 
-  /* Accessibility: Focus styles */
   :focus-visible {
-    @apply outline-2 outline-brand outline-offset-2;
-  }
-
-  /* Accessibility: Screen reader only */
-  .sr-only {
-    @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0;
+    @apply outline-2 outline-black outline-offset-2;
   }
 }
 
 @layer components {
-  .glass {
-    background-color: var(--bg-card);
-    @apply backdrop-blur-xl border border-white/10 shadow-xl;
-  }
-
-  .card-logistics {
-    background-color: var(--bg-card);
-    border-left: 4px solid var(--brand-primary);
-    box-shadow: var(--shadow-card);
-    @apply rounded-xl p-6 transition-all hover:translate-y-[-2px];
-  }
-
-  .card-logistics-success { border-left-color: var(--status-delivered-text); }
-  .card-logistics-warning { border-left-color: var(--status-transit-text); }
-  .card-logistics-critical { border-left-color: var(--status-exception-text); }
-  
-  .card-tactical {
-    @apply bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 rounded-[2rem] p-8 shadow-xl transition-all;
-  }
-
   .btn-primary {
-    background-color: var(--brand-primary);
-    box-shadow: var(--shadow-brand);
-    @apply h-12 px-8 text-white rounded-xl font-bold uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50;
-  }
-
-  .btn-destructive {
-    @apply h-12 px-8 bg-red text-white rounded-xl font-bold uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shadow-lg shadow-red/20;
+    @apply h-14 px-10 bg-black text-white rounded-none font-bold uppercase tracking-[0.2em] text-[10px] transition-all active:scale-[0.98] flex items-center justify-center gap-3 cursor-pointer disabled:opacity-50;
   }
 
   .btn-outline {
-    @apply h-12 px-8 border-2 border-white/20 text-white rounded-xl font-bold uppercase tracking-widest transition-all hover:bg-white/5 active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50;
+    @apply h-14 px-10 border border-black text-black bg-transparent rounded-none font-bold uppercase tracking-[0.2em] text-[10px] transition-all hover:bg-black hover:text-white active:scale-[0.98] flex items-center justify-center gap-3 cursor-pointer disabled:opacity-50;
   }
 
-  .btn-tactical {
-    @apply h-14 px-8 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50;
+  .card-minimal {
+    @apply bg-white border border-[#EEEEEE] p-8 transition-all hover:border-black;
   }
 
-  .input-dark {
-    background-color: var(--bg-input);
-    border: 1px solid var(--border-input);
-    color: var(--text-primary);
-    @apply w-full rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand transition-all;
+  .label-minimal {
+    @apply text-[9px] font-black uppercase tracking-[0.25em] text-[#AAAAAA] mb-2 block;
   }
 
-  .label-logistics {
-    font-size: var(--font-size-label);
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    color: var(--text-secondary);
-    @apply block mb-2;
-  }
-
-  .label-mono {
-    @apply font-mono text-[10px] font-black uppercase tracking-widest text-slate-400;
-  }
-
-  .heading-primary {
-    font-size: var(--font-size-heading);
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    color: var(--text-primary);
-  }
-
-  .body-value {
-    font-size: var(--font-size-body);
-    font-weight: 500;
-  }
-
-  .badge-pill {
-    font-size: var(--font-size-badge);
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    @apply px-3 py-1 rounded-full uppercase flex items-center gap-1.5;
-  }
-
-  .nav-item-text {
-    font-size: var(--font-size-nav);
-    font-weight: 600;
-    letter-spacing: 0.06em;
-  }
-
-  .metric-value {
-    font-size: var(--font-size-metric);
-    font-weight: 800;
-    color: var(--text-primary);
-  }
-
-  .data-grid-row {
-    border-bottom: 1px solid var(--border-header);
-    @apply hover:bg-black/5 dark:hover:bg-white/5 transition-colors;
-  }
-
-  .mono-id {
-    font-family: var(--font-mono);
-    font-size: var(--font-size-mono);
-    letter-spacing: 0.05em;
-    color: var(--brand-primary);
-  }
-
-  .truncate-name {
-    @apply truncate max-w-[250px] inline-block align-bottom;
-  }
-
-  .container-responsive {
-    @apply max-w-7xl mx-auto px-6 w-full;
+  .data-value-minimal {
+    @apply text-sm font-bold text-black tracking-tight leading-none;
   }
 }
 
 /* Custom Scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors; }
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: #FFFFFF; }
+::-webkit-scrollbar-thumb { background: #E2E2E2; }
+::-webkit-scrollbar-thumb:hover { background: #CCCCCC; }
+

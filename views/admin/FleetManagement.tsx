@@ -103,6 +103,19 @@ const FleetManagement: React.FC = () => {
 
   useEffect(() => { loadData(); }, [tenant?.id]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const vehicleId = params.get('id');
+    if (vehicleId && vehicles.length > 0) {
+      const vehicle = vehicles.find(v => v.id === vehicleId);
+      if (vehicle) {
+        setEditingVehicle(vehicle);
+        setFormData({ ...vehicle });
+        setIsFormOpen(true);
+      }
+    }
+  }, [vehicles]);
+
   const loadData = async () => {
     if (!tenant?.id) return;
     setLoading(true);
@@ -563,19 +576,23 @@ const FleetManagement: React.FC = () => {
       </div>
 
       {isFormOpen && (
-        <div className="fixed inset-0 z-[100] bg-brand/40 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white w-full max-w-2xl rounded-[2.5rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
-              <div className="p-8 border-b border-slate-100 bg-slate-50 flex justify-between items-center shrink-0">
-                 <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 bg-brand text-white rounded-xl flex items-center justify-center shadow-lg">
-                       <Box size={20} />
+        <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-0 md:p-4">
+            <div className="bg-white w-full max-w-4xl md:h-[90vh] md:rounded-[3rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 flex flex-col">
+              <div className="p-10 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center shrink-0">
+                 <div className="flex items-center gap-5">
+                    <div className="h-16 w-16 bg-brand text-white rounded-[1.5rem] flex items-center justify-center shadow-2xl shadow-brand/20">
+                       <Truck size={32} />
                     </div>
                     <div>
-                       <h3 className="text-sm font-black uppercase tracking-widest text-brand">Asset Enrollment</h3>
-                       <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{editingVehicle ? 'Update Asset Details' : 'Enroll New Unit'}</p>
+                       <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-900 leading-tight">Asset Configuration</h3>
+                       <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                         {editingVehicle ? `Modifying Unit: ${formData.plate}` : 'Registering New Fleet Asset'}
+                       </p>
                     </div>
                  </div>
-                 <button onClick={() => setIsFormOpen(false)} className="text-slate-400 hover:text-brand transition-all"><X size={24} /></button>
+                 <button onClick={() => setIsFormOpen(false)} className="h-14 w-14 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-brand hover:border-brand/20 transition-all shadow-sm active:scale-95">
+                    <X size={28} />
+                 </button>
               </div>
 
               <form onSubmit={handleRegisterAsset} className="p-10 space-y-8 overflow-y-auto no-scrollbar">

@@ -107,6 +107,9 @@ export const useTenant = () => {
 
         const isTenantEnabled = Array.isArray(enabledModules) ? enabledModules.includes(moduleId) : true;
         
+        // Marketplace and Dashboard are always enabled for better UX
+        if (moduleId === 'integrations' || moduleId === 'dashboard') return true;
+
         if (!isTenantEnabled) return false;
 
         // 2. Admins have access to all modules enabled for the tenant

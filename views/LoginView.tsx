@@ -4,26 +4,62 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore, useAppStore } from '../store';
 import { api } from '../api';
 import { PasswordInput } from '../packages/ui/PasswordInput';
-import { ShieldCheck, Truck, Hospital, UserCog, WifiOff, AlertCircle, RefreshCw, Layers, ArrowLeft, Warehouse, DollarSign, LogIn } from 'lucide-react';
+import { ShieldCheck, Truck, Hospital, UserCog, WifiOff, AlertCircle, RefreshCw, Layers, ArrowLeft, Warehouse, DollarSign, LogIn, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const LoginView: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuthStore();
   const { isOnline, addNotification } = useAppStore();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('shipstack_remembered_email');
+    if (savedEmail) {
+      setEmail(savedEmail);
+      setRememberMe(true);
+    }
+  }, []);
+
+  const validateField = (name: string, value: string) => {
+    const newErrors = { ...errors };
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (name === 'email') {
+      if (!value) newErrors.email = 'Operational ID is required';
+      else if (!emailRegex.test(value)) newErrors.email = 'Invalid identity format';
+      else delete newErrors.email;
+    }
+
+    if (name === 'password') {
+      if (!value) newErrors.password = 'Security token is required';
+      else delete newErrors.password;
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isOnline) return;
 
-    // Client-side email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      addNotification("Please enter a valid email address.", "error");
+    const isEmailValid = validateField('email', email);
+    const isPasswordValid = validateField('password', password);
+
+    if (!isEmailValid || !isPasswordValid) {
+      addNotification("Credentials validation failed.", "error");
       return;
+    }
+
+    if (rememberMe) {
+      localStorage.setItem('shipstack_remembered_email', email);
+    } else {
+      localStorage.removeItem('shipstack_remembered_email');
     }
 
     setIsLoading(true);
@@ -78,225 +114,158 @@ const LoginView: React.FC = () => {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-white overflow-hidden">
+    <div className="flex min-h-screen flex-col bg-white overflow-hidden text-slate-900 selection:bg-slate-900 selection:text-white">
       <AnimatePresence>
         {!isOnline && (
           <motion.div 
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="bg-red-600 text-white px-6 py-3 flex items-center justify-center gap-2 animate-pulse sticky top-0 z-50 overflow-hidden"
+            className="bg-slate-900 text-white px-6 py-2 flex items-center justify-center gap-2 sticky top-0 z-50 overflow-hidden"
           >
-            <WifiOff size={16} />
-            <span className="text-[10px] font-black uppercase tracking-widest">Offline Buffer Active</span>
+            <span className="text-[9px] font-black uppercase tracking-[0.4em]">Offline Node Detected</span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="flex flex-1 flex-col lg:flex-row">
-        <motion.div 
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="flex flex-1 flex-col justify-center px-8 py-12 lg:px-24 relative"
-        >
-          <Link to="/" className="absolute top-8 left-8 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-brand transition-colors">
-            <ArrowLeft size={14} /> Home Page
+      <div className="flex flex-1">
+        {/* Abstract Side Panel */}
+        <div className="hidden lg:flex w-[45%] bg-slate-900 relative overflow-hidden items-center justify-center p-24">
+           {/* Minimalist Grid Pattern */}
+           <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+           
+           <div className="relative z-10 space-y-16 max-w-sm">
+              <div className="h-16 w-16 bg-white flex items-center justify-center shadow-3xl">
+                 <Layers size={32} className="text-slate-900" />
+              </div>
+              <div className="space-y-6">
+                 <h1 className="text-5xl xl:text-7xl font-black text-white uppercase tracking-tighter leading-[0.85]">Digitizing<br/>the corridor.</h1>
+                 <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] leading-loose">Shipstack OS / v4.2.0<br/>Secured by Antigravity Protocol</p>
+              </div>
+           </div>
+
+           {/* Floating Tactical Element */}
+           <div className="absolute -bottom-24 -right-24 h-96 w-96 border border-white/5 rounded-full pointer-events-none" />
+           <div className="absolute -bottom-48 -right-48 h-96 w-96 border border-white/5 rounded-full pointer-events-none" />
+        </div>
+
+        {/* Login Form Section */}
+        <div className="flex-1 flex flex-col justify-center px-8 lg:px-32 py-24 relative">
+          <Link to="/" className="absolute top-12 left-12 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-slate-300 hover:text-slate-900 transition-colors">
+            <ArrowLeft size={14} /> Back
           </Link>
 
-          <div className="sm:mx-auto sm:w-full sm:max-w-md">
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.6 }}
-              className="flex items-center gap-4 mb-12"
-            >
-              <div className="h-16 w-16 rounded-[24px] bg-brand text-white flex items-center justify-center shadow-2xl">
-                 <Layers size={32} fill="currentColor" />
-              </div>
-              <div>
-                <h2 className="text-3xl font-black tracking-tighter text-slate-900 uppercase font-display">Shipstack</h2>
-                <p className="text-[10px] font-black text-brand-accent uppercase tracking-widest">Africa's Digital Logistics Platform</p>
-              </div>
-            </motion.div>
-          </div>
+          <div className="w-full max-w-md mx-auto space-y-20">
+            <div className="space-y-2 lg:hidden">
+                <h2 className="text-5xl font-black tracking-tighter uppercase">Shipstack.</h2>
+            </div>
 
-          <div className="mt-4 sm:mx-auto sm:w-full sm:max-w-md">
-            <motion.form 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.6 }}
-              className="space-y-6" 
-              onSubmit={handleLogin}
-            >
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email / ID</label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-6 py-5 text-slate-900 font-bold focus:border-brand-accent outline-none transition-all placeholder:text-slate-300"
-                  placeholder="name@shipstack.com"
-                />
-              </div>
+            <div className="space-y-12">
+               <div>
+                  <h3 className="text-4xl font-black tracking-tighter uppercase mb-2">Gate Access.</h3>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Provide your secure operational token.</p>
+               </div>
 
-              <PasswordInput 
-                label="Password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-              />
+               <form onSubmit={handleLogin} className="space-y-8">
+                  <div className="space-y-4">
+                     <div className="relative group">
+                        <input
+                          type="email"
+                          required
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="w-full bg-white border-b-2 border-slate-100 py-6 text-2xl font-black outline-none focus:border-slate-900 transition-all placeholder:text-slate-200 tracking-tighter"
+                          placeholder="Operational ID"
+                        />
+                        <label className="absolute -top-4 left-0 text-[9px] font-black uppercase tracking-widest text-slate-400 opacity-0 group-focus-within:opacity-100 transition-all">Operational ID</label>
+                     </div>
 
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                   No account? <Link to="/register" className="text-brand hover:underline">Register Org</Link>
-                </p>
-                <Link to="/forgot-password" virtual-id="forgot-password-link" className="text-[10px] font-black text-brand-accent uppercase tracking-widest hover:underline">Forgot Access Token?</Link>
-              </div>
+                     <div className="relative group">
+                        <input
+                          type="password"
+                          required
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="w-full bg-white border-b-2 border-slate-100 py-6 text-2xl font-black outline-none focus:border-slate-900 transition-all placeholder:text-slate-200 tracking-tighter"
+                          placeholder="Security Token"
+                        />
+                        <label className="absolute -top-4 left-0 text-[9px] font-black uppercase tracking-widest text-slate-400 opacity-0 group-focus-within:opacity-100 transition-all">Security Token</label>
+                     </div>
+                  </div>
 
-              <motion.button
-                type="submit"
-                disabled={isLoading || !isOnline}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="w-full bg-brand text-white py-6 rounded-2xl font-black uppercase text-sm tracking-[0.2em] shadow-xl shadow-brand/20 active:scale-[0.98] disabled:opacity-50 transition-all flex items-center justify-center gap-3"
-              >
-                {isLoading ? <RefreshCw className="animate-spin" size={20} /> : 'Sign In'}
-              </motion.button>
+                  <div className="flex items-center justify-between">
+                     <label className="flex items-center gap-3 cursor-pointer group">
+                        <input 
+                           type="checkbox" 
+                           checked={rememberMe} 
+                           onChange={() => setRememberMe(!rememberMe)}
+                           className="h-5 w-5 border-2 border-slate-200 checked:bg-slate-900 rounded-none transition-all cursor-pointer accent-slate-900"
+                        />
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] group-hover:text-slate-900 transition-colors">Remember Node</span>
+                     </label>
+                     <Link to="/forgot-password" virtual-id="forgot-password-link" className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em] hover:text-slate-900 transition-colors">Recovery</Link>
+                  </div>
 
-              <motion.button
-                type="button"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={async () => {
-                  if (!isOnline) return;
-                  setIsLoading(true);
-                  try {
-                    const { user, token } = await api.loginWithGoogle();
-                    login(user, token);
-                    addNotification(`Welcome back, ${user.name}`, 'success');
-                    
-                    const userRole = user.role.toLowerCase();
-                    if (userRole === 'driver') navigate('/driver');
-                    else if (userRole === 'facility' || userRole === 'facility_operator') navigate('/facility');
-                    else if (userRole === 'client') navigate('/client');
-                    else if (userRole === 'warehouse') navigate('/admin/warehouse');
-                    else if (userRole === 'finance' || userRole === 'finance_manager') navigate('/admin/billing');
-                    else navigate('/admin');
-                  } catch (err: any) {
-                    addNotification(err.message || 'Google Authentication failed.', 'error');
-                  } finally {
-                    setIsLoading(false);
-                  }
-                }}
-                disabled={isLoading || !isOnline}
-                className="w-full bg-white text-slate-900 py-6 rounded-2xl font-black uppercase text-sm tracking-[0.2em] border-2 border-slate-100 shadow-sm active:scale-[0.98] disabled:opacity-50 transition-all flex items-center justify-center gap-3"
-              >
-                <img src="https://authjs.dev/img/providers/google.svg" alt="Google" className="w-5 h-5" />
-                Login with Google
-              </motion.button>
+                  <button
+                    type="submit"
+                    disabled={isLoading || !isOnline}
+                    className="w-full bg-slate-900 text-white h-20 text-sm font-black uppercase tracking-[0.3em] hover:bg-black active:scale-[0.98] transition-all disabled:opacity-20 flex items-center justify-center gap-4 shadow-2xl shadow-slate-900/10"
+                  >
+                    {isLoading ? <RefreshCw className="animate-spin" size={20} /> : <><LogIn size={18} strokeWidth={3} /> Validate Identity</>}
+                  </button>
 
-              <button
-                type="button"
-                onClick={() => handleDemoLogin('admin@shipstack.com')}
-                className="w-full py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] hover:text-brand transition-colors"
-              >
-                Skip to Dashboard (Demo Mode)
-              </button>
-            </motion.form>
+                  <div className="flex items-center gap-4 py-4">
+                     <div className="flex-1 h-px bg-slate-100" />
+                     <span className="text-[9px] font-black text-slate-200 uppercase tracking-widest">External Provider</span>
+                     <div className="flex-1 h-px bg-slate-100" />
+                  </div>
 
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5, duration: 0.8 }}
-              className="mt-16"
-            >
-              <div className="relative mb-8">
-                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100"></div></div>
-                <div className="relative flex justify-center text-[9px] font-black uppercase tracking-widest text-slate-300"><span className="bg-white px-4">Instant Sandbox Access</span></div>
-              </div>
+                  <button
+                    type="button"
+                    onClick={() => api.loginWithGoogle()}
+                    className="w-full h-20 border-2 border-slate-100 flex items-center justify-center gap-4 text-[11px] font-black uppercase tracking-[0.2em] hover:border-slate-900 transition-all active:scale-[0.98]"
+                  >
+                    <img src="https://authjs.dev/img/providers/google.svg" alt="Google" className="w-5 h-5 grayscale group-hover:grayscale-0 transition-all" />
+                    Azure / Google SSO
+                  </button>
+               </form>
+            </div>
 
-              <div className="grid grid-cols-1 gap-4">
-                {demoLogins.map((demo, index) => {
-                  const Icon = demo.icon;
-                  return (
-                    <motion.button
-                      key={demo.label}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.6 + (index * 0.1) }}
-                      whileHover={{ x: 5, backgroundColor: 'rgba(248, 250, 252, 1)' }}
-                      onClick={() => handleDemoLogin(demo.email)}
-                      className="flex w-full items-center gap-5 p-5 rounded-2xl border border-slate-100 bg-white hover:border-brand-accent/20 transition-all text-left group"
+            <div className="space-y-8 pt-12 border-t border-slate-50">
+               <div className="flex justify-between items-center">
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-200">Simulation Environments</h4>
+                  <div className="flex gap-1">
+                     <div className="h-1 w-4 bg-slate-900" />
+                     <div className="h-1 w-2 bg-slate-100" />
+                  </div>
+               </div>
+
+               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[
+                    { label: 'Admin', email: 'admin@shipstack.com', icon: UserCog },
+                    { label: 'Pilot', email: 'pilot@shipstack.com', icon: Truck },
+                    { label: 'Facility', email: 'hub@shipstack.com', icon: Warehouse },
+                    { label: 'Finance', email: 'finance@shipstack.com', icon: DollarSign }
+                  ].map((role) => (
+                    <button 
+                      key={role.email}
+                      onClick={() => handleDemoLogin(role.email)}
+                      className="p-4 border border-slate-100 hover:border-slate-900 transition-all group flex flex-col items-center gap-3"
                     >
-                      <div className={`p-4 rounded-xl transition-transform group-active:scale-90 ${demo.color}`}>
-                        <Icon size={22} />
-                      </div>
-                      <div>
-                        <p className="text-xs font-black text-slate-900 uppercase tracking-tight">{demo.label}</p>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{demo.email}</p>
-                      </div>
-                    </motion.button>
-                  );
-                })}
-              </div>
-            </motion.div>
+                       <role.icon size={20} className="text-slate-300 group-hover:text-slate-900 transition-colors" />
+                       <span className="text-[9px] font-black uppercase tracking-tighter text-slate-400 group-hover:text-slate-900 transition-colors">{role.label}</span>
+                    </button>
+                  ))}
+               </div>
+            </div>
+
+            <div className="text-center">
+               <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.3em]">
+                  Unregistered station? <Link to="/register" className="text-slate-900 hover:underline">Deploy My Stack</Link>
+               </p>
+            </div>
           </div>
-        </motion.div>
-        
-        <motion.div 
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="hidden lg:flex flex-1 bg-brand items-center justify-center p-20 relative overflow-hidden"
-        >
-           <img 
-             src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&q=80&w=2000" 
-             alt="Logistics" 
-             className="absolute inset-0 w-full h-full object-cover opacity-40 mix-blend-overlay"
-             referrerPolicy="no-referrer"
-           />
-           <div className="absolute inset-0 bg-gradient-to-br from-brand via-brand/80 to-transparent"></div>
-           <div className="max-w-md text-center relative z-10">
-              <motion.div 
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.4, duration: 0.8, type: "spring" }}
-                className="h-32 w-32 bg-white/5 rounded-[40px] flex items-center justify-center mx-auto mb-12 backdrop-blur-3xl border border-white/10"
-              >
-                 <ShieldCheck className="text-brand-accent" size={64} />
-              </motion.div>
-              <motion.h1 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6, duration: 0.8 }}
-                className="text-5xl font-black text-white mb-8 uppercase tracking-tighter leading-none font-display"
-              >
-                The Operating System.
-              </motion.h1>
-              <motion.p 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.8, duration: 0.8 }}
-                className="text-white/40 text-lg font-medium leading-relaxed uppercase tracking-widest text-sm text-center"
-              >
-                Dispatch. Track. Deliver. Settle.<br/>The Northern Corridor, digitized.
-              </motion.p>
-           </div>
-           {/* Conceptual layers graphic */}
-           <motion.div 
-             animate={{ 
-               rotate: [0, 5, 0, -5, 0],
-               scale: [1, 1.05, 1, 1.05, 1]
-             }}
-             transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-             className="absolute bottom-0 right-0 p-10 opacity-10"
-           >
-              <Layers size={400} className="text-white" />
-           </motion.div>
-        </motion.div>
+        </div>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Building2, 
@@ -22,24 +22,70 @@ import {
   TrendingUp,
   BarChart3,
   Box,
-  Check
+  Check,
+  Package,
+  Truck,
+  DollarSign,
+  Layers,
+  Settings,
+  Bell,
+  HardDrive,
+  Cpu,
+  Monitor,
+  Database,
+  Cloud,
+  Network
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useTenantStore, useAuthStore, useAuditStore } from '../../store';
+import { useTenantStore, useAuthStore, useAuditStore, useAppStore } from '../../store';
+import { INDUSTRY_MODULE_MAPPING, MODULE_DETAILS } from '../../constants';
+import { api } from '../../api';
+import * as Icons from 'lucide-react';
 
 const STEPS = [
-  { id: 'organization', title: 'Organization Profile', icon: <Building2 className="text-brand" /> },
-  { id: 'industry', title: 'Industry DNA', icon: <Boxes className="text-brand" /> },
-  { id: 'pricing', title: 'Service Plan', icon: <BarChart3 className="text-brand" /> },
-  { id: 'governance', title: 'Security & Roles', icon: <ShieldCheck className="text-brand" /> },
-  { id: 'deployment', title: 'Initialize Cluster', icon: <Zap className="text-brand" /> }
+  { id: 'organization', title: 'Your Company', icon: <Building2 className="text-brand" /> },
+  { id: 'industry', title: 'Your Industry', icon: <Boxes className="text-brand" /> },
+  { id: 'modules', title: 'Modules', icon: <Layers className="text-brand" /> },
+  { id: 'pricing', title: 'Pricing', icon: <BarChart3 className="text-brand" /> },
+  { id: 'deployment', title: 'Finish Setup', icon: <Zap className="text-brand" /> }
 ];
 
 const INDUSTRIES = [
-  { id: 'AGRICULTURE', name: 'Agriculture & Farm', icon: <Sprout className="text-brand" /> },
-  { id: 'HEALTHCARE', name: 'Med-Tech & Pharma', icon: <Activity className="text-blue-500" /> },
-  { id: 'RETAIL', name: 'B2B Distribution', icon: <ShoppingBag className="text-amber-500" /> },
-  { id: 'E_COMMERCE', name: 'E-Commerce Hero', icon: <ShoppingCart className="text-emerald-500" /> }
+  { 
+    id: 'HEALTHCARE', 
+    name: 'Healthcare & Pharma', 
+    image: 'https://images.unsplash.com/photo-1538108197017-c1b4467a933a?auto=format&fit=crop&q=80&w=800',
+    description: 'Cold chain, medical logistics, and bio-security protocols.',
+    icon: <Activity className="text-blue-500" /> 
+  },
+  { 
+    id: 'AGRICULTURE', 
+    name: 'Agri-Logistics', 
+    image: 'https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&q=80&w=800',
+    description: 'Farm-to-fork tracking, bulk transport, and market metrics.',
+    icon: <Sprout className="text-emerald-500" /> 
+  },
+  { 
+    id: 'RETAIL', 
+    name: 'Retail Distribution', 
+    image: 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&q=80&w=800',
+    description: 'B2B fulfillment, inventory rebalancing, and restocking.',
+    icon: <ShoppingBag className="text-amber-500" /> 
+  },
+  { 
+    id: 'E-COMMERCE', 
+    name: 'E-Commerce Hero', 
+    image: 'https://images.unsplash.com/photo-1566576721346-d4a3b4eaad5b?auto=format&fit=crop&q=80&w=800',
+    description: 'Last-mile optimization, peak scaling, and home delivery.',
+    icon: <ShoppingCart className="text-brand" /> 
+  },
+  {
+    id: 'GENERAL',
+    name: 'General Logistics',
+    image: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&q=80&w=800',
+    description: 'Standard transport, warehousing, and asset management.',
+    icon: <Truck className="text-slate-500" />
+  }
 ];
 
 const PLANS = [
@@ -78,47 +124,77 @@ const PLANS = [
 ];
 
 const OnboardingFlow: React.FC = () => {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [formData, setFormData] = useState({
-    name: '',
-    industry: 'GENERAL',
-    plan: 'GROWTH',
-    region: 'East Africa',
-    size: '11-50',
-    adminEmail: '',
-    termsAccepted: false
-  });
   const navigate = useNavigate();
-  const setTenant = useTenantStore(state => state.setTenant);
+  const { isOnline, addNotification } = useAppStore();
   const { user, updateUser } = useAuthStore(state => ({
     user: state.user,
     updateUser: state.updateUser
   }));
+  const setTenant = useTenantStore(state => state.setTenant);
   const logAction = useAuditStore(state => state.logAction);
 
-  const handleComplete = () => {
-    // Finalize tenant setup
-    const newTenant = {
-      id: `tenant-${Date.now()}`,
-      name: formData.name,
-      slug: formData.name.toLowerCase().replace(/ /g, '-'),
-      industry: formData.industry as any,
-      plan: formData.plan as any,
-      status: 'ACTIVE' as any,
-      enabledModules: ['dashboard', 'dispatch', 'fleet', 'analytics'],
-      settings: {
-        primaryColor: '#0F2A44',
-        currency: 'KES',
-        timezone: 'Africa/Nairobi',
-        onboardingCompleted: true
-      },
-      createdAt: new Date().toISOString()
-    };
+  const [currentStep, setCurrentStep] = useState(0);
+  const [formData, setFormData] = useState({
+    name: user?.company || '',
+    industry: 'GENERAL',
+    plan: 'GROWTH',
+    region: 'East Africa',
+    size: '11-50',
+    adminEmail: user?.email || '',
+    termsAccepted: false,
+    enabledModules: [] as string[]
+  });
 
-    setTenant(newTenant as any);
-    updateUser({ isOnboarded: true });
-    logAction('TENANT_INITIALIZED', 'system', newTenant.id, { industry: formData.industry, plan: formData.plan });
-    navigate('/admin/dashboard');
+  useEffect(() => {
+    if (user?.company) {
+      setFormData(prev => ({ ...prev, name: user.company }));
+    }
+  }, [user]);
+
+  // Auto-select modules when industry changes
+  useEffect(() => {
+    const recommended = INDUSTRY_MODULE_MAPPING[formData.industry as any] || INDUSTRY_MODULE_MAPPING.GENERAL;
+    setFormData(prev => ({ ...prev, enabledModules: recommended }));
+  }, [formData.industry]);
+
+  const handleComplete = async () => {
+    if (!user) return;
+    try {
+      await api.completeOnboarding(user.id, {
+        industry: formData.industry as any,
+        modules: formData.enabledModules as any,
+        companyName: formData.name
+      });
+
+      // Finalize tenant setup (state-side)
+      const newTenant = {
+        id: user.tenantId || `tenant-${Date.now()}`,
+        name: formData.name,
+        slug: formData.name.toLowerCase().replace(/ /g, '-'),
+        industry: formData.industry as any,
+        plan: formData.plan as any,
+        status: 'ACTIVE' as any,
+        enabledModules: formData.enabledModules,
+        settings: {
+          primaryColor: '#0F2A44',
+          currency: 'KES',
+          timezone: 'Africa/Nairobi',
+          onboardingCompleted: true
+        },
+        createdAt: new Date().toISOString()
+      };
+
+      setTenant(newTenant as any);
+      updateUser({ 
+        isOnboarded: true, 
+        enabledModules: formData.enabledModules as any,
+        company: formData.name
+      });
+      addNotification("Operational Cluster Initialized.", "success");
+      navigate('/admin');
+    } catch (err: any) {
+      addNotification(err.message || "Failed to initialize cluster.", "error");
+    }
   };
 
   const next = () => {
@@ -126,6 +202,15 @@ const OnboardingFlow: React.FC = () => {
     setCurrentStep(s => s + 1);
   };
   const prev = () => setCurrentStep(s => s - 1);
+
+  const toggleModule = (modId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      enabledModules: prev.enabledModules.includes(modId) 
+        ? prev.enabledModules.filter(m => m !== modId)
+        : [...prev.enabledModules, modId]
+    }));
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col overflow-hidden">
@@ -252,24 +337,30 @@ const OnboardingFlow: React.FC = () => {
                     >
                        <div className="space-y-2">
                           <h4 className="text-[12px] font-black uppercase tracking-widest text-slate-400">Industry Vertical DNA</h4>
-                          <p className="text-sm font-bold text-slate-500 leading-relaxed uppercase tracking-tight">Choose a vertical to pre-configure compliance, unit taxonomy, and security hooks.</p>
+                          <p className="text-sm font-bold text-slate-500 leading-relaxed uppercase tracking-tight">Choose your business sector. We will tailor the modules and workflows to match your operational requirements.</p>
                        </div>
                        
-                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 overflow-y-auto max-h-[450px] pr-2 pb-4 no-scrollbar">
                           {INDUSTRIES.map(ind => (
                             <button
                               key={ind.id}
                               onClick={() => setFormData({...formData, industry: ind.id})}
-                              className={`p-8 rounded-[2.5rem] border-2 text-left transition-all relative group ${formData.industry === ind.id ? 'bg-brand/5 border-brand shadow-xl' : 'bg-white border-slate-50 hover:border-slate-200 shadow-sm'}`}
+                              className={`group relative h-48 rounded-[2.5rem] overflow-hidden border-4 transition-all ${formData.industry === ind.id ? 'border-brand shadow-2xl scale-[1.02]' : 'border-white hover:border-slate-200'}`}
                             >
-                               <div className="p-4 rounded-2xl bg-slate-50 w-fit mb-6 group-hover:scale-110 transition-transform">
-                                  {React.cloneElement(ind.icon as React.ReactElement, { size: 28 })}
+                               <img src={ind.image} alt={ind.name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                               <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
+                               <div className="absolute bottom-6 left-6 right-6 text-left">
+                                  <div className="flex items-center gap-3 mb-2">
+                                     <div className="h-8 w-8 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-white">
+                                        {ind.icon}
+                                     </div>
+                                     <h5 className="text-[14px] font-black uppercase tracking-tighter text-white">{ind.name}</h5>
+                                  </div>
+                                  <p className="text-[10px] font-bold text-white/60 leading-tight uppercase tracking-wider line-clamp-2">{ind.description}</p>
                                </div>
-                               <h5 className="text-[13px] font-black uppercase tracking-tight text-slate-900 mb-1">{ind.name}</h5>
-                               <p className="text-[10px] font-bold text-slate-400 leading-tight uppercase tracking-wider">Includes specialized {ind.id.toLowerCase()} logic</p>
                                {formData.industry === ind.id && (
-                                 <div className="absolute top-8 right-8 h-8 w-8 bg-brand text-white rounded-full flex items-center justify-center shadow-lg">
-                                    <Check size={16} strokeWidth={4} />
+                                 <div className="absolute top-6 right-6 h-10 w-10 bg-brand text-white rounded-full flex items-center justify-center shadow-lg border-4 border-white/20 backdrop-blur-sm">
+                                    <Check size={20} strokeWidth={4} />
                                  </div>
                                )}
                             </button>
@@ -286,12 +377,96 @@ const OnboardingFlow: React.FC = () => {
                       exit={{ opacity: 0, x: -20 }}
                       className="flex-1 space-y-8"
                     >
+                       <div className="space-y-4">
+                          <h4 className="text-[12px] font-black uppercase tracking-widest text-slate-400">Core Infrastructure</h4>
+                          <div className="grid grid-cols-2 gap-4">
+                             <button
+                               onClick={() => toggleModule('fleet')}
+                               className={`p-6 rounded-3xl border-2 text-left transition-all flex items-center gap-4 ${formData.enabledModules.includes('fleet') ? 'bg-brand/5 border-brand shadow-md' : 'bg-white border-slate-50'}`}
+                             >
+                                <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 ${formData.enabledModules.includes('fleet') ? 'bg-brand text-white' : 'bg-slate-50 text-slate-400'}`}>
+                                   <Truck size={22} />
+                                </div>
+                                <div>
+                                   <h5 className="text-[12px] font-black uppercase tracking-tight text-slate-900 leading-none mb-1">Managed Fleet</h5>
+                                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Own/manage vehicles</p>
+                                </div>
+                                <div className={`ml-auto h-6 w-6 rounded-lg border-2 flex items-center justify-center ${formData.enabledModules.includes('fleet') ? 'bg-brand border-brand text-white' : 'border-slate-100'}`}>
+                                   {formData.enabledModules.includes('fleet') && <Check size={14} strokeWidth={4} />}
+                                </div>
+                             </button>
+                             <button
+                               onClick={() => toggleModule('crm')}
+                               className={`p-6 rounded-3xl border-2 text-left transition-all flex items-center gap-4 ${formData.enabledModules.includes('crm') ? 'bg-brand/5 border-brand shadow-md' : 'bg-white border-slate-50'}`}
+                             >
+                                <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 ${formData.enabledModules.includes('crm') ? 'bg-brand text-white' : 'bg-slate-50 text-slate-400'}`}>
+                                   <Users size={22} />
+                                </div>
+                                <div>
+                                   <h5 className="text-[12px] font-black uppercase tracking-tight text-slate-900 leading-none mb-1">Relationships</h5>
+                                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Customer CRM</p>
+                                </div>
+                                <div className={`ml-auto h-6 w-6 rounded-lg border-2 flex items-center justify-center ${formData.enabledModules.includes('crm') ? 'bg-brand border-brand text-white' : 'border-slate-100'}`}>
+                                   {formData.enabledModules.includes('crm') && <Check size={14} strokeWidth={4} />}
+                                </div>
+                             </button>
+                          </div>
+                       </div>
+
+                       <div className="space-y-2">
+                          <h4 className="text-[12px] font-black uppercase tracking-widest text-slate-400">Additional Vertical Modules</h4>
+                          <p className="text-sm font-bold text-slate-500 leading-relaxed uppercase tracking-tight">Expand capabilities with specialized {formData.industry.toLowerCase()} tools.</p>
+                       </div>
+
+                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 overflow-y-auto max-h-[300px] pr-2 pb-4 no-scrollbar">
+                          {(() => {
+                            const recommended = INDUSTRY_MODULE_MAPPING[formData.industry as any] || INDUSTRY_MODULE_MAPPING.GENERAL;
+                            return Object.keys(MODULE_DETAILS)
+                              .filter(id => recommended.includes(id as any) && !id.startsWith('core-') && id !== 'fleet' && id !== 'crm')
+                              .map(modId => {
+                                const mod = MODULE_DETAILS[modId as any];
+                                if (!mod) return null;
+                                const isSelected = formData.enabledModules.includes(modId);
+                                const IconComp = (Icons as any)[mod.icon] || Layers;
+                                
+                                return (
+                                  <button
+                                    key={modId}
+                                    onClick={() => toggleModule(modId)}
+                                    className={`p-6 rounded-[2rem] border-2 text-left transition-all flex items-center gap-4 ${isSelected ? 'bg-brand/5 border-brand shadow-md' : 'bg-white border-slate-50 hover:border-slate-100'}`}
+                                  >
+                                     <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 transition-all ${isSelected ? 'bg-brand text-white shadow-lg shadow-brand/20' : 'bg-slate-50 text-slate-400'}`}>
+                                        <IconComp size={22} />
+                                     </div>
+                                     <div className="min-w-0">
+                                        <h5 className="text-[12px] font-black uppercase tracking-tight text-slate-900 mb-0.5">{mod.name}</h5>
+                                        <p className="text-[9px] font-bold text-slate-400 leading-tight uppercase tracking-wider line-clamp-1">{mod.description}</p>
+                                     </div>
+                                     <div className={`ml-auto h-6 w-6 rounded-lg border-2 transition-all flex items-center justify-center shrink-0 ${isSelected ? 'bg-brand border-brand text-white' : 'border-slate-100'}`}>
+                                        {isSelected && <Check size={14} strokeWidth={4} />}
+                                     </div>
+                                  </button>
+                                );
+                              });
+                          })()}
+                       </div>
+                    </motion.div>
+                  )}
+
+                  {currentStep === 3 && (
+                    <motion.div 
+                      key="step-3"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      className="flex-1 space-y-8"
+                    >
                        <div className="space-y-2">
                           <h4 className="text-[12px] font-black uppercase tracking-widest text-slate-400">Select Service Level</h4>
                           <p className="text-sm font-bold text-slate-500 leading-relaxed uppercase tracking-tight">Choose the throughput and processing power required for your fleet.</p>
                        </div>
 
-                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 overflow-y-auto max-h-[450px] no-scrollbar pb-4 pr-1">
                           {PLANS.map(plan => (
                             <button
                               key={plan.id}
@@ -313,11 +488,11 @@ const OnboardingFlow: React.FC = () => {
 
                                <div className="space-y-3">
                                   <p className="text-[11px] font-bold text-slate-500 leading-snug uppercase tracking-tight">{plan.description}</p>
-                                  <div className="space-y-1.5 border-t border-slate-100 pt-3">
+                                  <div className="grid grid-cols-2 gap-1.5 border-t border-slate-100 pt-3">
                                      {plan.features.map(f => (
                                        <div key={f} className="flex items-center gap-2">
                                           <Check size={10} className="text-emerald-500" strokeWidth={4} />
-                                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">{f}</span>
+                                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider whitespace-nowrap">{f}</span>
                                        </div>
                                      ))}
                                   </div>
@@ -330,47 +505,6 @@ const OnboardingFlow: React.FC = () => {
                                )}
                             </button>
                           ))}
-                       </div>
-                    </motion.div>
-                  )}
-
-                  {currentStep === 3 && (
-                    <motion.div 
-                      key="step-3"
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      className="flex-1 flex flex-col items-center justify-center text-center space-y-8 py-10"
-                    >
-                       <div className="h-24 w-24 bg-brand/10 text-brand rounded-[2.5rem] flex items-center justify-center mb-6 shadow-2xl shadow-brand/10">
-                          <ShieldCheck size={48} />
-                       </div>
-                       <div className="space-y-4">
-                          <h3 className="text-3xl font-black uppercase tracking-tighter text-slate-900 leading-none">Hardened RBAC Access</h3>
-                          <p className="text-xs font-black text-slate-400 max-w-sm mx-auto leading-relaxed uppercase tracking-widest">
-                            By deploying this node, you agree to govern all operational workflows under strict Role-Based Access Control and ISO-compliant audit protocols.
-                          </p>
-                       </div>
-                       <div className="flex flex-col gap-3 w-full max-w-xs">
-                          <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between">
-                             <div className="flex items-center gap-3">
-                                <LockIcon size={16} className="text-amber-500" />
-                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-700">Audit Immutability</span>
-                             </div>
-                             <span className="text-[9px] font-black px-2 py-1 bg-emerald-500 text-white rounded uppercase ring-4 ring-emerald-50">Active</span>
-                          </div>
-                          <label className="flex items-start gap-3 text-left cursor-pointer group mt-4">
-                             <div className={`mt-1 h-5 w-5 rounded-md border-2 shrink-0 transition-all ${formData.termsAccepted ? 'bg-brand border-brand' : 'bg-white border-slate-200'}`}>
-                                {formData.termsAccepted && <Check size={14} className="text-white" strokeWidth={4} />}
-                                <input 
-                                  type="checkbox" 
-                                  className="hidden"
-                                  checked={formData.termsAccepted}
-                                  onChange={(e) => setFormData({...formData, termsAccepted: e.target.checked})}
-                                />
-                             </div>
-                             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight leading-tight pt-0.5">I verify that the above information is accurate and agree to the platform mission protocols.</span>
-                          </label>
                        </div>
                     </motion.div>
                   )}
@@ -395,15 +529,34 @@ const OnboardingFlow: React.FC = () => {
                             Cluster configuration is verified. Initializing secure node for <span className="text-slate-900">{formData.name}</span> in the <span className="text-slate-900">{formData.region}</span> region.
                           </p>
                        </div>
-                       <div className="grid grid-cols-2 gap-4 w-full max-w-md">
+                       <div className="grid grid-cols-3 gap-4 w-full max-w-2xl">
                           <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-left">
                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">DNA TYPE</p>
-                             <p className="text-[11px] font-black text-slate-900 uppercase">{formData.industry.replace('_', ' ')}</p>
+                             <p className="text-[11px] font-black text-slate-900 uppercase truncate">{formData.industry.replace('_', ' ')}</p>
+                          </div>
+                          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-left">
+                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">MODULES</p>
+                             <p className="text-[11px] font-black text-slate-900 uppercase truncate">{formData.enabledModules.length} Active</p>
                           </div>
                           <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-left">
                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">SERVICE LEVEL</p>
-                             <p className="text-[11px] font-black text-slate-900 uppercase">{formData.plan}</p>
+                             <p className="text-[11px] font-black text-slate-900 uppercase truncate">{formData.plan}</p>
                           </div>
+                       </div>
+
+                       <div className="flex flex-col gap-4 w-full max-w-sm">
+                          <label className="flex items-start gap-3 text-left cursor-pointer group">
+                              <div className={`mt-1 h-6 w-6 rounded-lg border-2 shrink-0 transition-all ${formData.termsAccepted ? 'bg-brand border-brand shadow-lg shadow-brand/20' : 'bg-white border-slate-200'}`}>
+                                 {formData.termsAccepted && <Check size={16} className="text-white" strokeWidth={4} />}
+                                 <input 
+                                   type="checkbox" 
+                                   className="hidden"
+                                   checked={formData.termsAccepted}
+                                   onChange={(e) => setFormData({...formData, termsAccepted: e.target.checked})}
+                                 />
+                              </div>
+                              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight leading-tight pt-1">I verify that the above information is accurate and agree to the platform mission protocols and enterprise service agreement.</span>
+                          </label>
                        </div>
                     </motion.div>
                   )}
@@ -419,7 +572,7 @@ const OnboardingFlow: React.FC = () => {
                    </button>
                    
                    <button 
-                     disabled={currentStep === 3 && !formData.termsAccepted}
+                     disabled={currentStep === 4 && !formData.termsAccepted}
                      onClick={currentStep === STEPS.length - 1 ? handleComplete : next}
                      className="px-12 py-5 bg-slate-900 text-white rounded-[1.5rem] text-[11px] font-black uppercase tracking-widest shadow-2xl shadow-slate-900/40 active:scale-95 transition-all flex items-center gap-3 group disabled:opacity-50 disabled:grayscale"
                    >

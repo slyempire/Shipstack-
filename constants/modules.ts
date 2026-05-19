@@ -7,7 +7,8 @@ export const MODULE_CATEGORIES = [
   { id: 'integration', label: 'Connectivity', description: 'ERP, Payment, and SMS gateways' },
   { id: 'addon', label: 'Functional Boost', description: 'Enhanced operations and visibility' },
   { id: 'compliance', label: 'Governance', description: 'Legal and regulatory toolkits' },
-  { id: 'hardware', label: 'Hardware & IoT', description: 'Certified telemetry devices and connected sensors' }
+  { id: 'hardware', label: 'Hardware & IoT', description: 'Certified telemetry devices and connected sensors' },
+  { id: 'security', label: 'Security Cluster', description: 'Advanced access control and systems diagnostics' }
 ];
 
 export const CORE_MODULES: ModuleDefinition[] = [
@@ -125,10 +126,79 @@ export const CORE_MODULES: ModuleDefinition[] = [
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     hooks: {}
+  },
+  {
+    id: 'security-suite',
+    name: 'Security Ops Suite',
+    slug: 'security',
+    description: 'Unified command center for security, auditing, and access control.',
+    category: 'security',
+    tier: 'free',
+    version: '2.0.0',
+    versions: [{ version: '2.0.0', releaseDate: new Date().toISOString(), changelog: 'Launched security command center.' }],
+    icon: 'Shield',
+    tags: ['core', 'security', 'compliance'],
+    publisher: { id: 'shipstack', name: 'Shipstack Core', verified: true },
+    pricing: { model: 'free' },
+    dependencies: [],
+    conflicts: [],
+    permissionScope: { requiredPermissions: ['security:view'], grantedPermissions: ['security:view', 'roles:view', 'audit:view'] },
+    routes: ['/admin/security'],
+    isCore: true,
+    status: 'active',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    hooks: {}
   }
 ];
 
 export const MARKETPLACE_MODULES: ModuleDefinition[] = [
+  {
+    id: 'security-rbac',
+    parentId: 'security-suite',
+    name: 'Advanced RBAC Protocols',
+    slug: 'rbac',
+    description: 'Enforce granular role-based access control and custom permission tiers.',
+    category: 'security',
+    tier: 'starter',
+    version: '1.0.0',
+    versions: [],
+    icon: 'Lock',
+    tags: ['security', 'compliance', 'rbac'],
+    publisher: { id: 'shipstack', name: 'Shipstack Core', verified: true },
+    pricing: { model: 'free' },
+    dependencies: ['security-suite'],
+    conflicts: [],
+    permissionScope: { requiredPermissions: ['roles:view'], grantedPermissions: ['roles:create', 'roles:edit'] },
+    routes: ['/admin/security/rbac'],
+    status: 'active',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    hooks: {}
+  },
+  {
+    id: 'security-diagnostics',
+    parentId: 'security-suite',
+    name: 'Deep System Diagnostics',
+    slug: 'diagnostics',
+    description: 'Real-time infrastructure health monitoring and error tracing.',
+    category: 'security',
+    tier: 'professional',
+    version: '1.2.0',
+    versions: [],
+    icon: 'Zap',
+    tags: ['diagnostics', 'health', 'system'],
+    publisher: { id: 'shipstack', name: 'Shipstack Core', verified: true },
+    pricing: { model: 'free' },
+    dependencies: ['security-suite'],
+    conflicts: [],
+    permissionScope: { requiredPermissions: ['security:view'], grantedPermissions: ['analytics:view'] },
+    routes: ['/admin/security/diagnostics'],
+    status: 'active',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    hooks: {}
+  },
   {
     id: 'vertical-healthcare',
     name: 'Medical Logistics Pro',
@@ -631,8 +701,8 @@ export const checkModuleDependencies = (moduleId: string, installedModules: stri
   if (!module) return { canInstall: false, missing: [] };
   
   const missing = module.dependencies
-    .filter(dep => !installedModules.includes(dep.moduleId))
-    .map(dep => dep.moduleId);
+    .map(dep => typeof dep === 'string' ? dep : dep.moduleId)
+    .filter(depId => !installedModules.includes(depId));
     
   return {
     canInstall: missing.length === 0,

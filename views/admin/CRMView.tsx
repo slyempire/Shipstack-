@@ -57,6 +57,17 @@ const CRMView: React.FC = () => {
   });
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const customerId = params.get('id');
+    if (customerId && customers.length > 0) {
+      const customer = customers.find(c => c.id === customerId);
+      if (customer) {
+        handleOpenModal(customer);
+      }
+    }
+  }, [customers]);
+
+  useEffect(() => {
     const loadCustomers = async () => {
       if (!user?.tenantId) return;
       try {
@@ -93,7 +104,7 @@ const CRMView: React.FC = () => {
     const requestId = `crm-${Date.now()}`;
     try {
       if (selectedCustomer) {
-        const updated = await api.updateCustomer(selectedCustomer.id, formData, user?.tenantId || 'tenant-1', requestId);
+        const updated = await api.updateCustomer(selectedCustomer.id, formData, requestId);
         setCustomers(customers.map(c => c.id === selectedCustomer.id ? updated : c));
         addNotification('Relationship updated successfully.', 'success');
       } else {

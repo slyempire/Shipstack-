@@ -39,6 +39,16 @@ import Icon from '../../components/Icon';
 import { ModuleDefinition, ModuleCategory, ModuleTier } from '../../types';
 import { Badge } from '../../packages/ui/Badge';
 
+const CATEGORY_LABELS: Record<string, string> = {
+  'ALL': 'All',
+  'industry_vertical': 'Verticals',
+  'ai_feature': 'Intelligence',
+  'integration': 'Connectors',
+  'addon': 'Add-ons',
+  'compliance': 'Compliance',
+  'hardware': 'Hardware'
+};
+
 const MarketplaceView: React.FC = () => {
   const { 
     installModule, 
@@ -114,8 +124,8 @@ const MarketplaceView: React.FC = () => {
   return (
     <RoleGuard permissions={['marketplace:view']} showFullPageError>
       <Layout 
-        title="Solution Marketplace" 
-        subtitle="Growth engine for vertical intelligence & enterprise ops"
+        title="Marketplace" 
+        subtitle="Enhance your workspace with industry-specific modules"
       >
         <div className="flex flex-col lg:flex-row gap-8 pb-24">
           {/* Left Sidebar Filters */}
@@ -130,7 +140,7 @@ const MarketplaceView: React.FC = () => {
                         onClick={() => setSelectedCategory(cat as any)}
                         className={`w-full text-left px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase transition-all ${selectedCategory === cat ? 'bg-brand text-white shadow-lg shadow-brand/20' : 'text-slate-500 hover:bg-slate-50'}`}
                       >
-                        {cat.replace('_', ' ')}
+                        {CATEGORY_LABELS[cat] || cat}
                       </button>
                     ))}
                   </div>
@@ -389,7 +399,7 @@ const ModuleCard = ({ module, isInstalled, isPending, onClick }: {
          />
          <div className="absolute top-4 left-4 z-10 px-3 py-1 bg-white/90 backdrop-blur rounded-full flex items-center gap-1.5 shadow-sm">
             <span className={`h-1.5 w-1.5 rounded-full ${module.status === 'active' ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-            <span className="text-[8px] font-black uppercase tracking-widest text-slate-600">{module.category.replace('_', ' ')}</span>
+            <span className="text-[8px] font-black uppercase tracking-widest text-slate-600">{(CATEGORY_LABELS as any)[module.category] || module.category.replace('_', ' ')}</span>
          </div>
          {isInstalled && (
            <div className="absolute top-4 right-4 z-10 h-8 w-8 bg-brand text-white rounded-xl flex items-center justify-center shadow-lg animate-in zoom-in-50 duration-300">
@@ -514,8 +524,8 @@ const ModuleDetailPanel = ({ module, onClose, onInstall, onUninstall, isInstalle
                    "{module.description}"
                 </p>
                 <div className="flex flex-wrap gap-2">
-                   {module.tags.map(tag => (
-                     <span key={tag} className="px-4 py-2 bg-white rounded-xl text-[9px] font-black uppercase tracking-widest text-brand border border-brand/10">{tag}</span>
+                   {module.tags.map((tag, i) => (
+                     <span key={`${tag}-${i}`} className="px-4 py-2 bg-white rounded-xl text-[9px] font-black uppercase tracking-widest text-brand border border-brand/10">{tag}</span>
                    ))}
                 </div>
              </section>
@@ -568,8 +578,8 @@ const ModuleDetailPanel = ({ module, onClose, onInstall, onUninstall, isInstalle
                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">Permissions Needed</span>
                       </div>
                       <div className="flex gap-2">
-                         {module.permissionScope.requiredPermissions.map(p => (
-                           <span key={p} className="text-[8px] font-black px-2 py-1 bg-amber-50 text-amber-600 rounded uppercase">{p}</span>
+                         {module.permissionScope.requiredPermissions.map((p, i) => (
+                           <span key={`${String(p)}-${i}`} className="text-[8px] font-black px-2 py-1 bg-amber-50 text-amber-600 rounded uppercase">{p}</span>
                          ))}
                       </div>
                    </div>
@@ -579,9 +589,12 @@ const ModuleDetailPanel = ({ module, onClose, onInstall, onUninstall, isInstalle
                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">Dependencies</span>
                       </div>
                       <div className="flex gap-2 text-slate-400">
-                         {module.dependencies.length > 0 ? module.dependencies.map(d => (
-                           <span key={d.moduleId} className="text-[9px] font-bold uppercase">{d.moduleId} v{d.version}</span>
-                         )) : <span className="text-[9px] font-bold uppercase">None</span>}
+                         {module.dependencies.length > 0 ? module.dependencies.map((dep, i) => {
+                           const depId = typeof dep === 'string' ? dep : dep.moduleId;
+                           return (
+                             <span key={`${String(depId)}-${i}`} className="text-[9px] font-bold uppercase">{depId}</span>
+                           );
+                         }) : <span key="none" className="text-[9px] font-bold uppercase">None</span>}
                       </div>
                    </div>
                    <div className="p-6 flex items-center justify-between">
@@ -590,9 +603,9 @@ const ModuleDetailPanel = ({ module, onClose, onInstall, onUninstall, isInstalle
                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">Conflicts</span>
                       </div>
                       <div className="text-slate-400">
-                         {module.conflicts.length > 0 ? module.conflicts.map(c => (
-                           <span key={c} className="text-[9px] font-bold uppercase text-red-400">{c}</span>
-                         )) : <span className="text-[9px] font-bold uppercase">Clean Stack</span>}
+                         {module.conflicts.length > 0 ? module.conflicts.map((c, i) => (
+                           <span key={`${c}-${i}`} className="text-[9px] font-bold uppercase text-red-400">{c}</span>
+                         )) : <span key="none" className="text-[9px] font-bold uppercase">Clean Stack</span>}
                       </div>
                    </div>
                 </div>

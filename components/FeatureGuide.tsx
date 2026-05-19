@@ -13,13 +13,13 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { useAuthStore } from '../store';
-import { SystemRole } from '../types';
+import { UserRole } from '../types';
 
 interface GuideStep {
   title: string;
   description: string;
   icon: React.ReactNode;
-  targetedTo?: SystemRole[];
+  targetedTo?: UserRole[];
 }
 
 const GUIDE_STEPS: GuideStep[] = [

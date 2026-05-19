@@ -3,7 +3,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import { api } from '../../api';
-import { DeliveryNote, DeliveryItem, DNStatus, Facility, Vehicle, User, LogisticsDocument, LogisticsDocumentType, LogisticsDocumentStatus } from '../../types';
+import { DeliveryNote, DeliveryItem, DNStatus, Facility, Vehicle, User, LogisticsDocument, LogisticsDocumentType, LogisticsDocumentStatus, JourneyMilestone } from '../../types';
 import { Badge } from '../../packages/ui/Badge';
 import { useAuthStore, useAppStore } from '../../store';
 import DocumentPreview from '../../components/DocumentPreview';
@@ -33,10 +33,17 @@ import {
   X,
   Navigation,
   Activity,
-  Compass
+  Compass,
+  Thermometer,
+  Shield,
+  ClipboardCheck,
+  Globe,
+  Anchor,
+  FileSearch
 } from 'lucide-react';
 import { telemetryService } from '../../services/socket';
 import MapEngine from '../../components/MapEngine';
+import ColdChainMonitor from '../../components/ColdChainMonitor';
 
 const TripDetail: React.FC = () => {
   const { id } = useParams();
@@ -48,6 +55,16 @@ const TripDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isDispatching, setIsDispatching] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<LogisticsDocument | null>(null);
+
+  // Journey and Compliance state
+  const [showComplianceModal, setShowComplianceModal] = useState(false);
+  const [complianceNotes, setComplianceNotes] = useState('');
+  const [showMilestoneModal, setShowMilestoneModal] = useState(false);
+  const [newMilestone, setNewMilestone] = useState<Partial<JourneyMilestone>>({
+    type: 'HANDOVER',
+    label: '',
+    description: ''
+  });
 
   // Telemetry State
   const [telemetry, setTelemetry] = useState<{
@@ -213,11 +230,46 @@ const TripDetail: React.FC = () => {
     if (!dn) return;
     try {
       await api.updateDNItems(dn.id, editingItems, user?.name || 'Admin');
+      await api.addJourneyMilestone(dn.id, {
+        type: 'STATUS_CHANGE',
+        label: 'Manifest Amended',
+        description: `Cargo list updated with ${editingItems.length} line items by ${user?.name}`,
+        userName: user?.name
+      });
       addNotification('Manifest items updated.', 'success');
       setIsEditingItems(false);
       loadAll();
     } catch (err) {
       addNotification('Failed to update items.', 'error');
+    }
+  };
+
+  const handleUpdateCompliance = async (status: 'PASS' | 'FAIL' | 'REVIEW_REQUIRED') => {
+    if (!dn) return;
+    try {
+      await api.updateComplianceStatus(dn.id, status, complianceNotes, user?.name || 'Authorized Auditor');
+      addNotification(`Compliance audit finalized: ${status}`, 'success');
+      setShowComplianceModal(false);
+      setComplianceNotes('');
+      loadAll();
+    } catch (err) {
+      addNotification('Compliance update failed.', 'error');
+    }
+  };
+
+  const handleAddMilestone = async () => {
+    if (!dn || !newMilestone.label) return;
+    try {
+      await api.addJourneyMilestone(dn.id, {
+        ...newMilestone,
+        userName: user?.name
+      });
+      addNotification('Journey milestone recorded.', 'success');
+      setShowMilestoneModal(false);
+      setNewMilestone({ type: 'HANDOVER', label: '', description: '' });
+      loadAll();
+    } catch (err) {
+      addNotification('Failed to add milestone.', 'error');
     }
   };
 
@@ -274,7 +326,12 @@ const TripDetail: React.FC = () => {
           <div className="bg-white rounded-[2.5rem] border border-slate-200 p-10 shadow-sm relative overflow-hidden group">
             <div className="flex flex-col md:flex-row justify-between gap-10">
                <div className="flex-1">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Primary Consignee (Target)</p>
+                  <div className="flex items-center gap-3 mb-3">
+                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Primary Consignee (Target)</p>
+                     <Badge variant={dn.complianceStatus === 'PASS' ? 'delivered' : 'dispatched'} className="scale-75 origin-left">
+                        {dn.complianceStatus || 'COMPLIANCE PENDING'}
+                     </Badge>
+                  </div>
                   <h2 className="text-4xl font-black text-slate-900 tracking-tighter mb-5 uppercase leading-none">{dn.clientName}</h2>
                   <div className="flex items-start gap-3 text-slate-500 max-w-md">
                      <MapPin size={20} className="text-brand-accent shrink-0 mt-0.5" />
@@ -291,6 +348,74 @@ const TripDetail: React.FC = () => {
                </div>
             </div>
             <Target size={200} className="absolute -right-12 -bottom-12 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity pointer-events-none" />
+          </div>
+
+          {/* Product Journey coordination timeline */}
+          <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+             <div className="p-8 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                <div className="flex items-center gap-4">
+                   <div className="h-12 w-12 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-lg">
+                      <Globe size={24} />
+                   </div>
+                   <div>
+                      <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 leading-none mb-1.5">Product Journey</h3>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Coordinated Logistics Flow</p>
+                   </div>
+                </div>
+                <button 
+                  onClick={() => setShowMilestoneModal(true)}
+                  className="bg-white border border-slate-200 text-slate-600 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:border-brand-accent transition-all shadow-sm active:scale-95"
+                >
+                   <Plus size={16} /> Add Milestone
+                </button>
+             </div>
+
+             <div className="p-10">
+                <div className="relative">
+                   {/* Continuous Journey Line */}
+                   <div className="absolute left-6 top-8 bottom-8 w-px bg-slate-100" />
+                   
+                   <div className="space-y-12">
+                      {/* Initial Ingestion */}
+                      <div className="relative pl-16">
+                         <div className="absolute left-[20px] top-1.5 h-3 w-3 rounded-full bg-emerald-500 border-4 border-white ring-1 ring-emerald-500/20" />
+                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-2">
+                            <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight">Origin Ingestion</h4>
+                            <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">{new Date(dn.createdAt).toLocaleString()}</span>
+                         </div>
+                         <p className="text-[10px] font-bold text-slate-400 uppercase leading-relaxed max-w-lg">Shipment requirements registered in core database. Initial documentation requirements manifests generated.</p>
+                      </div>
+
+                      {/* Journey Milestones from Data */}
+                      {dn.journey?.map((milestone, idx) => (
+                        <div key={milestone.id} className="relative pl-16">
+                           <div className={`absolute left-[20px] top-1.5 h-3 w-3 rounded-full border-4 border-white ring-1 ring-slate-200 ${
+                              milestone.type === 'EXCEPTION' ? 'bg-red-500' : 
+                              milestone.type === 'COMPLIANCE_CHECK' ? 'bg-blue-500' : 'bg-brand'
+                           }`} />
+                           <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-2">
+                              <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight">{milestone.label}</h4>
+                              <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">{new Date(milestone.timestamp).toLocaleString()}</span>
+                           </div>
+                           <p className="text-[10px] font-bold text-slate-400 uppercase leading-relaxed max-w-lg">{milestone.description}</p>
+                           <div className="mt-2 flex items-center gap-2">
+                              <div className="h-4 w-4 bg-slate-50 text-slate-400 rounded flex items-center justify-center">
+                                 <UserIcon size={10} />
+                              </div>
+                              <span className="text-[8px] font-black text-slate-400 uppercase">{milestone.userName}</span>
+                           </div>
+                        </div>
+                      ))}
+
+                      {/* Final Status Indicator */}
+                      <div className="relative pl-16">
+                         <div className={`absolute left-[20px] top-1.5 h-3 w-3 rounded-full border-4 border-white ring-1 ring-slate-200 ${dn.status === DNStatus.DELIVERED ? 'bg-emerald-500' : 'bg-slate-200'}`} />
+                         <h4 className={`text-sm font-black uppercase tracking-tight ${dn.status === DNStatus.DELIVERED ? 'text-slate-900' : 'text-slate-300'}`}>Destination Settlement</h4>
+                         <p className="text-[10px] font-bold text-slate-300 uppercase leading-relaxed mt-1">Pending final POD verification and recipient sign-off.</p>
+                      </div>
+                   </div>
+                </div>
+             </div>
           </div>
 
           {/* Tactical Live Telemetry */}
@@ -352,6 +477,35 @@ const TripDetail: React.FC = () => {
                         <p className="text-[10px] font-bold text-brand-accent tabular-nums">{new Date(telemetry.lastUpdate).toLocaleTimeString()}</p>
                      </div>
                   </div>
+               </div>
+            </div>
+          )}
+
+          {/* Dynamic Cold Chain Monitoring Hub */}
+          {dn.tempRequirement && (
+            <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+               <div className="p-8 border-b border-slate-100 bg-emerald-50/30 flex justify-between items-center">
+                  <div className="flex items-center gap-4">
+                     <div className="h-12 w-12 bg-emerald-500 text-white rounded-2xl flex items-center justify-center shadow-lg">
+                        <Thermometer size={24} />
+                     </div>
+                     <div>
+                        <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 leading-none mb-1.5">Cold Chain Real-Time</h3>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Healthcare & Pharma Compliance Feed</p>
+                     </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                     <div className="h-2 w-2 rounded-full bg-brand-accent animate-ping" />
+                     <span className="text-[9px] font-black text-brand uppercase tracking-widest">Active Sensor Feed</span>
+                  </div>
+               </div>
+               <div className="p-10">
+                  <ColdChainMonitor 
+                    logs={dn.tempLogs || []} 
+                    minTemp={dn.tempRequirement.min} 
+                    maxTemp={dn.tempRequirement.max} 
+                    unit={dn.tempRequirement.unit} 
+                  />
                </div>
             </div>
           )}
@@ -506,12 +660,24 @@ const TripDetail: React.FC = () => {
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Compliance & Legal Archive</p>
                    </div>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-2 justify-end max-w-sm">
                    <button 
                     onClick={() => handleGenerateDoc(LogisticsDocumentType.MANIFEST)}
-                    className="bg-white border border-slate-200 text-slate-600 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:border-brand-accent transition-all shadow-sm active:scale-95"
+                    className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:border-brand-accent transition-all shadow-sm"
                    >
-                     <Plus size={16} /> Manifest
+                     <Plus size={14} /> Manifest
+                   </button>
+                   <button 
+                    onClick={() => handleGenerateDoc(LogisticsDocumentType.CUSTOMS_DECLARATION)}
+                    className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:border-brand-accent transition-all shadow-sm"
+                   >
+                     <Globe size={14} /> Customs
+                   </button>
+                   <button 
+                    onClick={() => handleGenerateDoc(LogisticsDocumentType.CERTIFICATE_OF_ORIGIN)}
+                    className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:border-brand-accent transition-all shadow-sm"
+                   >
+                     <Anchor size={14} /> Origin
                    </button>
                 </div>
              </div>
@@ -526,14 +692,15 @@ const TripDetail: React.FC = () => {
                   dn.documents.map(doc => (
                     <div key={doc.id} className="p-8 flex items-center justify-between group hover:bg-slate-50/30 transition-all">
                        <div className="flex items-center gap-6">
-                          <div className={`h-14 w-14 rounded-2xl flex items-center justify-center transition-all ${doc.status === LogisticsDocumentStatus.VERIFIED ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-300'}`}>
-                             <ShieldCheck size={28} />
+                          <div className={`h-14 w-14 rounded-2xl flex items-center justify-center transition-all ${doc.status === LogisticsDocumentStatus.VERIFIED ? 'bg-emerald-50 text-emerald-600 shadow-[0_0_20px_rgba(16,185,129,0.2)] scale-110' : 'bg-slate-50 text-slate-300'}`}>
+                             {doc.status === LogisticsDocumentStatus.VERIFIED ? <ShieldCheck size={28} /> : <FileSearch size={28} />}
                           </div>
                           <div>
                              <p className="text-base font-black text-slate-900 tracking-tight uppercase leading-none mb-2">{doc.type.replace('_', ' ')}</p>
                              <div className="flex items-center gap-3">
-                                <Badge variant={doc.status === LogisticsDocumentStatus.PENDING ? 'dispatched' : 'delivered'} className="scale-90 origin-left">{doc.status}</Badge>
+                                <Badge variant={doc.status === LogisticsDocumentStatus.VERIFIED ? 'delivered' : 'dispatched'} className="scale-90 origin-left">{doc.status}</Badge>
                                 <span className="text-[10px] font-mono text-slate-400 font-bold uppercase tracking-[0.1em]">CODE: {doc.verificationCode}</span>
+                                {doc.signedBy && <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest ml-2">Signed by {doc.signedBy}</span>}
                              </div>
                           </div>
                        </div>
@@ -669,7 +836,120 @@ const TripDetail: React.FC = () => {
         </div>
       </div>
 
-      {previewDoc && <DocumentPreview dn={dn} doc={previewDoc} onClose={() => setPreviewDoc(null)} />}
+      {previewDoc && <DocumentPreview dn={dn} doc={previewDoc} onClose={() => setPreviewDoc(null)} onVerify={loadAll} />}
+
+      {/* Journey Milestone Modal */}
+      {showMilestoneModal && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[110] flex items-center justify-center p-6">
+          <div className="bg-white rounded-[3rem] w-full max-w-lg p-12 shadow-2xl animate-in zoom-in-95 duration-200">
+             <div className="flex items-center gap-4 mb-10">
+                <div className="h-14 w-14 bg-slate-900 text-white rounded-2xl flex items-center justify-center shadow-lg">
+                   <Globe size={28} />
+                </div>
+                <div>
+                   <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">Inject Journey Milestone</h3>
+                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Operational Context Capture</p>
+                </div>
+             </div>
+
+             <div className="space-y-8">
+                <div className="space-y-3">
+                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1">Event Logic</label>
+                   <select 
+                      value={newMilestone.type}
+                      onChange={(e) => setNewMilestone({ ...newMilestone, type: e.target.value as any })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-6 text-sm font-bold focus:ring-2 focus:ring-brand outline-none transition-all"
+                   >
+                      <option value="HANDOVER">Ground Handover</option>
+                      <option value="COMPLIANCE_CHECK">Customs / Compliance Sweep</option>
+                      <option value="DOCUMENT_UPLOAD">Logistics Document Injected</option>
+                      <option value="EXCEPTION">Tactical Exception Reported</option>
+                      <option value="STATUS_CHANGE">State Machine Transition</option>
+                   </select>
+                </div>
+
+                <div className="space-y-3">
+                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1">Milestone Label</label>
+                   <input 
+                      type="text"
+                      value={newMilestone.label}
+                      onChange={(e) => setNewMilestone({ ...newMilestone, label: e.target.value })}
+                      placeholder="e.g. Customs Cleared at JKIA"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-6 text-sm font-bold focus:ring-2 focus:ring-brand outline-none transition-all"
+                   />
+                </div>
+
+                <div className="space-y-3">
+                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1">Directive Details</label>
+                   <textarea 
+                      value={newMilestone.description}
+                      onChange={(e) => setNewMilestone({ ...newMilestone, description: e.target.value })}
+                      placeholder="Provide detailed spatial or operational context..."
+                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-6 text-sm font-bold focus:ring-2 focus:ring-brand outline-none transition-all min-h-[120px]"
+                   />
+                </div>
+
+                <div className="flex gap-4 pt-6">
+                   <button onClick={() => setShowMilestoneModal(false)} className="flex-1 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Abort</button>
+                   <button 
+                      onClick={handleAddMilestone}
+                      disabled={!newMilestone.label}
+                      className="flex-[2] bg-brand text-white py-6 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl hover:scale-105 transition-all disabled:opacity-30"
+                   >
+                      Inject To Journey
+                   </button>
+                </div>
+             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Compliance Modal */}
+      {showComplianceModal && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[110] flex items-center justify-center p-6">
+          <div className="bg-white rounded-[3rem] w-full max-w-lg p-12 shadow-2xl animate-in zoom-in-95 duration-200">
+             <div className="flex items-center gap-4 mb-10">
+                <div className="h-14 w-14 bg-emerald-500 text-white rounded-2xl flex items-center justify-center shadow-lg">
+                   <ShieldCheck size={28} />
+                </div>
+                <div>
+                   <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">Compliance Audit Terminal</h3>
+                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Regulatory Integrity Sweep</p>
+                </div>
+             </div>
+
+             <div className="space-y-8">
+                <div className="p-6 bg-slate-50 border border-slate-100 rounded-2xl">
+                   <p className="text-[11px] font-bold text-slate-500 uppercase leading-relaxed mb-4">
+                      Perform a final integrity audit on all manifested documents, item hazard classes, and route compliance.
+                   </p>
+                   <textarea 
+                      value={complianceNotes}
+                      onChange={(e) => setComplianceNotes(e.target.value)}
+                      placeholder="Enter audit findings..."
+                      className="w-full bg-white border border-slate-200 rounded-xl p-4 text-xs font-bold outline-none min-h-[100px]"
+                   />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                   <button 
+                      onClick={() => handleUpdateCompliance('FAIL')}
+                      className="py-6 border-2 border-red-100 bg-red-50 text-red-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-100 transition-all"
+                    >
+                      Reject Compliance
+                   </button>
+                   <button 
+                      onClick={() => handleUpdateCompliance('PASS')}
+                      className="py-6 bg-emerald-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 hover:scale-105 transition-all"
+                   >
+                      Authorize & Pass
+                   </button>
+                </div>
+                <button onClick={() => setShowComplianceModal(false)} className="w-full text-center text-[10px] font-black uppercase tracking-[0.3em] text-slate-300 py-4 hover:text-slate-400 transition-all">Back to Mission Control</button>
+             </div>
+          </div>
+        </div>
+      )}
 
       {/* Exception Modal */}
       {isReportingException && (

@@ -1,7 +1,27 @@
 
 import React from 'react';
 
-export type BadgeVariant = 'received' | 'dispatched' | 'loaded' | 'transit' | 'delivered' | 'exception' | 'failed' | 'invoiced' | 'neutral' | 'pending' | 'cancelled' | 'high' | 'medium' | 'low' | 'outbound';
+export type BadgeVariant = 
+  | 'received' 
+  | 'dispatched' 
+  | 'loaded' 
+  | 'transit' 
+  | 'in_transit' 
+  | 'in-transit' 
+  | 'delivered' 
+  | 'completed'
+  | 'exception' 
+  | 'failed' 
+  | 'invoiced' 
+  | 'neutral' 
+  | 'pending' 
+  | 'cancelled' 
+  | 'high' 
+  | 'medium' 
+  | 'low' 
+  | 'outbound'
+  | 'ready_for_dispatch'
+  | 'validated';
 
 interface BadgeProps {
   children: React.ReactNode;
@@ -15,7 +35,10 @@ export const Badge: React.FC<BadgeProps> = ({ children, variant = 'neutral', cla
     dispatched: "bg-brand/10 text-brand border-brand/20",
     loaded: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
     transit: "bg-amber/10 text-amber border-amber/20",
+    in_transit: "bg-amber/10 text-amber border-amber/20",
+    'in-transit': "bg-amber/10 text-amber border-amber/20",
     delivered: "bg-emerald/10 text-emerald border-emerald/20",
+    completed: "bg-emerald/10 text-emerald border-emerald/20",
     exception: "bg-red/10 text-red border-red/20",
     failed: "bg-red/20 text-red border-red/30",
     invoiced: "bg-purple-500/10 text-purple-400 border-purple-500/20",
@@ -25,7 +48,9 @@ export const Badge: React.FC<BadgeProps> = ({ children, variant = 'neutral', cla
     high: "bg-[#ef4444] text-white border-[#ef4444]",
     medium: "bg-[#f59e0b] text-white border-[#f59e0b]",
     low: "bg-[#64748b] text-white border-[#64748b]",
-    outbound: "bg-[#0891b2] text-white border-[#0891b2]"
+    outbound: "bg-[#0891b2] text-white border-[#0891b2]",
+    ready_for_dispatch: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
+    validated: "bg-blue-500/10 text-blue-400 border-blue-500/20"
   };
 
   return (

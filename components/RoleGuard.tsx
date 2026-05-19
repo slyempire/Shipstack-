@@ -4,6 +4,7 @@ import { useAuthStore, useAuditStore } from '../store';
 import { SystemRole, Permission, UserRole } from '../types';
 import { ShieldAlert, Lock, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import Layout from './Layout';
 
 interface RoleGuardProps {
   children: React.ReactNode;
@@ -20,7 +21,7 @@ const AccessDeniedView = ({ missingPermissions, requiredRoles }: { missingPermis
   const { currentUserRole } = useAuthStore();
 
   return (
-    <div className="flex flex-col items-center justify-center p-12 text-center bg-white border border-slate-200 rounded-[2.5rem] shadow-sm">
+    <div className="flex flex-col items-center justify-center p-12 text-center max-w-2xl mx-auto">
       <div className="h-20 w-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mb-6 shadow-sm">
         <ShieldAlert size={40} />
       </div>
@@ -30,8 +31,8 @@ const AccessDeniedView = ({ missingPermissions, requiredRoles }: { missingPermis
       </p>
       
       {(missingPermissions && missingPermissions.length > 0) && (
-        <div className="mb-8 w-full max-w-xs">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 text-left px-2">Missing Clearances</p>
+        <div className="mb-8 w-full max-w-xs mx-auto text-left">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-2">Missing Clearances</p>
           <div className="space-y-2">
             {missingPermissions.map(p => (
               <div key={p} className="flex items-center gap-3 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100">
@@ -43,16 +44,16 @@ const AccessDeniedView = ({ missingPermissions, requiredRoles }: { missingPermis
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
+      <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
         <button 
           onClick={() => navigate(-1)}
-          className="flex-1 px-8 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
+          className="px-8 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"
         >
           <ArrowLeft size={14} /> Go Back
         </button>
         <button 
           onClick={() => navigate('/admin/dashboard')}
-          className="flex-1 px-8 py-4 bg-white border border-slate-200 text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 active:scale-95 transition-all"
+          className="px-8 py-4 bg-white border border-slate-200 text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 active:scale-95 transition-all"
         >
           Dashboard
         </button>
@@ -92,11 +93,8 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({
     // Direct match
     if (normalizedAllowed.includes(normalizedUserRole)) return true;
     
-    // Demo Admin or Shipstack internal domain is always authorized
-    const isDemoUser = user?.email?.endsWith('@shipstack.com') || 
-                      user?.email === 'admin@shipstack.com' ||
-                      user?.email === 'joemugoh215@gmail.com' ||
-                      localStorage.getItem('shipstack_demo_mode') === 'true';
+    // Demo Admin bypass removed to enforce strict role checks
+    const isDemoUser = false;
 
     if (isDemoUser) return true;
     
@@ -148,12 +146,14 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({
     if (fallback) return <>{fallback}</>;
     if (showFullPageError) {
       return (
-        <div className="min-h-[70vh] flex items-center justify-center p-6">
-          <AccessDeniedView 
-            missingPermissions={permissions?.filter(p => !checkPermissionSafely(p))} 
-            requiredRoles={roles || allowedRoles}
-          />
-        </div>
+        <Layout title="Security Protocol" subtitle="Restricted Access Zone">
+          <div className="py-20">
+            <AccessDeniedView 
+              missingPermissions={permissions?.filter(p => !checkPermissionSafely(p))} 
+              requiredRoles={roles || allowedRoles}
+            />
+          </div>
+        </Layout>
       );
     }
     return null;

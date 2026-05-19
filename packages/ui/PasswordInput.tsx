@@ -5,9 +5,10 @@ import { Eye, EyeOff, Check, X, ShieldCheck, ShieldAlert, Shield } from 'lucide-
 interface PasswordInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label: string;
   showStrength?: boolean;
+  error?: string;
 }
 
-export const PasswordInput: React.FC<PasswordInputProps> = ({ label, showStrength, ...props }) => {
+export const PasswordInput: React.FC<PasswordInputProps> = ({ label, showStrength, error, ...props }) => {
   const [show, setShow] = useState(false);
   const value = props.value as string || '';
 
@@ -30,7 +31,9 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({ label, showStrengt
     <div className="space-y-2">
       <div className="flex justify-between items-end mb-1.5 ml-1">
         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</label>
-        {showStrength && value && (
+        {error ? (
+          <span className="text-[9px] font-black uppercase text-red-500 animate-in fade-in slide-in-from-right-2">{error}</span>
+        ) : showStrength && value && (
           <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded ${strengthColor.replace('bg-', 'text-')} bg-opacity-10`}>
             {score <= 1 ? 'Vulnerable' : score <= 3 ? 'Securing' : 'Fortified'}
           </span>
@@ -41,8 +44,9 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({ label, showStrengt
         <input
           {...props}
           type={show ? 'text' : 'password'}
-          className={`block w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-6 py-5 text-slate-900 font-bold focus:border-brand-accent outline-none transition-all placeholder:text-slate-300 pr-16 ${props.className || ''}`}
+          className={`block w-full rounded-2xl border-2 px-6 py-5 text-slate-900 font-bold outline-none transition-all placeholder:text-slate-300 pr-16 ${error ? 'border-red-100 bg-red-50 focus:border-red-200' : 'border-slate-100 bg-slate-50 focus:border-brand-accent'} ${props.className || ''}`}
         />
+
         <button
           type="button"
           onClick={() => setShow(!show)}

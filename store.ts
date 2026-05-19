@@ -4,7 +4,9 @@ import { persist } from 'zustand/middleware';
 import { 
   User, 
   SystemRole, 
+  UserRole,
   Permission, 
+  RoleDefinition,
   Tenant, 
   Notification, 
   AuditLogEntry, 
@@ -14,18 +16,21 @@ import {
 } from './types';
 import { hasPermission as checkPermission, ROLE_DEFINITIONS } from './constants/rbac';
 import { CORE_MODULES, getModuleById, checkModuleDependencies, checkModuleConflicts } from './constants/modules';
+import { api } from './api';
 
 interface AuthState {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
-  currentUserRole: SystemRole;
+  currentUserRole: UserRole;
   currentUserPermissions: Permission[];
+  customRoles: RoleDefinition[];
   login: (user: User, token: string) => void;
   logout: () => void;
   updateUser: (user: Partial<User>) => void;
-  setUserRole: (role: SystemRole) => void;
+  setUserRole: (role: UserRole) => void;
   hasPermission: (permission: Permission) => boolean;
+  fetchRoles: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -34,9 +39,10 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       token: null,
       isAuthenticated: false,
-      currentUserRole: 'tenant_admin',
+      currentUserRole: 'tenant_admin' as UserRole,
       currentUserPermissions: [],
-      login: (user, token) => {
+      customRoles: [],
+      login: async (user, token) => {
         if (!user) {
           set({ user: null, token, isAuthenticated: true });
           return;
@@ -48,34 +54,66 @@ export const useAuthStore = create<AuthState>()(
             ...user.preferences
           }
         };
-        const role = (user.role as SystemRole) || 'tenant_admin';
+        const role = user.role || 'tenant_admin';
+        
+        // Fetch custom roles for the tenant
+        let roles: RoleDefinition[] = [];
+        try {
+          roles = await api.getRoles(user.tenantId || 'tenant-1');
+        } catch (e) {
+          console.error('Failed to fetch tenant roles:', e);
+        }
+
+        const customRoleDef = roles.find(r => r.role === role);
+        const permissions = customRoleDef 
+          ? customRoleDef.permissions 
+          : ROLE_DEFINITIONS[role as SystemRole]?.permissions || [];
+
         set({ 
           user: userWithPrefs, 
           token, 
           isAuthenticated: true,
           currentUserRole: role,
-          currentUserPermissions: ROLE_DEFINITIONS[role]?.permissions || []
+          currentUserPermissions: permissions,
+          customRoles: roles
         });
       },
-      logout: () => set({ user: null, token: null, isAuthenticated: false, currentUserPermissions: [] }),
+      logout: () => set({ user: null, token: null, isAuthenticated: false, currentUserPermissions: [], customRoles: [] }),
       updateUser: (data) => set((state) => {
         const updatedUser = state.user ? { ...state.user, ...data } : null;
         return { user: updatedUser };
       }),
-      setUserRole: (role) => set({ 
-        currentUserRole: role, 
-        currentUserPermissions: ROLE_DEFINITIONS[role]?.permissions || [] 
-      }),
+      setUserRole: (role) => {
+        const { customRoles } = get();
+        const customRoleDef = customRoles.find(r => r.role === role);
+        const permissions = customRoleDef 
+          ? customRoleDef.permissions 
+          : ROLE_DEFINITIONS[role as SystemRole]?.permissions || [];
+          
+        set({ 
+          currentUserRole: role, 
+          currentUserPermissions: permissions 
+        });
+      },
       hasPermission: (permission) => {
-        const { currentUserRole, user } = get();
-        // Global Bypass for Demo Admin & Internal Users
-        const isDemoUser = user?.email?.endsWith('@shipstack.com') || 
-                          user?.email === 'admin@shipstack.com' ||
-                          user?.email === 'joemugoh215@gmail.com' ||
-                          localStorage.getItem('shipstack_demo_mode') === 'true';
+        const { currentUserRole, customRoles } = get();
+        return checkPermission(currentUserRole, permission, customRoles);
+      },
+      fetchRoles: async () => {
+        const { user } = get();
+        if (!user) return;
+        try {
+          const roles = await api.getRoles(user.tenantId || 'tenant-1');
+          const role = user.role || 'tenant_admin';
+          const customRoleDef = roles.find(r => r.role === role);
+          const permissions = customRoleDef 
+            ? customRoleDef.permissions 
+            : ROLE_DEFINITIONS[role as SystemRole]?.permissions || [];
 
-        if (isDemoUser) return true;
-        return checkPermission(currentUserRole, permission);
+          set({ customRoles: roles, currentUserPermissions: permissions });
+        } catch (e) {
+          console.error('Failed to sync roles:', e);
+        }
       }
     }),
     { name: 'shipstack-auth-storage' }
@@ -140,12 +178,30 @@ export const useModuleStore = create<ModuleState>()(
           pendingInstalls: state.pendingInstalls.filter(id => id !== moduleId)
         }));
 
+        // Sync with Tenant Store
+        const currentTenant = useTenantStore.getState().currentTenant;
+        if (currentTenant) {
+          const enabledModules = [...(currentTenant.enabledModules || [])];
+          if (!enabledModules.includes(module.id as any)) {
+            enabledModules.push(module.id as any);
+            useTenantStore.getState().updateTenant({ enabledModules });
+          }
+        }
+
         useAuditStore.getState().logAction('install_module', 'module', module.id, { name: module.name });
       },
       uninstallModule: async (moduleId) => {
         set(state => ({
           installedModules: state.installedModules.filter(m => m.moduleId !== moduleId)
         }));
+
+        // Sync with Tenant Store
+        const currentTenant = useTenantStore.getState().currentTenant;
+        if (currentTenant) {
+          const enabledModules = (currentTenant.enabledModules || []).filter(id => id !== moduleId);
+          useTenantStore.getState().updateTenant({ enabledModules });
+        }
+
         useAuditStore.getState().logAction('uninstall_module', 'module', moduleId);
       },
       updateModuleConfig: (moduleId, config) => set(state => ({
@@ -215,6 +271,8 @@ interface AppState {
   markAllRead: () => void;
   dismissNotification: (id: string) => void;
   clearNotification: (id: string) => void;
+  moduleClicks: Record<string, number>;
+  trackModuleClick: (moduleId: string) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -285,7 +343,14 @@ export const useAppStore = create<AppState>()(
           unreadCount: notifications.filter(x => !x.read).length
         };
       }),
-      clearNotification: (id) => get().dismissNotification(id)
+      clearNotification: (id) => get().dismissNotification(id),
+      moduleClicks: {},
+      trackModuleClick: (moduleId) => set((state) => ({
+        moduleClicks: {
+          ...state.moduleClicks,
+          [moduleId]: (state.moduleClicks[moduleId] || 0) + 1
+        }
+      }))
     }),
     { name: 'shipstack-app-storage' }
   )
@@ -337,6 +402,9 @@ export const useTenantStore = create<TenantState>()(
       },
       updateTenant: (data) => set((state) => {
         const updatedTenant = state.currentTenant ? { ...state.currentTenant, ...data } : null;
+        if (updatedTenant && updatedTenant.id && !localStorage.getItem('shipstack_demo_mode')) {
+          api.updateTenant(updatedTenant.id, data).catch(err => console.error('Store updateTenant failed persist:', err));
+        }
         return {
           currentTenant: updatedTenant,
           theme: data.settings?.primaryColor ? { ...state.theme, primaryColor: data.settings.primaryColor } : state.theme

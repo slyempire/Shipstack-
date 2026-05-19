@@ -6,12 +6,37 @@ import {
   Thermometer, 
   Package, 
   FileText, 
-  Activity
+  Activity,
+  AlertTriangle,
+  BrainCircuit,
+  Brain
 } from 'lucide-react';
 import { Badge } from '../../packages/ui/Badge';
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  AreaChart,
+  Area
+} from 'recharts';
 
-export const HealthcareIntelligence: React.FC<{ data: any }> = ({ data }) => (
-  <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+export const HealthcareIntelligence: React.FC<{ data: any }> = ({ data }) => {
+  const complianceData = [
+    { time: '08:00', compliance: 100, alerts: 0 },
+    { time: '10:00', compliance: 98, alerts: 1 },
+    { time: '12:00', compliance: 95, alerts: 2 },
+    { time: '14:00', compliance: 99, alerts: 0 },
+    { time: '16:00', compliance: 100, alerts: 0 },
+    { time: '18:00', compliance: 97, alerts: 1 },
+    { time: '20:00', compliance: 99, alerts: 0 },
+  ];
+
+  return (
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
     <div className="flex items-center justify-between">
        <div className="flex items-center gap-4">
          <div className="h-12 w-12 bg-blue-600/10 text-blue-600 rounded-2xl flex items-center justify-center shadow-sm">
@@ -81,6 +106,103 @@ export const HealthcareIntelligence: React.FC<{ data: any }> = ({ data }) => (
        </div>
     </div>
 
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+       <div className="lg:col-span-2 bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col">
+          <div className="flex items-center justify-between mb-8">
+             <div>
+                <h4 className="text-sm font-black uppercase tracking-tight text-slate-900">Compliance Integrity Trend</h4>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Real-time GxP monitoring across Mesh Nodes</p>
+             </div>
+             <div className="flex gap-4">
+                <div className="flex items-center gap-2">
+                   <div className="h-2 w-2 rounded-full bg-blue-600" />
+                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Compliance %</span>
+                </div>
+                <div className="flex items-center gap-2">
+                   <div className="h-2 w-2 rounded-full bg-red-500" />
+                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Alerts</span>
+                </div>
+             </div>
+          </div>
+          <div className="h-64 w-full">
+             <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={complianceData}>
+                   <defs>
+                      <linearGradient id="colorComp" x1="0" y1="0" x2="0" y2="1">
+                         <stop offset="5%" stopColor="#2563eb" stopOpacity={0.1}/>
+                         <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
+                      </linearGradient>
+                   </defs>
+                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                   <XAxis 
+                     dataKey="time" 
+                     fontSize={10} 
+                     fontWeight="bold" 
+                     axisLine={false} 
+                     tickLine={false}
+                     tick={{ fill: '#94a3b8' }}
+                   />
+                   <YAxis 
+                     fontSize={10} 
+                     fontWeight="bold" 
+                     axisLine={false} 
+                     tickLine={false}
+                     tick={{ fill: '#94a3b8' }}
+                     domain={[90, 100]}
+                   />
+                   <Tooltip 
+                     contentStyle={{ border: 'none', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '10px' }}
+                   />
+                   <Area 
+                     type="monotone" 
+                     dataKey="compliance" 
+                     stroke="#2563eb" 
+                     strokeWidth={3} 
+                     fillOpacity={1} 
+                     fill="url(#colorComp)" 
+                     animationDuration={1500}
+                   />
+                   <Line 
+                     type="monotone" 
+                     dataKey="alerts" 
+                     stroke="#ef4444" 
+                     strokeWidth={2} 
+                     dot={{ r: 4, fill: '#ef4444', strokeWidth: 0 }}
+                   />
+                </AreaChart>
+             </ResponsiveContainer>
+          </div>
+       </div>
+
+       <div className="bg-slate-900 rounded-[2rem] p-8 text-white relative overflow-hidden flex flex-col justify-between">
+          <div className="relative z-10">
+             <div className="flex items-center gap-3 mb-6">
+                <AlertTriangle className="text-brand-accent" size={24} />
+                <h4 className="text-md font-black uppercase tracking-tight italic">Deviation Insights</h4>
+             </div>
+             <div className="space-y-4">
+                {[
+                  { id: 'dev-1', title: 'Batch B-MLK Expiring', urgency: 'HIGH', impact: 'Financial Loss' },
+                  { id: 'dev-2', title: 'Temp Warning Voi Hub', urgency: 'MED', impact: 'Compliance Risk' },
+                  { id: 'dev-3', title: 'Insulin Pen Batch Delta', urgency: 'LOW', impact: 'Inventory Sync' }
+                ].map(dev => (
+                  <div key={dev.id} className="p-4 bg-white/5 rounded-2xl border border-white/10 group cursor-default hover:bg-white/10 transition-colors">
+                     <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] font-black uppercase tracking-tighter text-white">{dev.title}</span>
+                        <span className={`text-[8px] font-black px-1.5 py-0.5 rounded ${dev.urgency === 'HIGH' ? 'bg-red text-white' : 'bg-brand-accent text-slate-900'}`}>{dev.urgency}</span>
+                     </div>
+                     <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Potential Impact: {dev.impact}</p>
+                  </div>
+                ))}
+             </div>
+          </div>
+          <button className="relative z-10 mt-8 w-full py-4 bg-brand-accent text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-brand-accent/20 transition-transform active:scale-95">
+             Resolve Anomalies
+          </button>
+          <BrainCircuit className="absolute -right-12 -bottom-12 text-white/5" size={200} />
+       </div>
+    </div>
+
     <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
           <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-blue-50/30">
              <div className="flex items-center gap-3">
@@ -131,5 +253,6 @@ export const HealthcareIntelligence: React.FC<{ data: any }> = ({ data }) => (
              </table>
           </div>
        </div>
-  </div>
-);
+    </div>
+  );
+};

@@ -1,5 +1,5 @@
 
-import { Permission, RoleDefinition, SystemRole } from '../types';
+import { Permission, RoleDefinition, SystemRole, UserRole } from '../types';
 
 export const ROLE_DEFINITIONS: Record<SystemRole, RoleDefinition> = {
   super_admin: {
@@ -211,16 +211,11 @@ export const ROUTE_PERMISSION_MAP: Record<string, Permission[]> = {
   '/admin/tasks': ['tasks:view']
 };
 
-export const hasPermission = (userRole: SystemRole, permission: Permission, customRoles?: RoleDefinition[]): boolean => {
+export const hasPermission = (userRole: UserRole, permission: Permission, customRoles?: RoleDefinition[]): boolean => {
   if (!userRole) return false;
-
-  // Demo Admin Override - grant full access to specific demo email
-  // We check the auth store directly if we can't pass the user object here, 
-  // but since we want it to be robust, we'll check it in the store as well later.
-  // For now, if the role is super_admin, it already returns true.
   
-  // Normalize role to lowercase for comparison
-  const normalizedRole = userRole.toLowerCase() as SystemRole;
+  // Normalize role for comparison
+  const normalizedRole = userRole.toLowerCase();
 
   // Check super_admin first (god mode)
   if (normalizedRole === 'super_admin') return true;
@@ -228,14 +223,20 @@ export const hasPermission = (userRole: SystemRole, permission: Permission, cust
   // Check custom roles if provided
   if (customRoles) {
     const customRole = customRoles.find(r => r.role.toLowerCase() === normalizedRole);
-    if (customRole && customRole.permissions.includes(permission)) return true;
+    if (customRole) {
+       if (customRole.permissions.includes(permission)) return true;
+       // Custom role inheritance
+       if (customRole.inherits) {
+         return customRole.inherits.some(inheritedRole => hasPermission(inheritedRole, permission, customRoles));
+       }
+    }
   }
 
   // Check standard role definitions
-  const roleDef = ROLE_DEFINITIONS[normalizedRole];
+  const roleDef = ROLE_DEFINITIONS[normalizedRole as SystemRole];
   if (!roleDef) {
-    // Legacy support for common uppercase aliases if they exist in definitions
-    const legacyRoleDef = ROLE_DEFINITIONS[userRole]; 
+    // Legacy support for common uppercase aliases
+    const legacyRoleDef = ROLE_DEFINITIONS[userRole as SystemRole]; 
     if (!legacyRoleDef) return false;
     if (legacyRoleDef.permissions.includes(permission)) return true;
     return false;
@@ -252,36 +253,36 @@ export const hasPermission = (userRole: SystemRole, permission: Permission, cust
   return false;
 };
 
-export const getPermissionsForRole = (role: SystemRole): Permission[] => {
-  const roleDef = ROLE_DEFINITIONS[role];
+export const getPermissionsForRole = (role: UserRole, customRoles?: RoleDefinition[]): Permission[] => {
+  const roleDef = ROLE_DEFINITIONS[role as SystemRole] || customRoles?.find(r => r.role === role);
   if (!roleDef) return [];
 
   let permissions = [...roleDef.permissions];
   if (roleDef.inherits) {
     roleDef.inherits.forEach(inheritedRole => {
-      permissions = [...new Set([...permissions, ...getPermissionsForRole(inheritedRole)])];
+      permissions = [...new Set([...permissions, ...getPermissionsForRole(inheritedRole, customRoles)])];
     });
   }
 
   return permissions;
 };
 
-export const canAccessRoute = (userRole: SystemRole, route: string): boolean => {
+export const canAccessRoute = (userRole: UserRole, route: string, customRoles?: RoleDefinition[]): boolean => {
   if (userRole === 'super_admin') return true;
   
   const requiredPermissions = ROUTE_PERMISSION_MAP[route] || ROUTE_PERMISSION_MAP[route.split('?')[0]];
   if (!requiredPermissions) return true; // Public or unguarded route
 
-  return requiredPermissions.every(permission => hasPermission(userRole, permission));
+  return requiredPermissions.every(permission => hasPermission(userRole, permission, customRoles));
 };
 
-export const getRoleInheritanceChain = (role: SystemRole): SystemRole[] => {
-  const roleDef = ROLE_DEFINITIONS[role];
+export const getRoleInheritanceChain = (role: UserRole, customRoles?: RoleDefinition[]): UserRole[] => {
+  const roleDef = ROLE_DEFINITIONS[role as SystemRole] || customRoles?.find(r => r.role === role);
   if (!roleDef || !roleDef.inherits) return [role];
 
   let chain = [role];
   roleDef.inherits.forEach(inheritedRole => {
-    chain = [...new Set([...chain, ...getRoleInheritanceChain(inheritedRole)])];
+    chain = [...new Set([...chain, ...getRoleInheritanceChain(inheritedRole, customRoles)])];
   });
   
   return chain;

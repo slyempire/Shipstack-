@@ -9,12 +9,14 @@ import { useGeolocation } from '../hooks/useGeolocation';
 import { useAppStore } from '../store';
 
 interface MapEngineProps {
-  dns: DeliveryNote[];
-  facilities: Facility[];
+  dns?: DeliveryNote[];
+  facilities?: Facility[];
   focusedDnId?: string;
   followDriver?: boolean;
   className?: string;
   showTraffic?: boolean;
+  center?: { lat: number; lng: number };
+  zoom?: number;
 }
 
 type MapLayer = 'streets' | 'satellite' | 'terrain' | 'dark';
@@ -25,7 +27,9 @@ const MapEngine: React.FC<MapEngineProps> = ({
   focusedDnId, 
   followDriver = false, 
   className = '',
-  showTraffic = true
+  showTraffic = true,
+  center,
+  zoom
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Map | null>(null);
@@ -545,8 +549,8 @@ const MapEngine: React.FC<MapEngineProps> = ({
       const map = new Map({
         container: containerRef.current,
         style: styles[activeLayer],
-        center: [36.817223, -1.286389],
-        zoom: 13,
+        center: center ? [center.lng, center.lat] : [36.817223, -1.286389],
+        zoom: zoom ?? 13,
         pitch: 45,
         bearing: -17,
         attributionControl: false

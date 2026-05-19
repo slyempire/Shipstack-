@@ -15,7 +15,7 @@ export type SystemRole =
   | 'marketplace_publisher' 
   | 'support_agent';
 
-export type UserRole = SystemRole | 'ADMIN' | 'DISPATCHER' | 'FINANCE' | 'FACILITY' | 'DRIVER' | 'CLIENT' | 'WAREHOUSE';
+export type UserRole = SystemRole | string;
 
 export type Permission = 
   | 'dashboard:view' | 'dashboard:export'
@@ -41,7 +41,7 @@ export type Permission =
   | 'tasks:view' | 'tasks:manage';
 
 export interface RoleDefinition {
-  role: SystemRole;
+  role: UserRole;
   label: string;
   description: string;
   permissions: Permission[];
@@ -114,7 +114,7 @@ export interface Subscription {
 
 // --- MODULES ---
 export type ModuleId = 
-  | 'dashboard' | 'dispatch' | 'warehouse' | 'orders' | 'fleet' | 'finance' 
+  | 'dashboard' | 'dispatch' | 'warehouse' | 'orders' | 'fleet' | 'finance' | 'crm'
   | 'driver-portal' | 'facility-portal' | 'client-portal' | 'analytics' | 'integrations'
   | 'core-dashboard' | 'core-dispatch' | 'core-fleet' | 'core-trips' | 'core-invoicing'
   | 'vertical-healthcare' | 'vertical-agriculture' | 'vertical-ecommerce' | 'vertical-retail' 
@@ -122,14 +122,16 @@ export type ModuleId =
   | 'addon-route-optimizer' | 'addon-customer-portal' | 'addon-driver-app-pro' 
   | 'integration-frappe-erp' | 'integration-quickbooks' | 'integration-shopify' 
   | 'integration-mpesa' | 'integration-stripe' | 'compliance-gdpr-toolkit' | 'compliance-iso-28000'
-  | 'hardware-obd-pro' | 'hardware-asset-tag' | 'hardware-vision-ai';
+  | 'hardware-obd-pro' | 'hardware-asset-tag' | 'hardware-vision-ai'
+  | 'security-suite' | 'security-rbac' | 'security-diagnostics' | 'security-audit';
 
 export type ModuleStatus = 'active' | 'inactive' | 'trial' | 'suspended' | 'deprecated' | 'pending_review' | 'ACTIVE' | 'SUSPENDED' | 'TRIAL';
-export type ModuleCategory = 'core' | 'industry_vertical' | 'integration' | 'addon' | 'ai_feature' | 'compliance' | 'hardware' | 'CORE' | 'ADD-ON' | 'PORTAL';
+export type ModuleCategory = 'core' | 'industry_vertical' | 'integration' | 'addon' | 'ai_feature' | 'compliance' | 'hardware' | 'CORE' | 'ADD-ON' | 'PORTAL' | 'security';
 export type ModuleTier = 'free' | 'starter' | 'professional' | 'enterprise' | 'custom';
 
 export interface ModuleDefinition {
   id: ModuleId;
+  parentId?: ModuleId;
   name: string;
   slug: string;
   description: string;
@@ -171,6 +173,7 @@ export interface TenantModule {
 
 // --- LOGISTICS & OPERATIONS ---
 export enum DNStatus {
+  PENDING = 'PENDING',
   RECEIVED = 'RECEIVED',
   VALIDATED = 'VALIDATED',
   READY_FOR_DISPATCH = 'READY_FOR_DISPATCH',
@@ -180,7 +183,8 @@ export enum DNStatus {
   DELIVERED = 'DELIVERED',
   COMPLETED = 'COMPLETED',
   INVOICED = 'INVOICED',
-  EXCEPTION = 'EXCEPTION'
+  EXCEPTION = 'EXCEPTION',
+  ASSIGN_DRIVER = 'ASSIGN_DRIVER'
 }
 
 export type Priority = 'LOW' | 'MEDIUM' | 'HIGH';
@@ -233,6 +237,7 @@ export interface DeliveryNote {
   items: DeliveryItem[];
   status: DNStatus;
   priority: Priority;
+  recipient?: string;
   createdAt: string;
   lat?: number;
   lng?: number;
@@ -257,8 +262,11 @@ export interface DeliveryNote {
   originAddress?: string;
   notes?: string;
   isPerishable?: boolean;
-  tempRequirement?: string | { min: number; max: number; current?: number };
+  tempRequirement?: { min: number; max: number; current?: number; unit: 'C' | 'F' };
+  tempLogs?: ColdChainLog[];
   paymentStatus?: 'PENDING' | 'COLLECTED' | 'REMITTED' | 'PAID' | 'UNPAID';
+  complianceStatus?: 'PENDING' | 'PASS' | 'FAIL' | 'REVIEW_REQUIRED';
+  journey?: JourneyMilestone[];
   facilityId?: string;
   plannedPickupTime?: string;
   plannedDeliveryDate?: string;
@@ -352,7 +360,7 @@ export interface InventoryItem {
   binLocation?: string;
   unit?: string;
   minThreshold?: number;
-  tempRequirement?: string | { min: number; max: number; current?: number };
+  tempRequirement?: { min: number; max: number; current?: number; unit: 'C' | 'F' };
   status?: string;
 }
 
@@ -373,7 +381,8 @@ export enum VehicleType {
   LIGHT_TRUCK = 'Light Truck (3-5 Tons)',
   MEDIUM_TRUCK = 'Medium Truck (7-10 Tons)',
   HEAVY_TRUCK = 'Heavy Truck (Prime Mover)',
-  BICYCLE = 'Bicycle'
+  BICYCLE = 'Bicycle',
+  REFRIGERATED_TRUCK = 'Refrigerated Truck (Cold Chain)'
 }
 
 export interface Vehicle {
@@ -385,6 +394,8 @@ export interface Vehicle {
   ownerId?: string;
   tenantId?: string;
   verificationStatus: 'PENDING' | 'VERIFIED' | 'REJECTED';
+  hasColdStorage?: boolean;
+  currentTemp?: number;
   // Missing properties
   nextServiceDate?: string;
   nextServiceOdometer?: number;
@@ -548,7 +559,21 @@ export interface AnalyticsReport {
   generatedAt?: string;
 }
 
-export type SafetyEventType = 'HARSH_BRAKING' | 'OVERSPEEDING' | 'DEVIATION' | 'GEOFENCE_EXIT' | 'SOS';
+export type SafetyEventType = 'HARSH_BRAKING' | 'OVERSPEEDING' | 'DEVIATION' | 'GEOFENCE_EXIT' | 'SOS' | 'TEMPERATURE_ALERT';
+
+export interface ColdChainLog {
+  id: string;
+  dnId: string;
+  tripId?: string;
+  vehicleId?: string;
+  temperature: number;
+  humidity?: number;
+  timestamp: string;
+  lat?: number;
+  lng?: number;
+  isAlert?: boolean;
+  status: 'NORMAL' | 'CRITICAL' | 'WARNING';
+}
 
 // --- SYSTEM ---
 export interface Notification {
@@ -560,6 +585,7 @@ export interface Notification {
   title: string;
   message: string;
   timestamp: string;
+  time?: string;
   read: boolean;
   isRead?: boolean;
   persistent: boolean;
@@ -605,7 +631,34 @@ export interface TelemetryPoint {
 
 export type LatLngTuple = [number, number];
 
-export interface LogisticsDocument { id: string; type: LogisticsDocumentType; status: LogisticsDocumentStatus; url: string; verificationCode?: string; issuedAt?: string; signedBy?: string; }
+export interface JourneyMilestone {
+  id: string;
+  type: 'STATUS_CHANGE' | 'DOCUMENT_UPLOAD' | 'TELEMETRY' | 'EXCEPTION' | 'COMPLIANCE_CHECK' | 'HANDOVER';
+  status: string;
+  label: string;
+  description: string;
+  timestamp: string;
+  location?: { lat: number; lng: number; address?: string };
+  userId?: string;
+  userName?: string;
+  metadata?: any;
+}
+
+export interface LogisticsDocument { 
+  id: string; 
+  type: LogisticsDocumentType; 
+  status: LogisticsDocumentStatus; 
+  url: string; 
+  fileName?: string;
+  docNumber?: string;
+  verificationCode?: string; 
+  issuedAt?: string; 
+  expiresAt?: string;
+  issuedBy?: string;
+  signedBy?: string; 
+  requirements?: string[];
+  metadata?: any;
+}
 
 export enum LogisticsDocumentType {
   POD = 'POD',
@@ -613,7 +666,13 @@ export enum LogisticsDocumentType {
   DELIVERY_NOTE = 'DELIVERY_NOTE',
   INSPECTION = 'INSPECTION',
   LOADING_AUTHORITY = 'LOADING_AUTHORITY',
-  MANIFEST = 'MANIFEST'
+  MANIFEST = 'MANIFEST',
+  CUSTOMS_DECLARATION = 'CUSTOMS_DECLARATION',
+  COMMERCIAL_INVOICE = 'COMMERCIAL_INVOICE',
+  CERTIFICATE_OF_ORIGIN = 'CERTIFICATE_OF_ORIGIN',
+  PACKING_LIST = 'PACKING_LIST',
+  BILL_OF_LADING = 'BILL_OF_LADING',
+  COMPLIANCE_CERTIFICATE = 'COMPLIANCE_CERTIFICATE'
 }
 
 export enum LogisticsDocumentStatus {
@@ -639,6 +698,22 @@ export interface LogisticsException {
   metadata?: any;
 }
 
+export interface SubTask {
+  id: string;
+  title: string;
+  completed: boolean;
+  createdAt: string;
+}
+
+export interface TaskActivity {
+  id: string;
+  userId: string;
+  userName: string;
+  action: string;
+  timestamp: string;
+  notes?: string;
+}
+
 export interface Task { 
   id: string; 
   title: string; 
@@ -652,6 +727,10 @@ export interface Task {
   dueDate?: string; 
   createdAt?: string;
   updatedAt?: string;
+  category?: string;
+  estimatedMinutes?: number;
+  subtasks?: SubTask[];
+  history?: TaskActivity[];
 };
 
 export type RouteOptimizationResult = { id: string; optimizedOrder: string[]; savings: number; metrics?: any; confidence?: number; processingTimeMs?: number };

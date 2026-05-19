@@ -43,7 +43,7 @@ const ExceptionsView = React.lazy(() => import('./views/admin/ExceptionsView'));
 const Analytics = React.lazy(() => import('./views/admin/Analytics'));
 const UserManagement = React.lazy(() => import('./views/admin/UserManagement'));
 const RecruitmentManagement = React.lazy(() => import('./views/admin/RecruitmentManagement'));
-const SecurityAudit = React.lazy(() => import('./views/admin/SecurityAudit'));
+const SecurityCommandCenter = React.lazy(() => import('./views/admin/SecurityCommandCenter'));
 const FleetManagement = React.lazy(() => import('./views/admin/FleetManagement'));
 const OrderManagement = React.lazy(() => import('./views/admin/OrderManagement'));
 const WarehouseManagement = React.lazy(() => import('./views/admin/WarehouseManagement'));
@@ -54,6 +54,7 @@ const MarketplaceView = React.lazy(() => import('./views/admin/MarketplaceView')
 const TaskManagementView = React.lazy(() => import('./views/admin/TaskManagementView'));
 const TenantManagement = React.lazy(() => import('./views/admin/TenantManagement'));
 const DriverPortal = React.lazy(() => import('./views/driver/DriverPortal'));
+const TrackPackage = React.lazy(() => import('./views/public/TrackPackage'));
 const DriverAuxiliary = React.lazy(() => import('./views/driver/DriverAuxiliary'));
 const FacilityPortal = React.lazy(() => import('./views/facility/FacilityPortal'));
 const ClientPortal = React.lazy(() => import('./views/client/ClientPortal'));
@@ -64,8 +65,6 @@ const SettingsView = React.lazy(() => import('./views/shared/SettingsView'));
 const LegalView = React.lazy(() => import('./views/shared/LegalView'));
 const StyleGuide = React.lazy(() => import('./views/marketing/StyleGuide'));
 const HealthcareDashboard = React.lazy(() => import('./views/industry/HealthcareDashboard'));
-
-const DiagnosticsView = React.lazy(() => import('./views/admin/DiagnosticsView'));
 
 const DashboardSwitcher = () => {
   const user = useAuthStore(state => state.user);
@@ -180,6 +179,8 @@ const App: React.FC = () => {
                 <Route path="/legal" element={<LegalView />} />
                 <Route path="/style-guide" element={<StyleGuide />} />
                 <Route path="/solutions/healthcare" element={<HealthcareDashboard />} />
+                <Route path="/track" element={<TrackPackage />} />
+                <Route path="/track/:id" element={<TrackPackage />} />
                 
                 {/* Onboarding Flow - Publicly accessible but requires auth to complete */}
                 <Route path="/onboarding" element={<OnboardingFlow />} />
@@ -229,7 +230,7 @@ const App: React.FC = () => {
                 <Route path="/admin/security" element={
                   <ProtectedRoute>
                     <RoleGuard allowedRoles={['super_admin', 'tenant_admin']} permissions={['security:view']} showFullPageError>
-                      <SecurityAudit />
+                      <SecurityCommandCenter />
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
@@ -310,13 +311,6 @@ const App: React.FC = () => {
                     </RoleGuard>
                   </ProtectedRoute>
                 } />
-                <Route path="/admin/diagnostics" element={
-                  <ProtectedRoute>
-                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin']} permissions={['security:view']} showFullPageError>
-                      <DiagnosticsView />
-                    </RoleGuard>
-                  </ProtectedRoute>
-                } />
                 <Route path="/admin/trip/:id" element={
                   <ProtectedRoute>
                     <RoleGuard permissions={['trips:view']} showFullPageError>
@@ -358,7 +352,7 @@ const App: React.FC = () => {
                 } />
                 <Route path="/admin/marketplace" element={
                   <ProtectedRoute>
-                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin', 'analyst']} permissions={['marketplace:view']} showFullPageError>
+                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin']} permissions={['marketplace:view']} showFullPageError>
                       <MarketplaceView />
                     </RoleGuard>
                   </ProtectedRoute>

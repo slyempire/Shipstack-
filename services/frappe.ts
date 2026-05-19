@@ -81,11 +81,13 @@ export class FrappeService {
 
   // --- Generic Resource Methods ---
 
-  static async getList<T>(doctype: string, filters?: any, fields: string[] = ['*']): Promise<T[]> {
+  static async getList<T>(doctype: string, filters?: any, fields: string[] = ['*'], limit_page_length: number = 20, limit_start: number = 0): Promise<T[]> {
     const params = new URLSearchParams({
       doctype,
       filters: JSON.stringify(filters || {}),
       fields: JSON.stringify(fields),
+      limit_page_length: limit_page_length.toString(),
+      limit_start: limit_start.toString(),
     });
     return this.request<T[]>('GET', `api/resource/${doctype}?${params.toString()}`);
   }

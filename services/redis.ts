@@ -15,7 +15,17 @@ export const cacheService = {
         body: JSON.stringify({ value, ttl: ttlSeconds })
       });
     } catch (err) {
-      console.error(`Cache set failed for key ${key}:`, err);
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      const lowMsg = errorMsg.toLowerCase();
+      const isNetworkError = lowMsg.includes('fetch') || 
+                            lowMsg.includes('network') ||
+                            lowMsg.includes('failed to fetch') ||
+                            lowMsg.includes('typeerror') ||
+                            lowMsg.includes('abort') ||
+                            lowMsg.includes('load failed');
+      if (!isNetworkError) {
+        console.error(`Cache set failed for key ${key}:`, err);
+      }
     }
   },
 
@@ -29,14 +39,24 @@ export const cacheService = {
       
       const contentType = response.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
-        console.warn(`Cache get for ${key} returned non-JSON content: ${contentType}`);
         return null;
       }
 
       const { value } = await response.json();
       return value as T;
     } catch (err) {
-      console.error(`Cache get failed for key ${key}:`, err);
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      const lowMsg = errorMsg.toLowerCase();
+      const isNetworkError = lowMsg.includes('fetch') || 
+                            lowMsg.includes('network') ||
+                            lowMsg.includes('failed to fetch') ||
+                            lowMsg.includes('typeerror') ||
+                            lowMsg.includes('abort') ||
+                            lowMsg.includes('load failed');
+      
+      if (!isNetworkError) {
+        console.error(`Cache get failed for key ${key}:`, err);
+      }
       return null;
     }
   },
@@ -48,7 +68,17 @@ export const cacheService = {
     try {
       await fetch(`/api/cache/${key}`, { method: 'DELETE' });
     } catch (err) {
-      console.error(`Cache del failed for key ${key}:`, err);
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      const lowMsg = errorMsg.toLowerCase();
+      const isNetworkError = lowMsg.includes('fetch') || 
+                            lowMsg.includes('network') ||
+                            lowMsg.includes('failed to fetch') ||
+                            lowMsg.includes('typeerror') ||
+                            lowMsg.includes('abort') ||
+                            lowMsg.includes('load failed');
+      if (!isNetworkError) {
+        console.error(`Cache del failed for key ${key}:`, err);
+      }
     }
   }
 };

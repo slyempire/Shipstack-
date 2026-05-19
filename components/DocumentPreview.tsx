@@ -1,34 +1,65 @@
 
-import React from 'react';
-import { DeliveryNote, LogisticsDocument, LogisticsDocumentType } from '../types';
-import { X, Printer, Download, CheckCircle2, ShieldCheck, QrCode } from 'lucide-react';
+import React, { useState } from 'react';
+import { DeliveryNote, LogisticsDocument, LogisticsDocumentType, LogisticsDocumentStatus } from '../types';
+import { X, Printer, Download, CheckCircle2, ShieldCheck, QrCode, FileCheck, RotateCw } from 'lucide-react';
+import { api } from '../api';
+import { useAuthStore } from '../store';
 
 interface DocumentPreviewProps {
   dn: DeliveryNote;
   doc: LogisticsDocument;
   onClose: () => void;
+  onVerify?: () => void;
 }
 
-const DocumentPreview: React.FC<DocumentPreviewProps> = ({ dn, doc, onClose }) => {
+const DocumentPreview: React.FC<DocumentPreviewProps> = ({ dn, doc, onClose, onVerify }) => {
+  const { user } = useAuthStore();
+  const [verifying, setVerifying] = useState(false);
+
+  const handleVerify = async () => {
+    setVerifying(true);
+    try {
+      await api.verifyDocument(dn.id, doc.id, user?.name || 'Authorized Auditor');
+      if (onVerify) onVerify();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const showVerifyAction = doc.status !== LogisticsDocumentStatus.VERIFIED && 
+                           ['super_admin', 'tenant_admin', 'operations_manager'].includes(user?.role || '');
+
   return (
-    <div className="fixed inset-0 z-[100] bg-brand/90 backdrop-blur-md flex items-center justify-center p-4 md:p-8 animate-in fade-in">
-      <div className="bg-white w-full max-w-4xl h-full max-h-[90vh] rounded-[2rem] shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-12">
+    <div className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 md:p-8 animate-in fade-in">
+      <div className="bg-white w-full max-w-5xl h-full max-h-[92vh] rounded-[3rem] shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-12">
         {/* Document Header Controls */}
-        <div className="px-8 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <div className="flex items-center gap-3">
-             <div className="h-8 w-8 bg-brand text-white rounded-lg flex items-center justify-center">
-                <ShieldCheck size={18} />
+        <div className="px-10 py-6 border-b border-slate-100 flex items-center justify-between bg-white">
+          <div className="flex items-center gap-4">
+             <div className={`h-12 w-12 ${doc.status === LogisticsDocumentStatus.VERIFIED ? 'bg-emerald-500' : 'bg-slate-900'} text-white rounded-2xl flex items-center justify-center shadow-lg`}>
+                {doc.status === LogisticsDocumentStatus.VERIFIED ? <FileCheck size={24} /> : <ShieldCheck size={24} />}
              </div>
              <div>
-                <h3 className="text-xs font-black uppercase tracking-widest text-slate-900">{doc.type.replace('_', ' ')}</h3>
-                <p className="text-[10px] font-bold text-slate-400">ID: {doc.verificationCode} &bull; Issued {new Date(doc.issuedAt).toLocaleDateString()}</p>
+                <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-900 leading-none mb-1.5">{doc.type.replace('_', ' ')}</h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">ID: {doc.verificationCode} &bull; Issued {new Date(doc.issuedAt || '').toLocaleDateString()}</p>
              </div>
           </div>
-          <div className="flex items-center gap-4">
-             <button className="p-2 text-slate-400 hover:text-brand transition-colors"><Printer size={18} /></button>
-             <button className="p-2 text-slate-400 hover:text-brand transition-colors"><Download size={18} /></button>
-             <div className="h-6 w-px bg-slate-200 mx-2" />
-             <button onClick={onClose} className="p-2 text-slate-400 hover:text-brand transition-colors"><X size={24} /></button>
+          <div className="flex items-center gap-3">
+             {showVerifyAction && (
+                <button 
+                  onClick={handleVerify}
+                  disabled={verifying}
+                  className="bg-brand text-white px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-brand/90 transition-all shadow-xl shadow-brand/20 active:scale-95 disabled:opacity-50"
+                >
+                   {verifying ? <RotateCw className="animate-spin" size={14} /> : <CheckCircle2 size={14} />}
+                   Verify & Authorize
+                </button>
+             )}
+             <div className="h-8 w-px bg-slate-100 mx-2" />
+             <button className="h-10 w-10 flex items-center justify-center text-slate-400 hover:text-brand transition-colors"><Printer size={20} /></button>
+             <button className="h-10 w-10 flex items-center justify-center text-slate-400 hover:text-brand transition-colors"><Download size={20} /></button>
+             <button onClick={onClose} className="h-10 w-10 flex items-center justify-center bg-slate-100 text-slate-400 hover:text-red-500 rounded-full transition-all ml-2"><X size={24} /></button>
           </div>
         </div>
 

@@ -78,6 +78,7 @@ const ClientPortal: React.FC = () => {
     ];
 
     const statusMap: Record<DNStatus, number> = {
+      [DNStatus.PENDING]: 0,
       [DNStatus.RECEIVED]: 0,
       [DNStatus.VALIDATED]: 0,
       [DNStatus.READY_FOR_DISPATCH]: 0,
@@ -88,6 +89,7 @@ const ClientPortal: React.FC = () => {
       [DNStatus.COMPLETED]: 4,
       [DNStatus.INVOICED]: 4,
       [DNStatus.EXCEPTION]: 2, // Depends on where it happened
+      [DNStatus.ASSIGN_DRIVER]: 1,
     };
 
     const currentStepIndex = statusMap[status] || 0;

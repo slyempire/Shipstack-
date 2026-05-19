@@ -12,16 +12,203 @@ import {
   Check,
   User as UserIcon,
   Filter,
-  Search
+  Search,
+  ChevronRight,
+  ListTodo,
+  History,
+  Tag,
+  Timer
 } from 'lucide-react';
-import { Task, Priority, User } from '../types';
+import { Task, Priority, User, SubTask, TaskActivity } from '../types';
 import { api } from '../api';
 import { useAuthStore, useAppStore } from '../store';
+import { Badge } from '../packages/ui/Badge';
+import Layout from './Layout';
+
+const TaskDetailDrawer: React.FC<{
+  task: Task;
+  users: User[];
+  isOpen: boolean;
+  onClose: () => void;
+  onUpdate: (id: string, updates: Partial<Task>) => void;
+}> = ({ task, users, isOpen, onClose, onUpdate }) => {
+  const [newSubtask, setNewSubtask] = useState('');
+  const { user } = useAuthStore();
+
+  if (!isOpen) return null;
+
+  const handleAddSubtask = () => {
+    if (!newSubtask.trim()) return;
+    const sub: SubTask = {
+      id: `sub-${Date.now()}`,
+      title: newSubtask,
+      completed: false,
+      createdAt: new Date().toISOString()
+    };
+    const updatedSubtasks = [...(task.subtasks || []), sub];
+    
+    const activity: TaskActivity = {
+      id: `act-${Date.now()}`,
+      userId: user?.id || 'system',
+      userName: user?.name || 'System',
+      action: `Added subtask: ${newSubtask}`,
+      timestamp: new Date().toISOString()
+    };
+    
+    onUpdate(task.id, { 
+      subtasks: updatedSubtasks,
+      history: [activity, ...(task.history || [])]
+    });
+    setNewSubtask('');
+  };
+
+  const toggleSubtask = (subId: string) => {
+    const updated = task.subtasks?.map(s => 
+      s.id === subId ? { ...s, completed: !s.completed } : s
+    );
+    onUpdate(task.id, { subtasks: updated });
+  };
+
+  return (
+    <div className="fixed inset-0 z-[2005] flex justify-end">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="absolute inset-0 bg-ink/40 backdrop-blur-sm"
+      />
+      <motion.div 
+        initial={{ x: '100%' }}
+        animate={{ x: 0 }}
+        exit={{ x: '100%' }}
+        transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+        className="relative w-full max-w-xl bg-white h-full shadow-2xl flex flex-col"
+      >
+        <div className="p-8 border-b border-line flex items-center justify-between bg-slate-50/50">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+               <Badge variant={task.completed ? 'delivered' : 'pending'}>
+                  {task.status}
+               </Badge>
+               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{task.id}</span>
+            </div>
+            <h3 className="text-2xl font-black uppercase tracking-tighter text-ink">{task.title}</h3>
+          </div>
+          <button onClick={onClose} className="p-3 hover:bg-white rounded-2xl transition-all shadow-sm">
+            <X size={20} className="text-slate-400" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-8 space-y-10 no-scrollbar">
+          {/* Metadata Grid */}
+          <div className="grid grid-cols-2 gap-4">
+             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                <p className="label-mono mb-2 flex items-center gap-2"><UserIcon size={12}/> Assignee</p>
+                <p className="text-xs font-bold text-ink">
+                  {users.find(u => u.id === task.assignedTo)?.name || 'Unassigned'}
+                </p>
+             </div>
+             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                <p className="label-mono mb-2 flex items-center gap-2"><Calendar size={12}/> Due Date</p>
+                <p className="text-xs font-bold text-ink">{task.dueDate || 'No target'}</p>
+             </div>
+             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                <p className="label-mono mb-2 flex items-center gap-2"><Tag size={12}/> Category</p>
+                <p className="text-xs font-bold text-ink uppercase tracking-tight">{task.category || 'General'}</p>
+             </div>
+             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                <p className="label-mono mb-2 flex items-center gap-2"><Timer size={12}/> Est. Time</p>
+                <p className="text-xs font-bold text-ink">{task.estimatedMinutes ? `${task.estimatedMinutes}m` : 'N/A'}</p>
+             </div>
+          </div>
+
+          {/* Description */}
+          <div className="space-y-3">
+             <p className="label-mono !text-slate-900 border-l-4 border-brand pl-3">Strategic Context</p>
+             <p className="text-sm text-slate-600 font-medium leading-relaxed bg-slate-50/50 p-4 rounded-2xl italic">
+                {task.description || 'No additional intelligence provided for this objective.'}
+             </p>
+          </div>
+
+          {/* Subtasks */}
+          <div className="space-y-4">
+             <div className="flex items-center justify-between">
+                <p className="label-mono !text-slate-900 flex items-center gap-2">
+                   <ListTodo size={14} className="text-brand" /> Operational Checklist
+                </p>
+                <span className="text-[10px] font-black text-slate-400">
+                   {task.subtasks?.filter(s => s.completed).length || 0}/{task.subtasks?.length || 0}
+                </span>
+             </div>
+             
+             <div className="space-y-2">
+                {task.subtasks?.map(sub => (
+                   <button 
+                    key={sub.id}
+                    onClick={() => toggleSubtask(sub.id)}
+                    className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl transition-all text-left group"
+                   >
+                      <div className={`h-5 w-5 rounded-md flex items-center justify-center border transition-all ${
+                         sub.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-200 text-transparent'
+                      }`}>
+                         <Check size={12} strokeWidth={4} />
+                      </div>
+                      <span className={`text-[11px] font-bold tracking-tight ${sub.completed ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
+                         {sub.title}
+                      </span>
+                   </button>
+                ))}
+                
+                <div className="flex gap-2 pt-2">
+                   <input 
+                      value={newSubtask}
+                      onChange={(e) => setNewSubtask(e.target.value)}
+                      placeholder="Add specific tactical step..."
+                      className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-[11px] font-bold outline-none focus:border-brand transition-all"
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddSubtask()}
+                   />
+                   <button 
+                      onClick={handleAddSubtask}
+                      className="h-10 w-10 bg-slate-900 text-white rounded-xl flex items-center justify-center hover:bg-brand transition-all shadow-lg"
+                   >
+                      <Plus size={18} />
+                   </button>
+                </div>
+             </div>
+          </div>
+
+          {/* Activity Log */}
+          <div className="space-y-4 pb-10">
+             <p className="label-mono !text-slate-900 flex items-center gap-2">
+                <History size={14} className="text-brand" /> Operation Ledger
+             </p>
+             <div className="space-y-4 relative before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-100">
+                {task.history?.map(log => (
+                   <div key={log.id} className="relative pl-8">
+                      <div className="absolute left-[7px] top-2 h-2 w-2 rounded-full bg-slate-300 border-2 border-white" />
+                      <p className="text-[10px] font-black text-ink uppercase tracking-tight mb-1">{log.action}</p>
+                      <div className="flex items-center gap-2">
+                         <span className="text-[9px] font-bold text-brand uppercase tracking-widest">{log.userName}</span>
+                         <span className="text-[9px] font-medium text-slate-400">{new Date(log.timestamp).toLocaleString()}</span>
+                      </div>
+                   </div>
+                ))}
+                {(!task.history || task.history.length === 0) && (
+                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest p-4 text-center italic">No ledger entries recorded.</p>
+                )}
+             </div>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
 
 const TaskModal: React.FC<{ 
   isOpen: boolean; 
   onClose: () => void; 
-  onSave: (task: Omit<Task, 'id' | 'completed' | 'userId' | 'tenantId' | 'createdAt' | 'updatedAt'>) => void;
+  onSave: (task: Partial<Task>) => void;
   users: User[];
 }> = ({ isOpen, onClose, onSave, users }) => {
   const [title, setTitle] = useState('');
@@ -29,6 +216,8 @@ const TaskModal: React.FC<{
   const [dueDate, setDueDate] = useState('');
   const [priority, setPriority] = useState<Priority>('MEDIUM');
   const [assignedTo, setAssignedTo] = useState('');
+  const [category, setCategory] = useState('OPERATIONS');
+  const [estimatedMinutes, setEstimatedMinutes] = useState(30);
 
   if (!isOpen) return null;
 
@@ -42,8 +231,8 @@ const TaskModal: React.FC<{
       >
         <div className="p-8 border-b border-line flex items-center justify-between">
           <div>
-            <h3 className="text-2xl font-black uppercase tracking-tighter text-ink">Create New Task</h3>
-            <p className="label-mono !text-slate-400">Tactical objective assignment</p>
+            <h3 className="text-2xl font-black uppercase tracking-tighter text-ink">Deploy Objective</h3>
+            <p className="label-mono !text-slate-400">Tactical mission assignment</p>
           </div>
           <button onClick={onClose} className="p-3 hover:bg-slate-50 rounded-2xl transition-all">
             <X size={20} className="text-slate-400" />
@@ -52,32 +241,67 @@ const TaskModal: React.FC<{
 
         <form onSubmit={(e) => {
           e.preventDefault();
-          onSave({ title, description, dueDate, priority, assignedTo, status: 'TODO' });
+          onSave({ 
+            title, 
+            description, 
+            dueDate, 
+            priority, 
+            assignedTo, 
+            status: 'TODO',
+            category,
+            estimatedMinutes
+          });
           onClose();
-        }} className="p-8 space-y-6">
+        }} className="p-8 space-y-6 max-h-[70vh] overflow-y-auto no-scrollbar">
           <div className="space-y-2">
-            <label className="label-mono">Task Title</label>
+            <label className="label-mono">Strategic Title</label>
             <input 
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full p-4 bg-slate-50 border border-line rounded-2xl focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-bold text-ink"
-              placeholder="e.g., Reconcile warehouse inventory"
+              placeholder="e.g., Warehouse Vector Audit"
             />
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+             <div className="space-y-2">
+               <label className="label-mono">Sector/Category</label>
+               <select 
+                 value={category}
+                 onChange={(e) => setCategory(e.target.value)}
+                 className="w-full p-4 bg-slate-50 border border-line rounded-2xl font-bold text-ink"
+               >
+                 <option value="OPERATIONS">OPERATIONS</option>
+                 <option value="FINANCE">FINANCE</option>
+                 <option value="HR">HR</option>
+                 <option value="FLEET">FLEET</option>
+                 <option value="WAREHOUSE">WAREHOUSE</option>
+               </select>
+             </div>
+             <div className="space-y-2">
+               <label className="label-mono">Est. Duration (Min)</label>
+               <input 
+                 type="number"
+                 value={estimatedMinutes}
+                 onChange={(e) => setEstimatedMinutes(parseInt(e.target.value))}
+                 className="w-full p-4 bg-slate-50 border border-line rounded-2xl font-bold text-ink"
+               />
+             </div>
+          </div>
+
           <div className="space-y-2">
-            <label className="label-mono">Description</label>
+            <label className="label-mono">Mission Brief</label>
             <textarea 
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="w-full p-4 bg-slate-50 border border-line rounded-2xl focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-medium text-ink h-24"
-              placeholder="Detailed tactical instructions..."
+              placeholder="Primary objectives and constraints..."
             />
           </div>
 
           <div className="space-y-2">
-            <label className="label-mono">Allocated To</label>
+            <label className="label-mono">Assigned Agent</label>
             <div className="relative">
               <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <select 
@@ -95,7 +319,7 @@ const TaskModal: React.FC<{
 
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="label-mono">Target Date</label>
+              <label className="label-mono">Deployment Date</label>
               <div className="relative">
                 <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                 <input 
@@ -108,15 +332,15 @@ const TaskModal: React.FC<{
               </div>
             </div>
             <div className="space-y-2">
-              <label className="label-mono">Priority</label>
+              <label className="label-mono">Threat Level</label>
               <select 
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as Priority)}
                 className="w-full p-4 bg-slate-50 border border-line rounded-2xl focus:ring-2 focus:ring-brand focus:border-transparent transition-all font-bold text-ink appearance-none"
               >
-                <option value="LOW">LOW</option>
-                <option value="MEDIUM">MEDIUM</option>
-                <option value="HIGH">HIGH</option>
+                <option value="LOW">LOW (ROUTINE)</option>
+                <option value="MEDIUM">MEDIUM (IMPORTANT)</option>
+                <option value="HIGH">HIGH (CRITICAL)</option>
               </select>
             </div>
           </div>
@@ -125,15 +349,15 @@ const TaskModal: React.FC<{
             <button 
               type="button"
               onClick={onClose}
-              className="flex-1 py-4 bg-white text-slate-600 border border-slate-200 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 transition-all"
+              className="flex-1 py-4 bg-white text-slate-600 border border-slate-200 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 transition-all font-sans"
             >
-              Cancel
+              Abort
             </button>
             <button 
               type="submit"
               className="flex-1 py-4 bg-brand text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-brand/20 hover:bg-brand-accent hover:-translate-y-1 transition-all"
             >
-              Commit Task
+              Deploy Mission
             </button>
           </div>
         </form>
@@ -142,28 +366,34 @@ const TaskModal: React.FC<{
   );
 };
 
-const TaskItem: React.FC<{ 
+const TaskItem = React.forwardRef<HTMLDivElement, { 
   task: Task; 
   users: User[];
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
-}> = ({ task, users, onToggle, onDelete }) => {
+  onClick: (task: Task) => void;
+}>(({ task, users, onToggle, onDelete, onClick }, ref) => {
   const assignee = users.find(u => u.id === task.assignedTo);
 
   return (
     <motion.div 
+      ref={ref}
       layout
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
-      className={`group flex items-center gap-6 p-6 rounded-3xl border transition-all ${
+      onClick={() => onClick(task)}
+      className={`group flex items-center gap-6 p-6 rounded-3xl border transition-all cursor-pointer ${
         task.completed 
           ? 'bg-slate-50/50 border-slate-100' 
           : 'bg-white border-line hover:border-brand/30 hover:shadow-xl'
       }`}
     >
       <button 
-        onClick={() => onToggle(task.id)}
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggle(task.id);
+        }}
         className={`h-8 w-8 rounded-xl flex items-center justify-center transition-all flex-shrink-0 ${
           task.completed 
             ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200' 
@@ -187,44 +417,56 @@ const TaskItem: React.FC<{
           }`}>
             {task.priority}
           </span>
+          {task.category && (
+             <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest px-2 py-0.5 border border-slate-100 rounded-md">
+                {task.category}
+             </span>
+          )}
         </div>
         
-        {task.description && !task.completed && (
-          <p className="text-[11px] text-slate-500 font-medium mb-3 line-clamp-1">{task.description}</p>
-        )}
-
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
             <Clock size={12} />
-            Target: {task.dueDate || 'No date'}
+            {task.dueDate || 'No date'}
           </div>
           
           <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
             <UserIcon size={12} />
             {assignee ? assignee.name : 'Unassigned'}
           </div>
+          
+          {task.subtasks && task.subtasks.length > 0 && (
+             <div className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                <ListTodo size={10} />
+                {task.subtasks.filter(s => s.completed).length}/{task.subtasks.length}
+             </div>
+          )}
         </div>
       </div>
 
       <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
         <button 
-          onClick={() => onDelete(task.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(task.id);
+          }}
           className="p-2 text-slate-300 hover:text-rose-500 transition-colors"
         >
           <X size={18} />
         </button>
-        <button className="p-2 text-slate-300 hover:text-ink">
-          <MoreVertical size={18} />
-        </button>
+        <div className="p-2 text-slate-300">
+          <ChevronRight size={18} />
+        </div>
       </div>
     </motion.div>
   );
-};
+});
 
 export const TaskManagement: React.FC<{ fullView?: boolean }> = ({ fullView = false }) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'ALL' | 'TODO' | 'COMPLETED'>('ALL');
   const [search, setSearch] = useState('');
@@ -235,6 +477,18 @@ export const TaskManagement: React.FC<{ fullView?: boolean }> = ({ fullView = fa
   useEffect(() => {
     loadData();
   }, [user]);
+
+  // Handle deep linking
+  useEffect(() => {
+    if (!loading && tasks.length > 0) {
+       const params = new URLSearchParams(window.location.search);
+       const taskId = params.get('id');
+       if (taskId) {
+          const task = tasks.find(t => t.id === taskId);
+          if (task) setSelectedTask(task);
+       }
+    }
+  }, [loading, tasks]);
 
   const loadData = async () => {
     if (!user) return;
@@ -255,19 +509,41 @@ export const TaskManagement: React.FC<{ fullView?: boolean }> = ({ fullView = fa
     }
   };
 
-  const handleCreateTask = async (taskData: Omit<Task, 'id' | 'completed' | 'userId' | 'tenantId' | 'createdAt' | 'updatedAt'>) => {
+  const handleCreateTask = async (taskData: Partial<Task>) => {
     if (!user) return;
     try {
+      const activity: TaskActivity = {
+        id: `act-${Date.now()}`,
+        userId: user.id,
+        userName: user.name,
+        action: 'Objective deployed to grid',
+        timestamp: new Date().toISOString()
+      };
+
       const newTask = await api.createTask({
-        ...taskData,
+        ...taskData as any,
         completed: false,
         userId: user.id,
-        tenantId: user.tenantId || 'tenant-1'
+        tenantId: user.tenantId || 'tenant-1',
+        history: [activity],
+        subtasks: []
       });
       setTasks(prev => [newTask, ...prev]);
       addNotification('Tactical objective updated', 'success');
     } catch (err) {
       addNotification('Failed to commit task', 'error');
+    }
+  };
+
+  const handleUpdateTask = async (id: string, updates: Partial<Task>) => {
+    try {
+      const updated = await api.updateTask(id, updates);
+      setTasks(prev => prev.map(t => t.id === id ? updated : t));
+      if (selectedTask?.id === id) {
+         setSelectedTask(updated);
+      }
+    } catch (err) {
+      addNotification('Failed to sync changes', 'error');
     }
   };
 
@@ -277,11 +553,19 @@ export const TaskManagement: React.FC<{ fullView?: boolean }> = ({ fullView = fa
 
     try {
       const isCompleted = !task.completed;
-      const updated = await api.updateTask(id, { 
+      const activity: TaskActivity = {
+        id: `act-${Date.now()}`,
+        userId: user?.id || 'system',
+        userName: user?.name || 'System',
+        action: isCompleted ? 'Objective marked COMPLETED' : 'Objective reopened for action',
+        timestamp: new Date().toISOString()
+      };
+
+      await handleUpdateTask(id, { 
         completed: isCompleted,
-        status: isCompleted ? 'COMPLETED' : 'TODO'
+        status: isCompleted ? 'COMPLETED' : 'TODO',
+        history: [activity, ...(task.history || [])]
       });
-      setTasks(prev => prev.map(t => t.id === id ? updated : t));
     } catch (err) {
       addNotification('Failed to update task state', 'error');
     }
@@ -293,6 +577,7 @@ export const TaskManagement: React.FC<{ fullView?: boolean }> = ({ fullView = fa
       await api.deleteTask(id, user.tenantId || 'tenant-1');
       setTasks(prev => prev.filter(t => t.id !== id));
       addNotification('Objective removed', 'info');
+      if (selectedTask?.id === id) setSelectedTask(null);
     } catch (err) {
       addNotification('Deletion failed', 'error');
     }
@@ -305,7 +590,7 @@ export const TaskManagement: React.FC<{ fullView?: boolean }> = ({ fullView = fa
     return matchesFilter && matchesSearch;
   });
 
-  return (
+  const content = (
     <div className={`space-y-6 ${fullView ? 'max-w-4xl mx-auto py-12' : ''}`}>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
@@ -381,6 +666,7 @@ export const TaskManagement: React.FC<{ fullView?: boolean }> = ({ fullView = fa
                 users={users}
                 onToggle={handleToggleTask} 
                 onDelete={handleDeleteTask}
+                onClick={setSelectedTask}
               />
             ))
           )}
@@ -396,7 +682,22 @@ export const TaskManagement: React.FC<{ fullView?: boolean }> = ({ fullView = fa
             users={users}
           />
         )}
+        {selectedTask && (
+          <TaskDetailDrawer 
+            task={selectedTask}
+            users={users}
+            isOpen={!!selectedTask}
+            onClose={() => setSelectedTask(null)}
+            onUpdate={handleUpdateTask}
+          />
+        )}
       </AnimatePresence>
     </div>
   );
+
+  return fullView ? (
+    <Layout title="Tactical Command Hub">
+      {content}
+    </Layout>
+  ) : content;
 };

@@ -45,6 +45,19 @@ const OrderManagement: React.FC = () => {
     notes: ''
   });
 
+  // Handle deep linking from search results
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const orderId = params.get('id');
+    if (orderId && orders.length > 0) {
+      const order = orders.find(o => o.id === orderId);
+      if (order) {
+        setSelectedOrder(order);
+        setIsDetailOpen(true);
+      }
+    }
+  }, [orders]);
+
   useEffect(() => { 
     if (tenant?.id) loadOrders(); 
   }, [tenant?.id]);

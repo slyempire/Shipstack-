@@ -55,7 +55,11 @@ const UserManagement: React.FC = () => {
   });
 
   const logAction = useAuditStore(state => state.logAction);
-  const { currentTenant } = useAuthStore(state => ({ currentTenant: state.user?.tenantId }));
+  const { currentTenant, customRoles, currentUserRole } = useAuthStore(state => ({ 
+    currentTenant: state.user?.tenantId, 
+    customRoles: state.customRoles,
+    currentUserRole: state.currentUserRole
+  }));
   const { addNotification } = useAppStore();
 
   const fetchUsers = async () => {
@@ -288,13 +292,24 @@ const UserManagement: React.FC = () => {
                        <div className="relative">
                           <Shield size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
                           <select 
-                            className="w-full pl-12 pr-6 py-4 bg-slate-50 border-2 border-transparent focus:border-brand/20 rounded-2xl outline-none font-medium text-sm transition-all appearance-none"
+                            className="w-full pl-12 pr-6 py-4 bg-slate-50 border-2 border-transparent focus:border-brand/20 rounded-2xl outline-none font-medium text-sm transition-all appearance-none uppercase"
                             value={formData.role || 'dispatcher'}
                             onChange={e => setFormData({ ...formData, role: e.target.value as any })}
                           >
-                             {Object.keys(ROLE_DEFINITIONS).map(role => (
-                               <option key={role} value={role}>{role.replace('_', ' ').toUpperCase()}</option>
-                             ))}
+                             <optgroup label="System Roles">
+                               {Object.keys(ROLE_DEFINITIONS)
+                                 .filter(role => role !== 'super_admin' || currentUserRole === 'super_admin')
+                                 .map(role => (
+                                   <option key={role} value={role}>{role.replace('_', ' ').toUpperCase()}</option>
+                                 ))}
+                             </optgroup>
+                             {customRoles.length > 0 && (
+                               <optgroup label="Custom Roles">
+                                 {customRoles.map(r => (
+                                   <option key={r.role} value={r.role}>{r.label.toUpperCase()}</option>
+                                 ))}
+                               </optgroup>
+                             )}
                           </select>
                        </div>
                     </div>
@@ -431,7 +446,8 @@ const UserManagement: React.FC = () => {
 };
 
 const UserCard = ({ user, onToggleStatus, onDelete, onEdit }: { user: User, onToggleStatus: () => void, onDelete: () => void, onEdit: () => void }) => {
-  const roleDef = ROLE_DEFINITIONS[user.role as SystemRole];
+  const { customRoles } = useAuthStore();
+  const roleDef = ROLE_DEFINITIONS[user.role as SystemRole] || customRoles.find(r => r.role === user.role);
   const isRejected = user.verificationStatus === 'REJECTED';
 
   return (

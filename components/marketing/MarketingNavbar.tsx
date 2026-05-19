@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store';
-import { Layers, LayoutDashboard, Menu, X, Truck, MapPin } from 'lucide-react';
+import { Layers, LayoutDashboard, Menu, X, Truck, MapPin, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const MarketingNavbar: React.FC = () => {
@@ -29,35 +29,25 @@ const MarketingNavbar: React.FC = () => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <nav className="sticky top-0 z-[100] bg-navy/80 backdrop-blur-xl border-b border-white/5">
-      <div className="container-responsive flex items-center justify-between py-4 w-full">
+    <nav className="sticky top-0 z-[100] bg-white/80 backdrop-blur-xl border-b border-slate-100">
+      <div className="container-responsive flex items-center justify-between py-6 w-full">
         <div className="flex items-center gap-2">
-          <Link to="/" className="flex items-center gap-2 group">
-            <div className="flex items-center">
-              <div className="h-10 w-10 bg-brand rounded-xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform relative">
-                <Layers size={22} />
-                <div className="absolute -right-2 -bottom-2 flex items-center gap-0.5 pointer-events-none">
-                  <div className="p-1 bg-[#FF8C42] rounded-full shadow-lg border-2 border-navy text-white">
-                    <Truck size={8} />
-                  </div>
-                  <div className="p-1 bg-[#FF8C42] rounded-full shadow-lg border-2 border-navy text-white -ml-2">
-                    <MapPin size={8} />
-                  </div>
-                </div>
-              </div>
+          <Link to="/" className="flex items-center gap-3 group">
+            <div className="h-10 w-10 bg-slate-900 rounded-lg flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+              <Layers size={22} strokeWidth={3} />
             </div>
-            <span className="text-xl font-black tracking-tighter uppercase font-display ml-2">Shipstack</span>
+            <span className="text-2xl font-black tracking-tighter uppercase font-display text-slate-900">Shipstack</span>
           </Link>
         </div>
 
         {/* Desktop Nav */}
-        <div className="hidden md:flex items-center gap-8">
+        <div className="hidden md:flex items-center gap-10">
           {navLinks.map((link) => (
             <Link 
               key={link.path}
               to={link.path} 
-              className={`text-[10px] font-black uppercase tracking-widest transition-all hover:text-brand ${
-                isActive(link.path) ? 'text-brand' : 'text-slate-300'
+              className={`text-xs font-black uppercase tracking-widest transition-all hover:text-slate-900 ${
+                isActive(link.path) ? 'text-slate-900 underline underline-offset-8 decoration-2' : 'text-slate-400'
               }`}
             >
               {link.name}
@@ -65,28 +55,28 @@ const MarketingNavbar: React.FC = () => {
           ))}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           {!isAuthenticated && (
-            <div className="hidden sm:flex items-center gap-3">
-              <Link to="/login" className="text-[10px] font-black uppercase tracking-widest text-[#FF8C42] px-3 py-2 hover:bg-white/5 rounded-lg transition-all">Sign In</Link>
-              <Link to="/register" className="bg-[#FF8C42] text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-brand/20 hover:bg-[#E07A35] transition-all active:scale-95">Get Started</Link>
+            <div className="hidden sm:flex items-center gap-6">
+              <Link to="/login" className="text-xs font-black uppercase tracking-widest text-slate-900 hover:opacity-70 transition-all">Log In</Link>
+              <Link to="/register" className="bg-slate-900 text-white px-8 py-4 rounded-none text-xs font-black uppercase tracking-widest hover:bg-black transition-all active:scale-95">Get Started</Link>
             </div>
           )}
           {isAuthenticated && (
             <button 
               onClick={handleDashboardRedirect}
-              className="bg-[#FF8C42] text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-brand/20 hover:bg-[#E07A35] flex items-center gap-2 transition-all active:scale-95"
+              className="bg-slate-900 text-white px-6 py-3 rounded-none text-xs font-black uppercase tracking-widest hover:bg-black flex items-center gap-2 transition-all active:scale-95"
             >
-              <LayoutDashboard size={14} /> Dashboard
+              Console <ArrowRight size={14} strokeWidth={3} />
             </button>
           )}
           
           {/* Mobile Menu Toggle */}
           <button 
-            className="md:hidden p-2 text-slate-300 hover:bg-brand/5 rounded-lg transition-all"
+            className="md:hidden p-2 text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
-            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            {isMobileMenuOpen ? <X size={24} strokeWidth={3} /> : <Menu size={24} strokeWidth={3} />}
           </button>
         </div>
       </div>
