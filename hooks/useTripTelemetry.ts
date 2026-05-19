@@ -54,7 +54,9 @@ export const useTripTelemetry = (tripId: string | undefined, enabled: boolean) =
 
     watchId.current = navigator.geolocation.watchPosition(
       handlePosition,
-      (err) => console.warn("GPS Signal Weak", err),
+      (err) => {
+        console.warn("GPS Signal Weak or Error:", { code: err.code, message: err.message });
+      },
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
     );
 

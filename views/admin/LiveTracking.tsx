@@ -123,7 +123,10 @@ const LiveTracking: React.FC = () => {
   const requestLocation = () => {
     navigator.geolocation.getCurrentPosition(
       () => setPermissionState('granted'),
-      () => setPermissionState('denied')
+      (err) => {
+        console.error("Manual location request failed:", { code: err.code, message: err.message });
+        setPermissionState('denied');
+      }
     );
   };
 
@@ -250,29 +253,7 @@ const LiveTracking: React.FC = () => {
     );
   }
 
-  if (permissionState === 'denied') {
-    return (
-      <Layout title="Tracking">
-        <div className="flex h-[70vh] flex-col items-center justify-center text-center max-w-md mx-auto animate-in zoom-in-95 duration-500">
-          <div className="h-24 w-24 bg-red/5 text-red rounded-full flex items-center justify-center mb-8 border border-red/10 shadow-2xl shadow-red/20">
-            <MapPinned size={48} />
-          </div>
-          <h2 className="text-2xl font-bold tracking-tight text-gray-900 mb-3">Location access required</h2>
-          <p className="text-gray-500 mb-8 leading-relaxed">
-            The control tower requires geolocation data to calculate optimal routes and monitor driver positioning in real-time.
-          </p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="btn-primary"
-          >
-            Enable location
-          </button>
-        </div>
-      </Layout>
-    );
-  }
-
-  if (dns.filter(d => d.status === DNStatus.IN_TRANSIT).length === 0) {
+  if (!loading && dns.filter(d => d.status === DNStatus.IN_TRANSIT).length === 0) {
     return (
       <Layout title="Tracking">
         <div className="flex h-[70vh] flex-col items-center justify-center text-center max-w-md mx-auto animate-in zoom-in-95 duration-500">
@@ -297,6 +278,25 @@ const LiveTracking: React.FC = () => {
   return (
     <Layout title="Tracking">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-12rem)]">
+        {/* Permission Warning Overlay */}
+        {permissionState === 'denied' && (
+          <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] bg-white/95 backdrop-blur-md px-8 py-4 rounded-3xl border border-red-200 shadow-2xl flex items-center gap-6 animate-in slide-in-from-bottom-8">
+             <div className="h-12 w-12 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center">
+                <MapPinned size={24} />
+             </div>
+             <div>
+                <p className="text-xs font-black text-slate-900 uppercase tracking-tighter">Live Positioning Limited</p>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Enable location to track your relative distance to units</p>
+             </div>
+             <button 
+               onClick={requestLocation}
+               className="bg-slate-900 text-white px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-brand transition-all"
+             >
+               Retry
+             </button>
+          </div>
+        )}
+
         {/* Main Map View */}
         <div className="lg:col-span-6 bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden relative">
           <MapEngine 

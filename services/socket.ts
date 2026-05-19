@@ -10,8 +10,9 @@ export const telemetryService = {
     // Standard socket connection
     socket = io({
       reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-      transports: ['polling', 'websocket'],
+      reconnectionDelay: 2000,
+      autoConnect: true,
+      transports: ['websocket', 'polling'], // Favor websocket, fallback to polling
     });
 
     socket.on("connect", () => {
@@ -19,7 +20,12 @@ export const telemetryService = {
     });
 
     socket.on("connect_error", (err) => {
-      console.warn("Telemetry Socket Connection Error, falling back to HTTP:", err.message);
+      // Only log as warning if we haven't given up yet
+      if (socket && !socket.active) {
+         console.warn("Telemetry Socket Connection Failed. Ensure server.ts is running and reachable.");
+      } else {
+         console.log("Telemetry Socket attempting connection...");
+      }
     });
   },
 

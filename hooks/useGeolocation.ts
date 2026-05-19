@@ -26,9 +26,9 @@ export const useGeolocation = (shouldWatch: boolean = false, dnId?: string) => {
         setLocationPermission('granted');
       },
       (error) => {
-        console.error('Geolocation error:', error);
+        console.error('Geolocation error:', { code: error.code, message: error.message });
         setLocationPermission('denied');
-        addNotification('Location tracking is unavailable. Please enable location permissions.', 'info');
+        addNotification(`Location tracking is unavailable (${error.message}). Please enable permissions.`, 'info');
       },
       {
         enableHighAccuracy: true,
@@ -57,7 +57,7 @@ export const useGeolocation = (shouldWatch: boolean = false, dnId?: string) => {
         setLocationPermission('granted');
       },
       (error) => {
-        console.error('Geolocation watch error:', error);
+        console.error('Geolocation watch error:', { code: error.code, message: error.message });
         // We don't necessarily want to spam notifications on every watch error
         if (error.code === error.PERMISSION_DENIED) {
           setLocationPermission('denied');

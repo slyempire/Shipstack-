@@ -71,8 +71,7 @@ async function startServer() {
     cors: {
       origin: "*",
       methods: ["GET", "POST"]
-    },
-    transports: ['websocket']
+    }
   });
 
   const PORT = 3000;
