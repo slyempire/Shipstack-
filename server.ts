@@ -25,15 +25,23 @@ const redis = (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_R
 
 // Enforce backend SECURITY_SECRET
 const SECURITY_SECRET = process.env.SECURITY_SECRET;
-if (!SECURITY_SECRET || SECURITY_SECRET.length < 32) {
-  console.error("CRITICAL ERROR: SECURITY_SECRET environment variable is missing or too short.");
-  process.exit(1);
+if (!SECURITY_SECRET) {
+  if (process.env.NODE_ENV === "production") {
+    console.error("CRITICAL ERROR: SECURITY_SECRET environment variable is missing. Refusing to start in production.");
+    process.exit(1);
+  } else {
+    console.warn("WARNING: SECURITY_SECRET is missing. Applications will fail to verify signatures accurately.");
+  }
 }
 
 // Frappe ERP Backend Configuration (Server-Side Only)
 const FRAPPE_URL = process.env.FRAPPE_BASE_URL;
 const FRAPPE_API_KEY = process.env.FRAPPE_API_KEY;
 const FRAPPE_API_SECRET = process.env.FRAPPE_API_SECRET;
+
+if (process.env.NODE_ENV === "production" && (!FRAPPE_API_KEY || !FRAPPE_API_SECRET)) {
+  console.warn("WARNING: Frappe credentials missing in production. Proxy routes will be degraded.");
+}
 
 const genAI = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null;
 
@@ -74,9 +82,19 @@ const verifyTelemetrySignature = (data: any): boolean => {
 async function startServer() {
   const app = express();
   const httpServer = createServer(app);
+  const allowedOrigins = process.env.NODE_ENV === 'production' 
+    ? [process.env.APP_URL || ''] 
+    : ['http://localhost:3000', 'http://0.0.0.0:3000', '*'];
+
   const io = new Server(httpServer, {
     cors: {
-      origin: "*",
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
       methods: ["GET", "POST"]
     }
   });
@@ -98,10 +116,6 @@ async function startServer() {
   }));
 
   // Restricted CORS configuration
-  const allowedOrigins = process.env.NODE_ENV === 'production' 
-    ? [process.env.APP_URL || ''] 
-    : ['*']; // Allow all in dev for easier testing, but lock down in prod
-
   app.use(cors({
     origin: (origin, callback) => {
       if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
@@ -371,8 +385,8 @@ async function startServer() {
       }
 
       if (!isAuthenticated) {
-        console.warn(`[SECURITY] Unauthenticated telemetry received via HTTP for DN: ${data.dnId}`);
-        return res.status(403).json({ error: "Forbidden", message: "Invalid auth or signature or signature mismatch. (Ensure VITE_SECURITY_SECRET match or use Auth Token)" });
+        console.warn(`[SECURITY] Forbidden telemetry attempt for DN: ${data.dnId}`);
+        return res.status(403).json({ error: "Forbidden", message: "Verification failed. Valid auth token or valid HMAC signature required." });
       }
 
       const { dnId, lat, lng, speed, heading, timestamp } = data;

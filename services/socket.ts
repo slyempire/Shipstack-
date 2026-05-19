@@ -1,5 +1,4 @@
 import { io, Socket } from "socket.io-client";
-import { signPayload } from "../utils/security";
 import { useAuthStore } from "../store";
 
 let socket: Socket | null = null;
@@ -43,13 +42,9 @@ export const telemetryService = {
       timestamp: new Date().toISOString(),
     };
 
-    // Sign the payload for integrity
-    const signature = signPayload(payload);
-    const signedData = { ...payload, signature };
-
     // Try socket first if connected
     if (socket?.connected) {
-      socket.emit("telemetry:report", signedData);
+      socket.emit("telemetry:report", payload);
       return;
     }
 
@@ -62,7 +57,7 @@ export const telemetryService = {
           'Content-Type': 'application/json',
           'Authorization': token ? `Bearer ${token}` : ''
         },
-        body: JSON.stringify(signedData)
+        body: JSON.stringify(payload)
       });
       
       if (!response.ok) throw new Error("HTTP Telemetry failed");
@@ -70,7 +65,7 @@ export const telemetryService = {
       return;
     } catch (err) {
       console.error("Telemetry Fallback Error, queuing for offline sync:", err);
-      this.queueOfflinePoint(signedData);
+      this.queueOfflinePoint(payload);
     }
     
     // Attempt to reconnect socket in background

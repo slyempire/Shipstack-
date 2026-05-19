@@ -44,7 +44,7 @@ const TrustBadge = () => (
     className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full mt-8"
   >
     <Shield size={14} className="text-brand" />
-    <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Trusted by 1,500+ logistics operators across Africa</span>
+    <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Early-access pilot partners: Now onboarding for Q3 2026</span>
   </motion.div>
 );
 
@@ -296,9 +296,10 @@ const LandingPage: React.FC = () => {
             transition={{ duration: 1, ease: "circOut" }}
             className="text-center"
           >
-            <h1 className="text-7xl md:text-[11rem] font-black tracking-tighter leading-[0.8] mb-12 uppercase text-slate-900">
-              Logistics.<br />
-              <span className="text-brand">Redefined.</span>
+            <h1 className="text-5xl md:text-[8rem] font-black tracking-tighter leading-[0.85] mb-12 uppercase text-slate-900">
+              Launch your first <br />
+              logistics control <br />
+              tower in <span className="text-brand">30 minutes</span>
             </h1>
           </motion.div>
 
@@ -308,9 +309,9 @@ const LandingPage: React.FC = () => {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="text-center max-w-4xl mx-auto mb-20"
           >
-            <p className="text-xl md:text-2xl text-slate-500 font-bold uppercase tracking-tight leading-tight">
-              The operating system for African logistics networks. <br className="hidden md:block" />
-              Built for precision. Designed for scale. Optimized for the frontier.
+            <p className="text-xl md:text-2xl text-slate-600 font-bold uppercase tracking-tight leading-tight">
+              Designed for African trade and transport teams. <br className="hidden md:block" />
+              Pilot-ready logistics operations software built with operators.
             </p>
           </motion.div>
 
@@ -322,16 +323,16 @@ const LandingPage: React.FC = () => {
           >
             <button 
               onClick={() => isAuthenticated ? handleDashboardRedirect() : navigate('/register')}
-              className="w-full sm:w-auto px-16 py-8 bg-slate-900 hover:bg-black text-white text-base font-black uppercase tracking-widest shadow-2xl transition-all hover:translate-y-[-4px] active:scale-95 rounded-2xl"
+              className="w-full sm:w-auto px-16 py-8 bg-brand hover:bg-orange-600 text-white text-base font-black uppercase tracking-widest shadow-2xl transition-all hover:translate-y-[-4px] active:scale-95 rounded-2xl"
             >
-              {isAuthenticated ? 'Enter Console' : 'Start Early Access Pilot'}
+              {isAuthenticated ? 'Enter Console' : 'Join Early Access Pilot'}
             </button>
             {!isAuthenticated && (
               <button 
                 onClick={() => navigate('/product')}
-                className="w-full sm:w-auto px-16 py-8 bg-white border-2 border-slate-900 text-slate-900 text-base font-black uppercase tracking-widest transition-all hover:bg-slate-50 flex items-center justify-center gap-3 rounded-2xl"
+                className="w-full sm:w-auto px-16 py-8 bg-white border-2 border-slate-900 text-slate-900 text-base font-black uppercase tracking-widest transition-all hover:bg-slate-50 flex items-center justify-center gap-3 rounded-2xl shadow-sm"
               >
-                See Capabilities
+                Explore Product Tour
               </button>
             )}
           </motion.div>
@@ -349,37 +350,37 @@ const LandingPage: React.FC = () => {
       {/* Social Proof */}
       <div className="bg-slate-50 py-24 border-y border-slate-100">
         <div className="container-responsive">
-          <p className="text-center text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 mb-16">Architecting Trust with Industry Partners & Standards</p>
+          <p className="text-center text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 mb-16">Built with logistics operators. Trusted by first-mover teams.</p>
           <div className="grid grid-cols-2 md:grid-cols-4 items-center justify-center gap-8 md:gap-16">
              <div className="flex flex-col items-center gap-2 grayscale hover:grayscale-0 transition-all opacity-60">
                 <div className="h-12 w-full bg-slate-200 rounded-xl flex items-center justify-center px-4">
                    <span className="font-black text-slate-400 tracking-tighter text-lg uppercase italic">M-Pesa</span>
                 </div>
-                <span className="text-[8px] font-bold uppercase text-slate-500 tracking-widest">Payout Integrated</span>
+                <span className="text-[8px] font-bold uppercase text-slate-500 tracking-widest">Payout Ready</span>
              </div>
              <div className="flex flex-col items-center gap-2 grayscale hover:grayscale-0 transition-all opacity-60">
                 <div className="h-12 w-full bg-slate-200 rounded-xl flex items-center justify-center px-4">
-                   <span className="font-black text-slate-400 tracking-tighter text-lg uppercase italic">Frappe</span>
+                   <span className="font-black text-slate-400 tracking-tighter text-lg uppercase italic">ERP Sync</span>
                 </div>
-                <span className="text-[8px] font-bold uppercase text-slate-500 tracking-widest">Certified ERP Node</span>
+                <span className="text-[8px] font-bold uppercase text-slate-500 tracking-widest">Frappe Integration</span>
              </div>
              <div className="flex flex-col items-center gap-2 grayscale hover:grayscale-0 transition-all opacity-60">
                 <div className="h-12 w-full bg-slate-200 rounded-xl flex items-center justify-center px-4">
-                   <span className="font-black text-slate-400 tracking-tighter text-lg uppercase italic">Flutterwave</span>
+                   <span className="font-black text-slate-400 tracking-tighter text-lg uppercase italic">Settlements</span>
                 </div>
-                <span className="text-[8px] font-bold uppercase text-slate-500 tracking-widest">Secure Settlements</span>
+                <span className="text-[8px] font-bold uppercase text-slate-500 tracking-widest">Secure Corridor</span>
              </div>
              <div className="flex flex-col items-center gap-2 grayscale hover:grayscale-0 transition-all opacity-60">
                 <div className="h-12 w-full bg-slate-200 rounded-xl flex items-center justify-center px-4 text-center">
                    <Shield size={16} className="text-slate-400 mr-2" />
-                   <span className="font-black text-slate-400 tracking-tighter text-lg uppercase">ISO/IEC 27001</span>
+                   <span className="font-black text-slate-400 tracking-tighter text-lg uppercase">Security Tier</span>
                 </div>
-                <span className="text-[8px] font-bold uppercase text-slate-500 tracking-widest">Cloud Security Tier</span>
+                <span className="text-[8px] font-bold uppercase text-slate-500 tracking-widest">Pilot-Verified</span>
              </div>
           </div>
           <div className="mt-16 text-center text-slate-400">
             <span className="inline-flex items-center gap-3 px-6 py-2 bg-slate-200/50 rounded-full text-[10px] font-black uppercase tracking-widest text-slate-500 border border-slate-300">
-              Closed Pilot: Now Onboarding Q3 Batch for East & West Africa
+              Closed Pilot: Now Onboarding Early Adopters for East & West Africa
             </span>
           </div>
         </div>
@@ -401,30 +402,30 @@ const LandingPage: React.FC = () => {
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-32">
             <div className="max-w-3xl">
               <h2 className="text-5xl md:text-8xl font-black uppercase tracking-tighter text-slate-900 mb-8 leading-none">
-                Precision at<br />
-                Any Scale.
+                Pilot-Ready<br />
+                Control.
               </h2>
-              <p className="text-xl md:text-2xl text-slate-400 font-bold uppercase tracking-tight">Turn your logistics overhead into a competitive advantage.</p>
+              <p className="text-xl md:text-2xl text-slate-600 font-bold uppercase tracking-tight">Move from spreadsheets to a digital control tower today.</p>
             </div>
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
             <FeatureCard 
               icon={ShieldCheck} 
-              title="Immutable Security" 
-              desc="Every transaction and movement is cryptographically verified on our private ledger."
+              title="Operationally Hardened" 
+              desc="Built with ground-level logistics operators to handle real-world African trade constraints."
               delay={0}
             />
             <FeatureCard 
-              icon={TrendingUp} 
-              title="Elastic Scaling" 
-              desc="Our serverless architecture handles anywhere from 1 to 1M daily tasks without latency."
+              icon={Zap} 
+              title="Immediate Setup" 
+              desc="No long consultants or integration cycles. Your first control tower node live in minutes."
               delay={0.1}
             />
             <FeatureCard 
               icon={MapPin} 
-              title="Global Visibility" 
-              desc="Sub-second latency GPS tracking across urban centers and rural corridors."
+              title="Real-time Telemetry" 
+              desc="Sub-second GPS tracking and fleet status across urban and rural corridors."
               delay={0.2}
             />
           </div>
@@ -563,34 +564,34 @@ const LandingPage: React.FC = () => {
       <SectionWrapper className="py-32 bg-[#1A2B4D]">
         <div className="container-responsive">
           <div className="text-center mb-24">
-            <h2 className="text-4xl md:text-7xl font-black uppercase tracking-tighter text-white mb-6">Designed with <span className="text-brand">Operators.</span></h2>
-            <p className="text-slate-400 font-bold uppercase tracking-tight">Direct insights from the ground, translated into code.</p>
+            <h2 className="text-4xl md:text-7xl font-black uppercase tracking-tighter text-white mb-6">Built with <span className="text-brand">Operators.</span></h2>
+            <p className="text-slate-400 font-bold uppercase tracking-tight">Tested by early-access logistics teams.</p>
           </div>
           
           <div className="grid lg:grid-cols-2 gap-10 mb-10">
              <div className="bg-white rounded-[3rem] p-12 overflow-hidden relative group">
                 <div className="relative z-10">
-                   <p className="text-[10px] font-black uppercase tracking-widest text-brand mb-4">Operations Hub</p>
-                   <h3 className="text-3xl font-black text-slate-900 uppercase tracking-tighter mb-6">Regional Distribution Mastery</h3>
+                   <p className="text-[10px] font-black uppercase tracking-widest text-brand mb-4">Pilot Insights</p>
+                   <h3 className="text-3xl font-black text-slate-900 uppercase tracking-tighter mb-6">Optimized Regional Workflows</h3>
                    <p className="text-slate-500 font-medium leading-relaxed mb-8">
-                      Managing complex cross-border logistics requires more than just trucks. It requires an intelligent nervous system that understands terrain, compliance, and timing.
+                      We spent 6 months on the ground in Nairobi and Lagos to understand how teams actually manage transport exceptions and settlements.
                    </p>
                 </div>
                 <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
-                   <Globe size={120} />
+                   <Truck size={120} />
                 </div>
              </div>
              <div className="rounded-[3rem] overflow-hidden shadow-2xl relative aspect-square lg:aspect-auto">
                 <img 
-                   src="https://images.unsplash.com/photo-1519003722824-194d4455a60c?q=80&w=2075&auto=format&fit=crop" 
-                   alt="Logistics Network" 
+                   src="https://images.unsplash.com/photo-1558444479-c8f02791596f?q=80&w=2600&auto=format&fit=crop" 
+                   alt="Logistics Dashboard" 
                    className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-1000"
                    referrerPolicy="no-referrer"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent opacity-60" />
                 <div className="absolute bottom-10 left-10 text-white">
-                   <p className="text-4xl font-black uppercase tracking-tighter">12k+</p>
-                   <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Connected Nodes</p>
+                   <p className="text-4xl font-black uppercase tracking-tighter">Pilot Ready</p>
+                   <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Verified Control Panel</p>
                 </div>
              </div>
           </div>
@@ -615,7 +616,7 @@ const LandingPage: React.FC = () => {
                 <div className="mb-12">
                   <MessageSquare className="text-brand mb-6 opacity-50" size={48} />
                   <p className="text-2xl md:text-3xl text-white font-medium italic leading-relaxed">
-                    "Shipstack helped us scale from 50 to 500 deliveries per day in just 6 months. The operational visibility is unmatched."
+                    "Shipstack gave us complete operational visibility during our trial, helping us streamline driver settlements."
                   </p>
                 </div>
 
@@ -815,8 +816,8 @@ const LandingPage: React.FC = () => {
       <SectionWrapper className="py-48 relative overflow-hidden bg-slate-900 border-y border-white/5">
         <div className="absolute inset-0 z-0">
           <img 
-            src="https://images.unsplash.com/photo-1578575437130-527eed3abbec?q=80&w=2600&auto=format&fit=crop" 
-            alt="Logistics Port" 
+            src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?q=80&w=2600&auto=format&fit=crop" 
+            alt="Logistics Operations" 
             className="w-full h-full object-cover opacity-60 scale-105"
             referrerPolicy="no-referrer"
           />
@@ -830,23 +831,23 @@ const LandingPage: React.FC = () => {
             className="max-w-4xl mx-auto"
           >
             <h2 className="text-6xl md:text-9xl font-black uppercase tracking-tighter text-white mb-12 leading-none">
-              Ready to <br/><span className="text-brand">Deploy?</span>
+              Ready to <br/><span className="text-brand">Pilot?</span>
             </h2>
             <p className="text-xl md:text-3xl text-slate-400 font-bold uppercase tracking-tight mb-16 leading-tight">
-              Join the elite operators building the <br className="hidden md:block" /> future of trade with Shipstack.
+              Join the first-mover teams building the <br className="hidden md:block" /> future of transport with Shipstack.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
               <button 
                 onClick={() => navigate('/register')}
                 className="w-full sm:w-auto px-20 py-10 bg-brand hover:bg-orange-600 text-white text-base font-black uppercase tracking-[0.3em] shadow-2xl transition-all hover:translate-y-[-4px] active:scale-95 rounded-3xl"
               >
-                Apply for Access
+                Start Your Pilot
               </button>
               <button 
                 onClick={() => navigate('/contact')}
                 className="w-full sm:w-auto px-20 py-10 bg-white/5 border-2 border-white/10 text-white text-base font-black uppercase tracking-[0.3em] hover:bg-white/10 transition-all rounded-3xl"
               >
-                Book a Demo
+                Talk to our team
               </button>
             </div>
           </motion.div>

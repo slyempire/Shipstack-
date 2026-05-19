@@ -4,9 +4,9 @@ import CryptoJS from 'crypto-js';
 // In a production environment, this would be a dynamic session-based key.
 // But we must remove VITE_SECURITY_SECRET from the browser bundle as requested.
 // We use a fixed salt for frontend-only data obfuscation (localStorage).
-// Actual security is enforced at the Node middleware layer.
+// Actual security is enforced at the Node middleware layer via session tokens.
 const FRONTEND_OBFUSCATION_SALT = 'shipstack-frontend-obfuscation-key-2026';
-const SECURITY_SECRET: string = import.meta.env.VITE_SECURITY_SECRET || FRONTEND_OBFUSCATION_SALT;
+const SECURITY_SECRET: string = FRONTEND_OBFUSCATION_SALT;
 
 /**
  * Sanitizes a string to prevent XSS attacks.
