@@ -70,12 +70,25 @@ const DashboardSwitcher = () => {
   const user = useAuthStore(state => state.user);
   const role = user?.role?.toLowerCase();
   
-  if (role === 'dispatcher') return <DispatchDashboard />;
-  if (role === 'warehouse' || role === 'facility_operator') return <ModuleGuard moduleId="warehouse"><WarehouseManagement /></ModuleGuard>;
-  if (role === 'driver') return <DriverPortal />;
-  if (role === 'client') return <ClientPortal />;
-  
-  return <AdminDashboard />;
+  return (
+    <Suspense fallback={
+      <div className="flex h-[60vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin h-8 w-8 border-4 border-brand border-t-transparent rounded-full" />
+          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Loading Terminal...</span>
+        </div>
+      </div>
+    }>
+      {(() => {
+        if (role === 'dispatcher') return <DispatchDashboard />;
+        if (role === 'warehouse' || role === 'facility_operator') return <ModuleGuard moduleId="warehouse"><WarehouseManagement /></ModuleGuard>;
+        if (role === 'driver') return <DriverPortal />;
+        if (role === 'client') return <ClientPortal />;
+        
+        return <AdminDashboard />;
+      })()}
+    </Suspense>
+  );
 };
 
 const App: React.FC = () => {

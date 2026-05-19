@@ -35,7 +35,8 @@ if (!SECURITY_SECRET) {
 }
 
 // Frappe ERP Backend Configuration (Server-Side Only)
-const FRAPPE_URL = process.env.FRAPPE_BASE_URL;
+// Normalize URL: remove trailing slash if present
+const FRAPPE_URL = process.env.FRAPPE_BASE_URL?.replace(/\/$/, "");
 const FRAPPE_API_KEY = process.env.FRAPPE_API_KEY;
 const FRAPPE_API_SECRET = process.env.FRAPPE_API_SECRET;
 
@@ -66,13 +67,13 @@ const TelemetrySchema = z.object({
   speed: z.number().nonnegative().optional(),
   heading: z.number().min(0).max(360).optional(),
   timestamp: z.string().datetime().optional(),
-  signature: z.string().min(1)
+  signature: z.string().optional()
 });
 
 // Telemetry signature verification (HMAC-SHA256)
 const verifyTelemetrySignature = (data: any): boolean => {
   const { signature, ...payload } = data;
-  if (!signature) return false;
+  if (!signature || !SECURITY_SECRET) return false;
   
   const message = JSON.stringify(payload);
   const expected = CryptoJS.HmacSHA256(message, SECURITY_SECRET).toString();
@@ -82,9 +83,15 @@ const verifyTelemetrySignature = (data: any): boolean => {
 async function startServer() {
   const app = express();
   const httpServer = createServer(app);
+  
+  const productionOrigin = process.env.APP_URL;
   const allowedOrigins = process.env.NODE_ENV === 'production' 
-    ? [process.env.APP_URL || ''] 
+    ? (productionOrigin ? [productionOrigin] : []) 
     : ['http://localhost:3000', 'http://0.0.0.0:3000', '*'];
+
+  if (process.env.NODE_ENV === 'production' && !productionOrigin) {
+    console.warn("WARNING: APP_URL is not set in production. CORS will likely block all requests.");
+  }
 
   const io = new Server(httpServer, {
     cors: {
@@ -92,6 +99,7 @@ async function startServer() {
         if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
           callback(null, true);
         } else {
+          console.warn(`[CORS] Blocked request from unauthorized origin: ${origin}`);
           callback(new Error('Not allowed by CORS'));
         }
       },
@@ -240,92 +248,67 @@ async function startServer() {
     'Authorization': `token ${FRAPPE_API_KEY}:${FRAPPE_API_SECRET}`
   });
 
+  /**
+   * Helper to proxy requests to Frappe ERP
+   * Returns JSON even if Frappe returns HTML or errors
+   */
+  async function proxyToFrappe(targetUrl: string, method: string, body?: any, res?: express.Response) {
+    if (!FRAPPE_URL) {
+      return res?.status(503).json({ error: "ERP Unavailable", message: "FRAPPE_BASE_URL is not configured." });
+    }
+
+    try {
+      const response = await fetch(targetUrl, {
+        method,
+        headers: getFrappeHeaders(),
+        body: body ? JSON.stringify(body) : undefined
+      });
+
+      const contentType = response.headers.get('content-type');
+      let data: any;
+
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        console.warn(`[ERP PROXY] Non-JSON response from ${targetUrl} [${response.status}]:`, text.substring(0, 100));
+        data = { 
+          error: "Invalid ERP Response", 
+          message: "The ERP returned a non-JSON response. Check ERP status or credentials.",
+          status: response.status,
+          hint: text.toLowerCase().includes('login') ? "Possibly redirected to login page. Check API Keys." : undefined
+        };
+      }
+
+      const status = (data.error || !response.ok) ? (response.ok ? 502 : response.status) : 200;
+      return res?.status(status).json(data);
+    } catch (err: any) {
+      console.error(`[ERP PROXY] Connection failed to ${targetUrl}:`, err);
+      return res?.status(500).json({ error: "ERP Connection Failed", message: err.message });
+    }
+  }
+
   app.post("/api/frappe/login", async (req, res) => {
-    if (!FRAPPE_URL) return res.status(503).json({ error: "ERP Unavailable" });
-    try {
-      const response = await fetch(`${FRAPPE_URL}/api/method/shipstack.api.login`, {
-        method: 'POST',
-        headers: getFrappeHeaders(),
-        body: JSON.stringify(req.body)
-      });
-      const data = await response.json();
-      res.status(response.status).json(data);
-    } catch (err) {
-      res.status(500).json({ error: "ERP Connection Failed" });
-    }
+    await proxyToFrappe(`${FRAPPE_URL}/api/method/shipstack.api.login`, 'POST', req.body, res);
   });
 
-  app.get("/api/frappe/users", async (req, res) => {
-    if (!FRAPPE_URL) return res.status(503).json({ error: "ERP Unavailable" });
-    try {
-      const queryParams = new URLSearchParams();
-      Object.entries(req.query).forEach(([key, value]) => {
-        if (Array.isArray(value)) {
-          value.forEach(v => queryParams.append(key, String(v)));
-        } else {
-          queryParams.append(key, String(value));
-        }
-      });
-      const response = await fetch(`${FRAPPE_URL}/api/resource/User?${queryParams.toString()}`, {
-        headers: getFrappeHeaders()
-      });
-      const data = await response.json();
-      res.status(response.status).json(data);
-    } catch (err) {
-      res.status(500).json({ error: "ERP Fetch Failed" });
-    }
+  app.get("/api/frappe/users", sessionOrInternalAuth, async (req, res) => {
+    const queryParams = new URLSearchParams(req.query as any).toString();
+    await proxyToFrappe(`${FRAPPE_URL}/api/resource/User?${queryParams}`, 'GET', undefined, res);
   });
 
-  app.get("/api/frappe/delivery-notes", async (req, res) => {
-    if (!FRAPPE_URL) return res.status(503).json({ error: "ERP Unavailable" });
-    try {
-      const queryParams = new URLSearchParams();
-      Object.entries(req.query).forEach(([key, value]) => {
-        if (Array.isArray(value)) {
-          value.forEach(v => queryParams.append(key, String(v)));
-        } else {
-          queryParams.append(key, String(value));
-        }
-      });
-      const response = await fetch(`${FRAPPE_URL}/api/resource/Delivery Note?${queryParams.toString()}`, {
-        headers: getFrappeHeaders()
-      });
-      const data = await response.json();
-      res.status(response.status).json(data);
-    } catch (err) {
-      res.status(500).json({ error: "ERP Fetch Failed" });
-    }
+  app.get("/api/frappe/delivery-notes", sessionOrInternalAuth, async (req, res) => {
+    const queryParams = new URLSearchParams(req.query as any).toString();
+    await proxyToFrappe(`${FRAPPE_URL}/api/resource/Delivery Note?${queryParams}`, 'GET', undefined, res);
   });
 
-  app.post("/api/frappe/create-shipment", async (req, res) => {
-    if (!FRAPPE_URL) return res.status(503).json({ error: "ERP Unavailable" });
-    try {
-      const response = await fetch(`${FRAPPE_URL}/api/resource/Shipment`, {
-        method: 'POST',
-        headers: getFrappeHeaders(),
-        body: JSON.stringify(req.body)
-      });
-      const data = await response.json();
-      res.status(response.status).json(data);
-    } catch (err) {
-      res.status(500).json({ error: "ERP Post Failed" });
-    }
+  app.post("/api/frappe/create-shipment", sessionOrInternalAuth, async (req, res) => {
+    await proxyToFrappe(`${FRAPPE_URL}/api/resource/Shipment`, 'POST', req.body, res);
   });
 
-  app.post("/api/frappe/call-method", async (req, res) => {
-    if (!FRAPPE_URL) return res.status(503).json({ error: "ERP Unavailable" });
-    try {
-      const { method, args } = req.body;
-      const response = await fetch(`${FRAPPE_URL}/api/method/${method}`, {
-        method: 'POST',
-        headers: getFrappeHeaders(),
-        body: JSON.stringify(args)
-      });
-      const data = await response.json();
-      res.status(response.status).json(data);
-    } catch (err) {
-      res.status(500).json({ error: "ERP Method Call Failed" });
-    }
+  app.post("/api/frappe/call-method", sessionOrInternalAuth, async (req, res) => {
+    const { method, args } = req.body;
+    await proxyToFrappe(`${FRAPPE_URL}/api/method/${method}`, 'POST', args, res);
   });
 
   /**
@@ -547,7 +530,7 @@ async function startServer() {
   });
 
   // API Fallback (prevent HTML responses for missing API routes)
-  app.all("/api/*all", (req, res) => {
+  app.all("/api/*", (req, res) => {
     res.status(404).json({ error: "API Route Not Found", path: req.url });
   });
 
@@ -607,7 +590,7 @@ async function startServer() {
   } else {
     // Serve static files in production
     app.use(express.static(path.join(__dirname, "dist")));
-    app.get("*all", (req, res) => {
+    app.get("*", (req, res) => {
       res.sendFile(path.join(__dirname, "dist", "index.html"));
     });
   }

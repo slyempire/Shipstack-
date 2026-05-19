@@ -87,11 +87,11 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({
   const hasRole = useMemo(() => {
     if (!effectiveRoles || !currentUserRole) return !effectiveRoles;
     
-    const normalizedUserRole = currentUserRole.toLowerCase();
-    const normalizedAllowed = effectiveRoles.map(r => r.toLowerCase());
+    const normalizedUserRole = (currentUserRole || '').toLowerCase();
+    const normalizedAllowed = effectiveRoles.map(r => (r || '').toLowerCase());
     
     // Direct match
-    if (normalizedAllowed.includes(normalizedUserRole)) return true;
+    if (normalizedUserRole && normalizedAllowed.includes(normalizedUserRole)) return true;
     
     // Demo Admin bypass removed to enforce strict role checks
     const isDemoUser = false;

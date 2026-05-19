@@ -1,4 +1,6 @@
 
+import { useAuthStore } from '../store';
+
 /**
  * Frappe API Service
  * 
@@ -11,16 +13,19 @@
 const PROXY_BASE_URL = '/api/frappe';
 
 interface FrappeResponse<T> {
-  data: T;
-  message?: string;
+  data?: T;
+  message?: T;
   exc?: string;
+  error?: string;
 }
 
 export class FrappeService {
   private static getHeaders() {
+    const token = useAuthStore.getState().token;
     return {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : '',
     };
   }
 
@@ -50,13 +55,28 @@ export class FrappeService {
         body: body ? JSON.stringify(body) : undefined,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Proxy Error: ${response.status}`);
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        throw new Error(`Unexpected non-JSON response [${response.status}]: ${text.substring(0, 100)}`);
       }
 
-      const result: FrappeResponse<T> = await response.json();
-      return result.data;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || errorData.error || `Proxy Error: ${response.status}`);
+      }
+
+      const result: FrappeResponse<any> = await response.json();
+      
+      // Frappe method calls return 'message', resource calls return 'data'
+      // We prioritize 'data' for resource lists, 'message' for method calls
+      if (result.data !== undefined) return result.data;
+      if (result.message !== undefined) return result.message;
+      
+      // If neither is present, return the whole result if it doesn't look like an error
+      if (result && !result.exc && !result.error) return result as unknown as T;
+
+      throw new Error(result.message || 'ERP response missing expected data/message property');
     } catch (error) {
       if (!(error instanceof TypeError && error.message === 'Failed to fetch')) {
         console.error(`Frappe Proxy Error [${method} ${endpoint}]:`, error);

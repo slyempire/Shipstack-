@@ -25,8 +25,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowe
   }
 
   if (allowedRoles && user) {
-    const userRole = user.role.toLowerCase();
-    const normalizedAllowed = allowedRoles.map(r => r.toLowerCase());
+    const userRole = (user.role || '').toLowerCase();
+    const normalizedAllowed = allowedRoles.map(r => (r || '').toLowerCase());
     
     // Demo Admin Bypass
     const isDemoAdmin = user.email === 'joemugoh215@gmail.com' || 
@@ -35,7 +35,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowe
     
     // Check if directly allowed OR if user is an admin and admin/tenant_admin is allowed
     const isAllowed = isDemoAdmin || 
-                     normalizedAllowed.includes(userRole) || 
+                     (userRole && normalizedAllowed.includes(userRole)) || 
                      (userRole === 'super_admin') ||
                      ((normalizedAllowed.includes('admin') || normalizedAllowed.includes('tenant_admin')) && 
                       ['admin', 'tenant_admin', 'super_admin'].includes(userRole));
