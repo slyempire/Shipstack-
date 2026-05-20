@@ -1,9 +1,12 @@
 import DOMPurify from 'dompurify';
 import CryptoJS from 'crypto-js';
 
-// Client-side obfuscation key for local storage and lightweight browser integrity helpers.
-// This is intentionally not the same as the server-side secret.
-const CLIENT_SIDE_SECRET = import.meta.env.VITE_CLIENT_SIDE_SECRET || 'shipstack-client-obfuscation-key-2026';
+// In a production environment, this would be a dynamic session-based key.
+// But we must remove VITE_SECURITY_SECRET from the browser bundle as requested.
+// We use a fixed salt for frontend-only data obfuscation (localStorage).
+// Actual security is enforced at the Node middleware layer via session tokens.
+const FRONTEND_OBFUSCATION_SALT = 'shipstack-frontend-obfuscation-key-2026';
+const SECURITY_SECRET: string = FRONTEND_OBFUSCATION_SALT;
 
 /**
  * Sanitizes a string to prevent XSS attacks.
@@ -48,7 +51,7 @@ export const sanitizeObject = <T extends object>(obj: T): T => {
  */
 export const signPayload = (payload: any): string => {
   const message = typeof payload === 'string' ? payload : JSON.stringify(payload);
-  return CryptoJS.HmacSHA256(message, CLIENT_SIDE_SECRET).toString();
+  return CryptoJS.HmacSHA256(message, SECURITY_SECRET).toString();
 };
 
 /**
@@ -64,7 +67,7 @@ export const verifySignature = (payload: any, signature: string): boolean => {
  */
 export const encryptData = (data: any): string => {
   const message = typeof data === 'string' ? data : JSON.stringify(data);
-  return CryptoJS.AES.encrypt(message, CLIENT_SIDE_SECRET).toString();
+  return CryptoJS.AES.encrypt(message, SECURITY_SECRET).toString();
 };
 
 /**
@@ -84,7 +87,7 @@ export const decryptData = (ciphertext: string): any => {
   }
 
   try {
-    const bytes = CryptoJS.AES.decrypt(ciphertext, CLIENT_SIDE_SECRET);
+    const bytes = CryptoJS.AES.decrypt(ciphertext, SECURITY_SECRET);
     
     // Attempt to convert to UTF-8 string. This is where "Malformed UTF-8 data" usually happens.
     let originalText: string;

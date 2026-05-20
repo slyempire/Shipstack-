@@ -56,7 +56,8 @@ import { sanitize, sanitizeObject, encryptData, decryptData } from './utils/secu
 import { FrappeService } from './services/frappe';
 import { cacheService } from './services/redis';
 
-const useFrappe = true;
+// We no longer expose Frappe URL to the client. The backend handles the proxy.
+const useFrappe = true; // Enabled by default, health check will verify availability
 let isFrappeHealthy = true;
 
 const canUseFrappe = () => useFrappe && isFrappeHealthy;

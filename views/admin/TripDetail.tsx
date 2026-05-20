@@ -44,6 +44,7 @@ import {
 import { telemetryService } from '../../services/socket';
 import MapEngine from '../../components/MapEngine';
 import ColdChainMonitor from '../../components/ColdChainMonitor';
+import DocumentManager from '../../components/DocumentManager';
 
 const TripDetail: React.FC = () => {
   const { id } = useParams();
@@ -649,76 +650,8 @@ const TripDetail: React.FC = () => {
           </div>
 
           {/* Document Governance Vault */}
-          <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-             <div className="p-8 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                <div className="flex items-center gap-4">
-                   <div className="h-12 w-12 bg-brand rounded-2xl flex items-center justify-center text-white shadow-lg">
-                      <FileText size={24} />
-                   </div>
-                   <div>
-                      <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 leading-none mb-1.5">Document Governance</h3>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Compliance & Legal Archive</p>
-                   </div>
-                </div>
-                <div className="flex flex-wrap gap-2 justify-end max-w-sm">
-                   <button 
-                    onClick={() => handleGenerateDoc(LogisticsDocumentType.MANIFEST)}
-                    className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:border-brand-accent transition-all shadow-sm"
-                   >
-                     <Plus size={14} /> Manifest
-                   </button>
-                   <button 
-                    onClick={() => handleGenerateDoc(LogisticsDocumentType.CUSTOMS_DECLARATION)}
-                    className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:border-brand-accent transition-all shadow-sm"
-                   >
-                     <Globe size={14} /> Customs
-                   </button>
-                   <button 
-                    onClick={() => handleGenerateDoc(LogisticsDocumentType.CERTIFICATE_OF_ORIGIN)}
-                    className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:border-brand-accent transition-all shadow-sm"
-                   >
-                     <Anchor size={14} /> Origin
-                   </button>
-                </div>
-             </div>
-
-             <div className="divide-y divide-slate-50">
-                {dn.documents.length === 0 ? (
-                  <div className="p-24 text-center">
-                     <FileText className="mx-auto text-slate-100 mb-6" size={64} strokeWidth={1} />
-                     <p className="text-[11px] font-black text-slate-300 uppercase tracking-[0.3em]">Zero documents manifested for this run</p>
-                  </div>
-                ) : (
-                  dn.documents.map(doc => (
-                    <div key={doc.id} className="p-8 flex items-center justify-between group hover:bg-slate-50/30 transition-all">
-                       <div className="flex items-center gap-6">
-                          <div className={`h-14 w-14 rounded-2xl flex items-center justify-center transition-all ${doc.status === LogisticsDocumentStatus.VERIFIED ? 'bg-emerald-50 text-emerald-600 shadow-[0_0_20px_rgba(16,185,129,0.2)] scale-110' : 'bg-slate-50 text-slate-300'}`}>
-                             {doc.status === LogisticsDocumentStatus.VERIFIED ? <ShieldCheck size={28} /> : <FileSearch size={28} />}
-                          </div>
-                          <div>
-                             <p className="text-base font-black text-slate-900 tracking-tight uppercase leading-none mb-2">{doc.type.replace('_', ' ')}</p>
-                             <div className="flex items-center gap-3">
-                                <Badge variant={doc.status === LogisticsDocumentStatus.VERIFIED ? 'delivered' : 'dispatched'} className="scale-90 origin-left">{doc.status}</Badge>
-                                <span className="text-[10px] font-mono text-slate-400 font-bold uppercase tracking-[0.1em]">CODE: {doc.verificationCode}</span>
-                                {doc.signedBy && <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest ml-2">Signed by {doc.signedBy}</span>}
-                             </div>
-                          </div>
-                       </div>
-                       <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
-                          <button 
-                            onClick={() => setPreviewDoc(doc)}
-                            className="p-3 bg-white border border-slate-200 text-brand rounded-xl hover:shadow-lg hover:border-brand-accent transition-all"
-                          >
-                             <Eye size={20} />
-                          </button>
-                          <button className="p-3 bg-white border border-slate-200 text-slate-400 rounded-xl hover:text-brand-accent transition-all">
-                             <Printer size={20} />
-                          </button>
-                       </div>
-                    </div>
-                  ))
-                )}
-             </div>
+          <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col p-10">
+             <DocumentManager entityType="Delivery Note" entityId={dn.id} />
           </div>
 
           {/* Operational Allocation Hub */}

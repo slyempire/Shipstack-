@@ -1,4 +1,6 @@
 
+import { useAuthStore } from "../store";
+
 /**
  * Shipstack Cache Service (Proxying via Backend)
  * Used for high-speed driver telemetry and hot data caching
@@ -9,9 +11,13 @@ export const cacheService = {
    */
   set: async (key: string, value: any, ttlSeconds: number = 3600): Promise<void> => {
     try {
+      const token = useAuthStore.getState().token;
       await fetch(`/api/cache/${key}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
+        },
         body: JSON.stringify({ value, ttl: ttlSeconds })
       });
     } catch (err) {
@@ -34,7 +40,12 @@ export const cacheService = {
    */
   get: async <T>(key: string): Promise<T | null> => {
     try {
-      const response = await fetch(`/api/cache/${key}`);
+      const token = useAuthStore.getState().token;
+      const response = await fetch(`/api/cache/${key}`, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : ''
+        }
+      });
       if (!response.ok) return null;
       
       const contentType = response.headers.get("content-type");
@@ -66,7 +77,13 @@ export const cacheService = {
    */
   del: async (key: string): Promise<void> => {
     try {
-      await fetch(`/api/cache/${key}`, { method: 'DELETE' });
+      const token = useAuthStore.getState().token;
+      await fetch(`/api/cache/${key}`, { 
+        method: 'DELETE',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : ''
+        }
+      });
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       const lowMsg = errorMsg.toLowerCase();

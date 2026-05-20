@@ -1,4 +1,5 @@
 import { io, Socket } from "socket.io-client";
+import { useAuthStore } from "../store";
 
 let socket: Socket | null = null;
 
@@ -6,12 +7,15 @@ export const telemetryService = {
   connect() {
     if (socket?.connected) return;
 
-    // Standard socket connection
+    const token = useAuthStore.getState().token;
+
+    // Standard socket connection with auth token
     socket = io({
       reconnectionAttempts: 5,
       reconnectionDelay: 2000,
       autoConnect: true,
-      transports: ['websocket', 'polling'], // Favor websocket, fallback to polling
+      transports: ['websocket', 'polling'],
+      auth: { token }
     });
 
     socket.on("connect", () => {
@@ -38,21 +42,22 @@ export const telemetryService = {
       timestamp: new Date().toISOString(),
     };
 
-    // Browser telemetry doesn't expose a server secret.
-    const signedData = { ...payload };
-
     // Try socket first if connected
     if (socket?.connected) {
-      socket.emit("telemetry:report", signedData);
+      socket.emit("telemetry:report", payload);
       return;
     }
 
     // Fallback to HTTP POST
     try {
+      const token = useAuthStore.getState().token;
       const response = await fetch('/api/telemetry', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(signedData)
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
+        },
+        body: JSON.stringify(payload)
       });
       
       if (!response.ok) throw new Error("HTTP Telemetry failed");
@@ -60,7 +65,7 @@ export const telemetryService = {
       return;
     } catch (err) {
       console.error("Telemetry Fallback Error, queuing for offline sync:", err);
-      this.queueOfflinePoint(signedData);
+      this.queueOfflinePoint(payload);
     }
     
     // Attempt to reconnect socket in background

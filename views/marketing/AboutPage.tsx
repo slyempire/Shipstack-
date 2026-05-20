@@ -18,14 +18,23 @@ const AboutPage: React.FC = () => {
   return (
     <MarketingLayout>
       {/* Hero */}
-      <header className="px-6 pt-32 pb-24 max-w-7xl mx-auto text-center">
+      <header className="px-6 pt-32 pb-48 max-w-7xl mx-auto text-center relative overflow-hidden">
+        <div className="absolute inset-0 -z-10 opacity-20 pointer-events-none">
+          <img 
+            src="https://images.unsplash.com/photo-1549194388-f61be84a6e9e?q=80&w=2600&auto=format&fit=crop" 
+            alt="Mission Profile" 
+            className="w-full h-full object-cover"
+            referrerPolicy="no-referrer"
+          />
+          <div className="absolute inset-0 bg-white/80" />
+        </div>
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="inline-flex items-center gap-2 bg-brand/5 border border-brand/10 px-4 py-2 rounded-full mb-8"
+          className="inline-flex items-center gap-2 bg-brand/5 border border-brand/10 px-4 py-2 rounded-full mb-8 shadow-sm"
         >
           <Heart size={14} className="text-brand" />
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand">Our Story</span>
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand">The Shipstack Protocol</span>
         </motion.div>
         <motion.h1 
           initial={{ opacity: 0, y: 30 }}
@@ -134,15 +143,40 @@ const AboutPage: React.FC = () => {
               </div>
             ))}
           </div>
+
+          <div className="mt-32 pt-20 border-t border-slate-200 text-center">
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 mb-6">The Team Behind the Stack</p>
+            <h3 className="text-3xl font-black text-slate-900 uppercase tracking-tighter mb-4">A Product of <a href="https://murzaktech.com" target="_blank" rel="noopener noreferrer" className="text-brand hover:underline">Murzak Technologies</a></h3>
+            <p className="text-slate-500 font-medium max-w-xl mx-auto">
+              Shipstack is engineered and maintained by the specialized systems division at Murzak Technologies, dedicated to solving complex infrastructure challenges through elegant code.
+            </p>
+          </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="bg-brand py-24 text-center text-white px-6">
-        <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter mb-8">Join the movement.</h2>
-        <Link to="/register" className="inline-flex bg-white text-brand px-12 py-6 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all">
-          Get Started
-        </Link>
+      {/* Final CTA Section */}
+      <section className="relative py-48 overflow-hidden bg-slate-900 border-y border-white/5">
+        <div className="absolute inset-0 z-0">
+          <img 
+            src="https://images.unsplash.com/photo-1570675114274-850697cca205?q=80&w=2600&auto=format&fit=crop" 
+            alt="Engineering Logistics" 
+            className="w-full h-full object-cover opacity-60 scale-105"
+            referrerPolicy="no-referrer"
+          />
+          <div className="absolute inset-0 bg-slate-900/40" />
+        </div>
+
+        <div className="max-w-4xl mx-auto px-6 relative z-10 text-center">
+          <h2 className="text-6xl md:text-8xl font-black uppercase tracking-tighter text-white mb-12 leading-none">
+            Ready to <br/><span className="text-brand">Collaborate?</span>
+          </h2>
+          <p className="text-xl md:text-3xl text-slate-400 font-bold uppercase tracking-tight mb-16 leading-tight">
+            Join the movement of engineers and logistics <br className="hidden md:block" /> specialists defining the new standard.
+          </p>
+          <Link to="/register" className="inline-flex bg-brand hover:bg-orange-600 text-white px-16 py-8 rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] shadow-2xl active:scale-95 transition-all">
+            Join the Network
+          </Link>
+        </div>
       </section>
     </MarketingLayout>
   );

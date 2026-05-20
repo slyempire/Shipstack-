@@ -70,7 +70,7 @@ const MarketingFooter: React.FC = () => {
 
         <div className="pt-12 flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8 text-[10px] font-black uppercase tracking-widest text-slate-500">
-            <span>&copy; 2025 Shipstack Technologies Ltd. Built in Africa.</span>
+            <span>&copy; 2025 Shipstack and <a href="https://murzaktech.com" target="_blank" rel="noopener noreferrer" className="text-white hover:text-brand underline underline-offset-4 decoration-brand/30">Murzak Technologies</a>. Built in Africa.</span>
             <div className="flex items-center gap-4 border-l border-white/5 pl-8">
               <span className="flex items-center gap-2"><ShieldCheck size={12} className="text-emerald-500" /> SOC 2 Compliant</span>
               <span className="flex items-center gap-2"><Globe size={12} className="text-blue-500" /> GDPR Ready</span>

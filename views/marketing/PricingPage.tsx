@@ -7,53 +7,46 @@ import MarketingLayout from '../../components/marketing/MarketingLayout';
 const PricingPage: React.FC = () => {
   const plans = [
     {
-      name: 'Starter',
-      price: 'Free',
-      desc: 'Perfect for small businesses starting deliveries.',
-      features: ['Up to 3 vehicles', '50 shipments/month', 'Basic dispatch & warehouse', '1 User (Admin only)', 'Email Support', 'AI: Basic summaries'],
-      cta: 'Start Free Trial',
+      name: 'Pilot',
+      price: 'Early Access',
+      desc: 'For industry partners helping us build the future.',
+      features: ['Full platform access', 'Co-development support', 'Custom ERP integration', 'White-glove onboarding', 'Priority support', 'Weekly progress reviews'],
+      cta: 'Apply for Pilot',
       highlight: false
     },
     {
       name: 'Growth',
-      price: '99',
-      desc: 'Scale your logistics with full control and visibility.',
-      features: ['Up to 20 vehicles', 'Unlimited shipments', 'All CORE modules', 'Up to 10 users', 'M-Pesa Integration', 'AI: Cortex Insights', 'Remove Branding'],
-      cta: 'Deploy Growth Stack',
+      price: '199',
+      desc: 'Optimized for high-throughput logistics hubs.',
+      features: ['Unlimited shipments', 'Advanced telemetry', 'M-Pesa/Flutterwave payouts', 'Up to 20 dispatchers', 'Fraud detection suite', 'AI: Route Intelligence', 'Dedicated training'],
+      cta: 'Request Early Access',
       highlight: true
-    },
-    {
-      name: 'Scale',
-      price: '249',
-      desc: 'Advanced intelligence for medium to large fleets.',
-      features: ['Up to 100 vehicles', 'All GROWTH features', 'All ADD-ON modules', 'Up to 50 users', 'Multi-facility support', 'AI: Full Cortex AI Suite', 'White-labeling'],
-      cta: 'Select Scale Plan',
-      highlight: false
     },
     {
       name: 'Enterprise',
       price: 'Custom',
-      desc: 'Powering large-scale operations across Africa.',
-      features: ['Unlimited everything', 'Multi-country support', 'Custom ERP Integrations', '99.9% SLA Guarantee', 'Fine-tuned AI models', 'Dedicated Account Manager'],
-      cta: 'Contact Sales',
+      desc: 'Continental architecture for national networks.',
+      features: ['Multi-country/Region sync', 'On-premise deployment options', 'Unlimited enterprise users', '99.99% SLA Guarantee', 'Custom compliance engine', 'Direct engineer access'],
+      cta: 'Book Consultation',
       highlight: false
     }
   ];
 
   return (
     <MarketingLayout>
-      <section className="px-8 pt-32 pb-32 max-w-[90rem] mx-auto text-center relative">
-        <div className="absolute inset-0 -z-10 opacity-[0.05] pointer-events-none">
+      <section className="px-8 pt-32 pb-32 max-w-[90rem] mx-auto text-center relative overflow-hidden">
+        <div className="absolute inset-0 -z-10 opacity-20 pointer-events-none">
           <img 
-            src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&q=80&w=2000" 
-            alt="Financial Data" 
+            src="https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&q=80&w=2600" 
+            alt="Large Scale Port" 
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
           />
+          <div className="absolute inset-0 bg-white/70" />
         </div>
-        <h1 className="text-6xl md:text-8xl font-black tracking-tighter uppercase mb-6 leading-none text-slate-900">Simple, Reliable <span className="text-brand">Pricing.</span></h1>
-        <p className="text-xl text-slate-500 max-w-2xl mx-auto mb-4 font-medium">
-          Choose the stack that fits your operational scale. All plans include a 14-day mission-critical trial.
+        <h1 className="text-6xl md:text-8xl font-black tracking-tighter uppercase mb-6 leading-none text-slate-900">Simple, Reliable <br/><span className="text-brand">Pricing.</span></h1>
+        <p className="text-xl md:text-2xl text-slate-500 max-w-4xl mx-auto mb-8 font-bold uppercase tracking-tight leading-tight">
+          Choose the stack that fits your operational scale. <br className="hidden md:block" /> All plans include a mission-critical 14-day trial.
         </p>
         <p className="text-[10px] font-black uppercase tracking-[0.3em] text-brand mb-20">
           Pay via M-Pesa, card, or invoice • No setup fees
@@ -91,17 +84,18 @@ const PricingPage: React.FC = () => {
       </section>
 
       {/* Comparison Motif */}
-      <section className="px-8 py-32 bg-brand text-white relative overflow-hidden">
-        <div className="absolute inset-0 opacity-[0.2] pointer-events-none">
+      <section className="px-8 py-48 bg-slate-900 text-white relative overflow-hidden border-y border-white/5">
+        <div className="absolute inset-0 opacity-50 pointer-events-none">
           <img 
-            src="https://images.unsplash.com/photo-1454165833767-027ffea9e77b?auto=format&fit=crop&q=80&w=2000" 
+            src="https://images.unsplash.com/photo-1454165833767-027ffea9e77b?auto=format&fit=crop&q=80&w=2600" 
             alt="Enterprise Logistics" 
-            className="w-full h-full object-cover mix-blend-overlay"
+            className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
           />
+          <div className="absolute inset-0 bg-slate-900/30" />
         </div>
         <Zap className="absolute -right-20 -bottom-20 text-white/5" size={400} />
-        <div className="max-w-3xl mx-auto text-center relative z-10">
+        <div className="max-w-4xl mx-auto text-center relative z-10">
            <div className="h-16 w-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-2xl border border-white/20">
               <ShieldCheck size={32} />
            </div>

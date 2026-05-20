@@ -38,34 +38,34 @@ const InfrastructurePage: React.FC = () => {
       </nav>
 
       {/* Hero Section */}
-      <header className="px-6 pt-24 pb-32 max-w-7xl mx-auto text-center relative overflow-hidden">
-        <div className="absolute inset-0 -z-10 opacity-[0.15] pointer-events-none">
+      <header className="px-6 pt-32 pb-48 max-w-7xl mx-auto text-center relative overflow-hidden">
+        <div className="absolute inset-0 -z-10 opacity-[0.08] pointer-events-none">
           <img 
-            src="https://images.unsplash.com/photo-1558494949-ef010cbdcc48?auto=format&fit=crop&q=80&w=2000" 
-            alt="Data Center" 
-            className="w-full h-full object-cover"
+            src="https://images.unsplash.com/photo-1549194388-f61be84a6e9e?q=80&w=2000&auto=format&fit=crop" 
+            alt="Global Logistics Network" 
+            className="w-full h-full object-cover scale-110"
             referrerPolicy="no-referrer"
           />
         </div>
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[1000px] bg-brand-accent/5 rounded-full blur-[120px] -z-10"></div>
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[1200px] bg-brand/5 rounded-full blur-[150px] -z-10"></div>
         
-        <div className="inline-flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-full mb-10 shadow-sm">
-          <Server size={14} className="text-brand-accent" />
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Industrial Grade Backend</span>
+        <div className="inline-flex items-center gap-2 bg-white border border-slate-200 px-6 py-3 rounded-full mb-12 shadow-sm">
+          <Server size={14} className="text-brand" />
+          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Tier-4 Mission Critical Stack</span>
         </div>
 
-        <h1 className="mobile-h1 mb-8 uppercase font-display text-slate-900">
-          The <span className="text-brand-accent">Infrastructure</span> of <br className="hidden md:block" /> Modern Logistics.
+        <h1 className="text-6xl md:text-[8rem] lg:text-[10rem] font-black text-slate-900 tracking-tighter leading-[0.8] mb-12 uppercase font-display">
+          Deep <br className="hidden md:block" /> <span className="text-brand">Protocol.</span>
         </h1>
         
-        <p className="mobile-p text-slate-500 max-w-3xl mx-auto mb-16 font-medium">
-          ShipStack isn't just a dashboard. It's a high-performance distributed network designed to stabilize the most complex supply chains in East Africa.
+        <p className="text-xl md:text-3xl text-slate-500 max-w-4xl mx-auto mb-20 font-bold uppercase tracking-tight leading-tight">
+          ShipStack isn't just a dashboard. It's a high-performance distributed network designed to stabilize the most complex supply chains in Africa.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
-          <StatCard label="Uptime SLA" value="99.99%" sub="Carrier Grade Reliability" />
-          <StatCard label="Latency" value="< 50ms" sub="Regional Edge Processing" />
-          <StatCard label="Data Encryption" value="AES-256" sub="Bank-Level Security" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+          <StatCard label="Uptime SLA" value="99.999%" sub="Carrier Grade Resilience" />
+          <StatCard label="Latency" value="< 25ms" sub="Regional Edge Convergence" />
+          <StatCard label="Data Encryption" value="Quantum-Ready" sub="Next-Gen Security Protocols" />
         </div>
       </header>
 
@@ -202,29 +202,47 @@ const InfrastructurePage: React.FC = () => {
         </div>
       </section>
 
-      {/* Final CTA */}
-      <section className="py-32 px-6 text-center max-w-7xl mx-auto">
-        <h2 className="mobile-h2 uppercase font-display text-slate-900 mb-8">Ready to <span className="text-brand-accent">Upgrade</span> your Stack?</h2>
-        <p className="text-slate-500 max-w-2xl mx-auto mb-16 font-medium">Join the regional leaders who have digitized their entire logistics infrastructure with ShipStack.</p>
-        <div className="flex flex-col sm:flex-row justify-center gap-6">
-          <Link to="/register" className="touch-btn sm:px-12 bg-brand text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl hover:bg-brand-accent transition-all">
-            Deploy Now
-          </Link>
-          <Link to="/pricing" className="touch-btn sm:px-12 bg-white border-2 border-slate-200 text-slate-900 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] hover:border-brand-accent transition-all">
-            View Pricing
-          </Link>
+      {/* Final CTA Section */}
+      <section className="relative py-48 overflow-hidden bg-slate-900 border-y border-white/5">
+        <div className="absolute inset-0 z-0">
+          <img 
+            src="https://images.unsplash.com/photo-1551434678-e076c223a692?q=80&w=2600&auto=format&fit=crop" 
+            alt="Infrastructure Lab" 
+            className="w-full h-full object-cover opacity-60 scale-105"
+            referrerPolicy="no-referrer"
+          />
+          <div className="absolute inset-0 bg-slate-900/40" />
+        </div>
+
+        <div className="max-w-4xl mx-auto px-6 relative z-10 text-center">
+          <h2 className="text-6xl md:text-8xl font-black uppercase tracking-tighter text-white mb-12 leading-none">
+            Scale the <br/><span className="text-brand">Protocol.</span>
+          </h2>
+          <p className="text-xl md:text-3xl text-slate-400 font-bold uppercase tracking-tight mb-16 leading-tight">
+            Integrate your enterprise into the most resilient <br className="hidden md:block" /> logistics network in the region.
+          </p>
+          <div className="flex flex-col sm:flex-row justify-center gap-6">
+            <Link to="/register" className="bg-brand hover:bg-orange-600 text-white px-16 py-8 rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] shadow-2xl active:scale-95 transition-all text-center">
+              Initialize Stack
+            </Link>
+            <Link to="/pricing" className="bg-white/5 border-2 border-white/10 text-white px-16 py-8 rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] hover:bg-white/10 transition-all text-center">
+              Analyze Pricing
+            </Link>
+          </div>
         </div>
       </section>
 
-      <footer className="bg-white border-t border-slate-100 py-12 px-6">
+      <footer className="bg-white border-t border-slate-100 py-16 px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 bg-brand rounded-xl flex items-center justify-center text-white">
-              <Layers size={20} />
+          <div className="flex items-center gap-4">
+            <div className="h-10 w-10 bg-slate-950 rounded-xl flex items-center justify-center text-white">
+              <Layers size={24} />
             </div>
-            <span className="text-lg font-black tracking-tighter uppercase font-display">Shipstack</span>
+            <span className="text-2xl font-black tracking-tighter uppercase font-display">Shipstack</span>
           </div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">&copy; 2025 Shipstack Technologies. KE-NBO-1</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">
+            &copy; 2025 Shipstack and <a href="https://murzaktech.com" target="_blank" rel="noopener noreferrer" className="text-slate-900 hover:text-brand">Murzak Technologies</a>. Built in Africa.
+          </p>
         </div>
       </footer>
       <ScrollToTop />

@@ -30,7 +30,16 @@ import {
   BarChart3,
   Smartphone,
   Bell,
-  Users
+  Users,
+  Navigation,
+  Wallet,
+  LayoutDashboard,
+  Search,
+  Database,
+  History,
+  ClipboardCheck,
+  MousePointer2,
+  Cog
 } from 'lucide-react';
 
 import MarketingLayout from '../../components/marketing/MarketingLayout';
@@ -44,7 +53,7 @@ const TrustBadge = () => (
     className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full mt-8"
   >
     <Shield size={14} className="text-brand" />
-    <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Trusted by 1,500+ logistics operators across Africa</span>
+    <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Early-access pilot partners: Now onboarding for Q3 2026</span>
   </motion.div>
 );
 
@@ -266,37 +275,54 @@ const LandingPage: React.FC = () => {
   return (
     <MarketingLayout>
       {/* Hero Section */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center pt-32 pb-24 bg-white overflow-hidden">
+      <section className="relative min-h-screen flex flex-col items-center justify-center pt-32 pb-24 bg-[#0F172A] overflow-hidden">
+        {/* Background Image Overlay */}
+        <div className="absolute inset-0 z-0">
+          <img 
+            src="https://images.unsplash.com/photo-1573164713988-8665fc963095?q=80&w=2600&auto=format&fit=crop" 
+            alt="Logistics Operations Control" 
+            className="w-full h-full object-cover opacity-20 scale-105 mix-blend-luminosity"
+            referrerPolicy="no-referrer"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0F172A]/80 via-[#0F172A]/40 to-[#0F172A]" />
+        </div>
+
         <div className="container-responsive relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="mb-12"
+            transition={{ duration: 0.8 }}
+            className="mb-12 flex justify-center"
           >
-            <div className="h-16 w-16 bg-slate-900 text-white rounded-xl flex items-center justify-center mx-auto shadow-2xl shadow-slate-900/40">
-              <Layers size={32} strokeWidth={3} />
+            <div className="inline-flex items-center gap-3 px-6 py-3 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-md">
+              <span className="flex h-2 w-2 rounded-full bg-brand animate-pulse" />
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">Live Control Tower V2.4 Active</span>
             </div>
           </motion.div>
 
-          <motion.h1 
+          <motion.div 
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-7xl md:text-[10rem] font-black tracking-tighter leading-[0.8] mb-12 uppercase text-slate-900 text-center"
+            transition={{ duration: 1, ease: "circOut" }}
+            className="text-center"
           >
-            Logistics.<br />
-            Redefined.
-          </motion.h1>
+            <h1 className="text-5xl md:text-[8.5rem] font-black tracking-tighter leading-[0.8] mb-12 uppercase text-white">
+              The OS for <br />
+              African <span className="text-brand">Trade.</span>
+            </h1>
+          </motion.div>
 
-          <motion.p 
-            initial={{ opacity: 0, y: 30 }}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-xl md:text-3xl text-slate-400 max-w-4xl mx-auto mb-20 font-bold leading-tight text-center uppercase tracking-tight"
+            className="text-center max-w-4xl mx-auto mb-20"
           >
-            THE PREMIER OPERATING SYSTEM FOR AFRICAN TRADE AND LOGISTICS NETWORKS.
-          </motion.p>
+            <p className="text-xl md:text-2xl text-slate-400 font-bold uppercase tracking-tight leading-tight">
+              A high-precision control tower for transport teams. <br className="hidden md:block" />
+              Manage fleet telemetry, driver payouts, and ERP reconciliation in one interface.
+            </p>
+          </motion.div>
 
           <motion.div 
             initial={{ opacity: 0, y: 30 }}
@@ -306,20 +332,17 @@ const LandingPage: React.FC = () => {
           >
             <button 
               onClick={() => isAuthenticated ? handleDashboardRedirect() : navigate('/register')}
-              className="w-full sm:w-auto px-12 py-6 bg-slate-900 hover:bg-black text-white text-base font-black uppercase tracking-widest shadow-2xl transition-all hover:translate-y-[-4px] active:scale-95"
+              className="w-full sm:w-auto px-16 py-8 bg-brand hover:bg-orange-600 text-white text-base font-black uppercase tracking-widest shadow-[0_20px_50px_rgba(255,140,66,0.2)] transition-all hover:translate-y-[-4px] active:scale-95 rounded-2xl flex items-center justify-center gap-3"
             >
-              {isAuthenticated ? 'Enter Console' : 'Start Deploying'}
+              Start Pilot Node
+              <ArrowRight size={20} />
             </button>
             {!isAuthenticated && (
               <button 
-                onClick={async () => {
-                  const { user, token } = await api.loginDemo();
-                  useAuthStore.getState().login(user, token);
-                  navigate('/admin');
-                }}
-                className="w-full sm:w-auto px-12 py-6 bg-white border-2 border-slate-900 text-slate-900 text-base font-black uppercase tracking-widest transition-all hover:bg-slate-50 flex items-center justify-center gap-3"
+                onClick={() => navigate('/product')}
+                className="w-full sm:w-auto px-16 py-8 bg-white/5 border-2 border-white/10 text-white text-base font-black uppercase tracking-widest transition-all hover:bg-white/10 flex items-center justify-center gap-3 rounded-2xl"
               >
-                Launch Demo
+                Logistics Tour
               </button>
             )}
           </motion.div>
@@ -337,47 +360,82 @@ const LandingPage: React.FC = () => {
       {/* Social Proof */}
       <div className="bg-slate-50 py-24 border-y border-slate-100">
         <div className="container-responsive">
-          <p className="text-center text-[10px] font-black uppercase tracking-[0.4em] text-slate-300 mb-16">Powering Modern Commerce Across Africa</p>
-          <div className="flex flex-wrap items-center justify-center gap-12 md:gap-24 opacity-30 grayscale hover:grayscale-0 transition-all duration-700">
-             <div className="h-10 w-32 bg-slate-900 rounded-sm" />
-             <div className="h-10 w-24 bg-slate-900 rounded-sm" />
-             <div className="h-10 w-40 bg-slate-900 rounded-sm" />
-             <div className="h-10 w-28 bg-slate-900 rounded-sm" />
-             <div className="h-10 w-36 bg-slate-900 rounded-sm" />
+          <p className="text-center text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 mb-16">Built with logistics operators. Trusted by first-mover teams.</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 items-center justify-center gap-8 md:gap-16">
+             <div className="flex flex-col items-center gap-2 grayscale hover:grayscale-0 transition-all opacity-60">
+                <div className="h-12 w-full bg-slate-200 rounded-xl flex items-center justify-center px-4">
+                   <span className="font-black text-slate-400 tracking-tighter text-lg uppercase italic">M-Pesa</span>
+                </div>
+                <span className="text-[8px] font-bold uppercase text-slate-500 tracking-widest">Payout Ready</span>
+             </div>
+             <div className="flex flex-col items-center gap-2 grayscale hover:grayscale-0 transition-all opacity-60">
+                <div className="h-12 w-full bg-slate-200 rounded-xl flex items-center justify-center px-4">
+                   <span className="font-black text-slate-400 tracking-tighter text-lg uppercase italic">ERP Sync</span>
+                </div>
+                <span className="text-[8px] font-bold uppercase text-slate-500 tracking-widest">Frappe Integration</span>
+             </div>
+             <div className="flex flex-col items-center gap-2 grayscale hover:grayscale-0 transition-all opacity-60">
+                <div className="h-12 w-full bg-slate-200 rounded-xl flex items-center justify-center px-4">
+                   <span className="font-black text-slate-400 tracking-tighter text-lg uppercase italic">Settlements</span>
+                </div>
+                <span className="text-[8px] font-bold uppercase text-slate-500 tracking-widest">Secure Corridor</span>
+             </div>
+             <div className="flex flex-col items-center gap-2 grayscale hover:grayscale-0 transition-all opacity-60">
+                <div className="h-12 w-full bg-slate-200 rounded-xl flex items-center justify-center px-4 text-center">
+                   <Shield size={16} className="text-slate-400 mr-2" />
+                   <span className="font-black text-slate-400 tracking-tighter text-lg uppercase">Security Tier</span>
+                </div>
+                <span className="text-[8px] font-bold uppercase text-slate-500 tracking-widest">Pilot-Verified</span>
+             </div>
+          </div>
+          <div className="mt-16 text-center text-slate-400">
+            <span className="inline-flex items-center gap-3 px-6 py-2 bg-slate-200/50 rounded-full text-[10px] font-black uppercase tracking-widest text-slate-500 border border-slate-300">
+              Closed Pilot: Now Onboarding Early Adopters for East & West Africa
+            </span>
           </div>
         </div>
       </div>
 
       {/* Benefits Section */}
-      <SectionWrapper className="py-48 bg-white">
-        <div className="container-responsive">
+      <SectionWrapper className="py-48 bg-slate-50 relative overflow-hidden">
+        {/* Subtle background image for impact */}
+        <div className="absolute inset-0 opacity-5 pointer-events-none">
+           <img 
+             src="https://images.unsplash.com/photo-1549194388-f61be84a6e9e?q=80&w=2000&auto=format&fit=crop" 
+             alt="Logistics Impact" 
+             className="w-full h-full object-cover grayscale"
+             referrerPolicy="no-referrer"
+           />
+        </div>
+
+        <div className="container-responsive relative z-10">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-32">
             <div className="max-w-3xl">
               <h2 className="text-5xl md:text-8xl font-black uppercase tracking-tighter text-slate-900 mb-8 leading-none">
-                Built for<br />
-                The Future.
+                Hardened<br />
+                Operations.
               </h2>
-              <p className="text-xl md:text-2xl text-slate-400 font-bold uppercase tracking-tight">Scale your logistics operations with the precision of code.</p>
+              <p className="text-xl md:text-2xl text-slate-600 font-bold uppercase tracking-tight">Enterprise visibility for frontier logistics markets.</p>
             </div>
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <FeatureCard 
-              icon={ShieldCheck} 
-              title="Immutable Security" 
-              desc="Every transaction and movement is cryptographically verified on our private ledger."
+              icon={LayoutDashboard} 
+              title="Unified View" 
+              desc="Consolidate multiple carriers and internal fleets into a single high-fidelity control panel."
               delay={0}
             />
             <FeatureCard 
-              icon={TrendingUp} 
-              title="Elastic Scaling" 
-              desc="Our serverless architecture handles anywhere from 1 to 1M daily tasks without latency."
+              icon={Wallet} 
+              title="Settlement Engine" 
+              desc="Automated driver payments and carrier reconciliation integrated with local mobile money networks."
               delay={0.1}
             />
             <FeatureCard 
-              icon={MapPin} 
-              title="Global Visibility" 
-              desc="Sub-second latency GPS tracking across urban centers and rural corridors."
+              icon={Navigation} 
+              title="Fleet Telemetry" 
+              desc="Sub-second GPS precision and vehicle health diagnostics streaming from every active node."
               delay={0.2}
             />
           </div>
@@ -385,81 +443,150 @@ const LandingPage: React.FC = () => {
       </SectionWrapper>
 
       {/* Comparison Section */}
-      <SectionWrapper className="py-32 bg-navy-dark border-y border-white/5">
-        <div className="container-responsive">
-          <div className="text-center mb-20">
-            <h2 className="text-4xl md:text-7xl font-black uppercase tracking-tighter text-white mb-6">Why Choose <span className="text-brand">Shipstack?</span></h2>
+      <SectionWrapper className="py-48 bg-slate-900 border-y border-white/5 relative overflow-hidden">
+        {/* Background image */}
+        <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
+          <img 
+             src="https://images.unsplash.com/photo-1547683905-f686c993aae5?q=80&w=2600&auto=format&fit=crop" 
+             alt="Logistics Efficiency" 
+             className="w-full h-full object-cover grayscale"
+             referrerPolicy="no-referrer"
+          />
+        </div>
+        {/* Background glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[500px] w-[500px] bg-brand/10 blur-[120px] rounded-full pointer-events-none" />
+
+        <div className="container-responsive relative z-10">
+          <div className="text-center mb-32">
+            <h2 className="text-4xl md:text-8xl font-black uppercase tracking-tighter text-white mb-6">Built to <span className="text-brand">Compete.</span></h2>
+            <p className="text-slate-400 font-bold uppercase tracking-tight">The Shipstack advantage is quantifiable.</p>
           </div>
           
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-white/10">
-                  <th className="py-8 px-6 text-[10px] font-black uppercase tracking-widest text-slate-500">Feature</th>
-                  <th className="py-8 px-6 text-xl font-black uppercase tracking-tight text-brand">Shipstack</th>
-                  <th className="py-8 px-6 text-xl font-black uppercase tracking-tight text-slate-400">Traditional Software</th>
-                  <th className="py-8 px-6 text-xl font-black uppercase tracking-tight text-slate-400">DIY Spreadsheets</th>
-                </tr>
-              </thead>
-              <tbody className="text-white">
-                {[
-                  { feature: "Cost", shipstack: "Low/Fixed", trad: "High/CapEx", diy: "Hidden Time Cost" },
-                  { feature: "Setup Time", shipstack: "Instant", trad: "Weeks/Months", diy: "Always Building" },
-                  { feature: "Mobile-Ready", shipstack: true, trad: false, diy: false },
-                  { feature: "Local Payments", shipstack: true, trad: false, diy: false },
-                  { feature: "Customer Support", shipstack: "24/7 Local", trad: "Business Hours", diy: "None" }
-                ].map((row, i) => (
-                  <tr key={i} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                    <td className="py-6 px-6 font-bold text-slate-300">{row.feature}</td>
-                    <td className="py-6 px-6 font-black">
-                      {typeof row.shipstack === 'boolean' ? (
-                        row.shipstack ? <CheckCircle size={20} className="text-brand" /> : <X size={20} className="text-slate-600" />
-                      ) : (
-                        <div className="flex items-center gap-2">
-                           <CheckCircle size={16} className="text-brand" />
-                           {row.shipstack}
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-6 px-6 text-slate-500 font-medium">
-                       {typeof row.trad === 'boolean' ? (
-                        row.trad ? <CheckCircle size={20} className="text-emerald-500" /> : <X size={20} className="text-slate-600" />
-                      ) : row.trad}
-                    </td>
-                    <td className="py-6 px-6 text-slate-500 font-medium">
-                       {typeof row.diy === 'boolean' ? (
-                        row.diy ? <CheckCircle size={20} className="text-emerald-500" /> : <X size={20} className="text-slate-600" />
-                      ) : row.diy}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="overflow-x-auto pb-12">
+            <div className="min-w-[800px]">
+               <table className="w-full text-left border-separate border-spacing-y-2">
+                 <thead>
+                   <tr>
+                     <th className="py-8 px-10 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Infrastructure Metrics</th>
+                     <th className="py-8 px-10">
+                        <div className="bg-brand text-white px-6 py-4 rounded-xl inline-block text-xl font-black uppercase tracking-tight shadow-xl shadow-brand/20">Shipstack</div>
+                     </th>
+                     <th className="py-8 px-10 text-xl font-black uppercase tracking-tight text-slate-400">Enterprise Legacy</th>
+                     <th className="py-8 px-10 text-xl font-black uppercase tracking-tight text-slate-400">Manual Operations</th>
+                   </tr>
+                 </thead>
+                 <tbody className="text-white">
+                   {[
+                     { feature: "System Latency", shipstack: "<250ms", trad: "2.5s - 5s", diy: "N/A" },
+                     { feature: "Deployment Speed", shipstack: "Instant", trad: "12-24 Weeks", diy: "Permanent Beta" },
+                     { feature: "Real-time Telemetry", shipstack: true, trad: "Batch Process", diy: "Manual Logs" },
+                     { feature: "M-Pesa Integration", shipstack: true, trad: "No", diy: "Manual Cash" },
+                     { feature: "Predictive AI", shipstack: true, trad: "Add-on", diy: "No" },
+                     { feature: "Uptime SLA", shipstack: "99.99%", trad: "99.0%", diy: "0%" }
+                   ].map((row, i) => (
+                     <tr key={i} className="group">
+                       <td className="py-10 px-10 bg-white/5 rounded-l-3xl border-y border-l border-white/5 group-hover:bg-white/10 transition-colors font-bold text-slate-300">{row.feature}</td>
+                       <td className="py-10 px-10 bg-white/5 border-y border-white/5 group-hover:bg-white/10 transition-colors font-black text-brand text-lg">
+                         {typeof row.shipstack === 'boolean' ? (
+                           row.shipstack ? <div className="flex items-center gap-2"><CheckCircle size={18} /><span>Included</span></div> : <X size={20} className="text-slate-600" />
+                         ) : (
+                           <div className="flex items-center gap-2">
+                              <CheckCircle size={16} className="text-brand shrink-0" />
+                              {row.shipstack}
+                           </div>
+                         )}
+                       </td>
+                       <td className="py-10 px-10 bg-white/5 border-y border-white/5 group-hover:bg-white/10 transition-colors text-slate-500 font-medium italic">
+                          {typeof row.trad === 'boolean' ? (
+                           row.trad ? <CheckCircle size={20} className="text-emerald-500" /> : <X size={20} className="text-slate-600" />
+                         ) : row.trad}
+                       </td>
+                       <td className="py-10 px-10 bg-white/5 rounded-r-3xl border-y border-r border-white/5 group-hover:bg-white/10 transition-colors text-slate-500 font-medium italic">
+                          {typeof row.diy === 'boolean' ? (
+                           row.diy ? <CheckCircle size={20} className="text-emerald-500" /> : <X size={20} className="text-slate-600" />
+                         ) : row.diy}
+                       </td>
+                     </tr>
+                   ))}
+                 </tbody>
+               </table>
+            </div>
           </div>
         </div>
       </SectionWrapper>
 
-      {/* What's Included section */}
-      <SectionWrapper className="py-48 bg-white border-t border-slate-100">
-        <div className="container-responsive">
-          <div className="mb-32">
-             <h2 className="text-5xl md:text-8xl font-black uppercase tracking-tighter text-slate-900 mb-8 leading-none">Core Modules.</h2>
-             <p className="text-xl text-slate-400 font-bold uppercase tracking-tight">The complete logistics stack, built for performance.</p>
+      {/* Features section with background */}
+      <SectionWrapper className="py-48 bg-[#0F172A] relative overflow-hidden">
+        <div className="absolute inset-0 z-0 overflow-hidden">
+           <div className="absolute inset-0 bg-[#0F172A]/90 z-10" />
+           <img 
+             src="https://images.unsplash.com/photo-1512413316925-fd47934313f1?q=80&w=2600&auto=format&fit=crop" 
+             alt="African Logistics Port" 
+             className="w-full h-full object-cover grayscale opacity-20 scale-105"
+             referrerPolicy="no-referrer"
+           />
+        </div>
+        <div className="container-responsive relative z-10">
+          <div className="grid lg:grid-cols-2 gap-24 items-center mb-32">
+             <div className="max-w-2xl">
+                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-brand mb-6">Operations Infrastructure</p>
+                <h2 className="text-5xl md:text-8xl font-black uppercase tracking-tighter text-white mb-8 leading-none">The Core Stack.</h2>
+                <p className="text-xl text-slate-400 font-bold uppercase tracking-tight">Precision-engineered for the frontier.</p>
+             </div>
+             <div className="rounded-[3rem] overflow-hidden shadow-[0_0_80px_rgba(255,140,66,0.1)] border border-white/5 relative group bg-slate-900 aspect-video flex items-center justify-center p-8">
+                <div className="absolute inset-0 bg-brand/5 opacity-50" />
+                <div className="relative w-full h-full bg-slate-950 rounded-2xl border border-white/10 flex flex-col p-4 shadow-2xl">
+                   {/* Mock UI elements */}
+                   <div className="flex items-center justify-between mb-4 pb-4 border-b border-white/5">
+                      <div className="flex items-center gap-2">
+                         <div className="h-3 w-3 bg-emerald-500 rounded-full animate-pulse" />
+                         <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">System Link: Online</span>
+                      </div>
+                      <div className="flex gap-1">
+                         <div className="h-2 w-8 bg-brand/20 rounded-full" />
+                         <div className="h-2 w-12 bg-white/5 rounded-full" />
+                      </div>
+                   </div>
+                   <div className="grid grid-cols-3 gap-3 flex-grow">
+                      <div className="col-span-2 bg-white/5 rounded-xl border border-white/5 p-3 flex flex-col justify-end gap-2 overflow-hidden relative">
+                         <MapPin size={40} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-brand opacity-20" />
+                         <div className="h-2 w-2/3 bg-white/20 rounded-full" />
+                         <div className="h-2 w-1/2 bg-white/10 rounded-full" />
+                      </div>
+                      <div className="flex flex-col gap-3">
+                         <div className="h-1/2 bg-white/5 rounded-xl border border-white/5 p-2 flex items-center justify-center">
+                            <Activity size={16} className="text-brand" />
+                         </div>
+                         <div className="h-1/2 bg-white/5 rounded-xl border border-white/5 p-2 flex items-center justify-center">
+                            <Shield size={16} className="text-emerald-500" />
+                         </div>
+                      </div>
+                   </div>
+                </div>
+             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-16 gap-x-24">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-16 gap-x-24 text-white">
             {[
-              { title: "Smart Dispatch", desc: "Automated route optimization and driver assignment." },
-              { title: "Telematics", desc: "IoT integration for real-time vehicle and cargo diagnostics." },
-              { title: "Fintech", desc: "Instant payments, driver wallets, and automated settlement." },
-              { title: "Visibility", desc: "Live dashboard tracking and customer notifications." },
-              { title: "Warehouse", desc: "Inventory management across decentralized hubs." },
-              { title: "API First", desc: "Build custom integrations on our robust infrastructure." }
+              { title: "Smart Routing", desc: "Dynamic route optimization taking into account local terrain, safety zones, and efficiency.", icon: Navigation },
+              { title: "Edge Telemetry", desc: "Direct vehicle health diagnostics and location history stored on an immutable ledger.", icon: Database },
+              { title: "Mobile Payouts", desc: "Instant carrier settlements via M-Pesa, Wave, and bank corridors. 0% friction.", icon: Wallet },
+              { title: "Central Command", desc: "Total visibility for dispatchers and ops managers in a real-time stream.", icon: LayoutDashboard },
+              { title: "Inventory Sync", desc: "Multi-hub warehouse management with real-time SKU tracking across regions.", icon: ClipboardCheck },
+              { title: "API Gateway", desc: "Connect Shipstack to your existing SAP, Frappe, or custom ERP systems.", icon: Cog }
             ].map((item, i) => (
               <div key={i} className="flex flex-col gap-6 group">
-                <div className="h-[2px] w-12 bg-slate-900 group-hover:w-full transition-all duration-500" />
-                <h4 className="text-2xl font-black uppercase tracking-tight text-slate-900">{item.title}</h4>
-                <p className="text-slate-400 font-medium leading-tight text-sm uppercase tracking-tight">{item.desc}</p>
+                <div className="flex items-center justify-between">
+                   <div className="h-14 w-14 bg-white/5 text-slate-400 rounded-2xl flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-all duration-300 shadow-sm border border-white/5">
+                      <item.icon size={26} />
+                   </div>
+                   <span className="text-[10px] font-black text-white/10 uppercase tracking-widest">Module 0{i+1}</span>
+                </div>
+                <div className="space-y-4">
+                   <h4 className="text-2xl font-black uppercase tracking-tight text-white group-hover:text-brand transition-colors">{item.title}</h4>
+                   <p className="text-slate-400 font-medium leading-relaxed">{item.desc}</p>
+                </div>
+                <div className="h-[2px] w-8 bg-brand/50 group-hover:w-full transition-all duration-700" />
               </div>
             ))}
           </div>
@@ -470,7 +597,36 @@ const LandingPage: React.FC = () => {
       <SectionWrapper className="py-32 bg-[#1A2B4D]">
         <div className="container-responsive">
           <div className="text-center mb-24">
-            <h2 className="text-4xl md:text-7xl font-black uppercase tracking-tighter text-white mb-6">Real Stories, <span className="text-brand">Real Growth.</span></h2>
+            <h2 className="text-4xl md:text-7xl font-black uppercase tracking-tighter text-white mb-6">Built with <span className="text-brand">Operators.</span></h2>
+            <p className="text-slate-400 font-bold uppercase tracking-tight">Tested by early-access logistics teams.</p>
+          </div>
+          
+          <div className="grid lg:grid-cols-2 gap-10 mb-10">
+             <div className="bg-white rounded-[3rem] p-12 overflow-hidden relative group">
+                <div className="relative z-10">
+                   <p className="text-[10px] font-black uppercase tracking-widest text-brand mb-4">Pilot Insights</p>
+                   <h3 className="text-3xl font-black text-slate-900 uppercase tracking-tighter mb-6">Optimized Regional Workflows</h3>
+                   <p className="text-slate-500 font-medium leading-relaxed mb-8">
+                      We spent 6 months on the ground in Nairobi and Lagos to understand how teams actually manage transport exceptions and settlements.
+                   </p>
+                </div>
+                <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+                   <Truck size={120} />
+                </div>
+             </div>
+             <div className="rounded-[3rem] overflow-hidden shadow-2xl relative aspect-square lg:aspect-auto">
+                <img 
+                   src="https://images.unsplash.com/photo-1558444479-c8f02791596f?q=80&w=2600&auto=format&fit=crop" 
+                   alt="Logistics Dashboard" 
+                   className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-1000"
+                   referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent opacity-60" />
+                <div className="absolute bottom-10 left-10 text-white">
+                   <p className="text-4xl font-black uppercase tracking-tighter">Pilot Ready</p>
+                   <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Verified Control Panel</p>
+                </div>
+             </div>
           </div>
 
           <div className="bg-[#121E36] rounded-[4rem] p-10 md:p-20 border border-white/5 relative overflow-hidden shadow-2xl">
@@ -493,7 +649,7 @@ const LandingPage: React.FC = () => {
                 <div className="mb-12">
                   <MessageSquare className="text-brand mb-6 opacity-50" size={48} />
                   <p className="text-2xl md:text-3xl text-white font-medium italic leading-relaxed">
-                    "Shipstack helped us scale from 50 to 500 deliveries per day in just 6 months. The operational visibility is unmatched."
+                    "Shipstack gave us complete operational visibility during our trial, helping us streamline driver settlements."
                   </p>
                 </div>
 
@@ -553,31 +709,32 @@ const LandingPage: React.FC = () => {
       <SectionWrapper className="py-32 bg-slate-50">
         <div className="container-responsive">
           <div className="text-center mb-24">
-            <h2 className="text-4xl md:text-7xl font-black uppercase tracking-tighter text-[#1A2B4D] mb-6">Success Stories.</h2>
+            <h2 className="text-4xl md:text-7xl font-black uppercase tracking-tighter text-[#1A2B4D] mb-6">Partner Insights.</h2>
+            <p className="text-slate-500 font-bold uppercase tracking-tight text-sm">Validating the vision with our early-access cohort.</p>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
             <TestimonialCard 
-              quote="Shipstack cut our delivery disputes by 80%. Our customers now trust us completely because they can track every package in real time."
-              author="John Kariuki"
-              role="Delivery Manager"
-              company="FastCourier"
-              city="Nairobi"
+              quote="Finally, a platform that doesn't ignore the complexities of the African 'last mile'. The visibility into driver settlements is exactly what we needed."
+              author="Amara Diallo"
+              role="Operations Director"
+              company="SwiftRoute Logistics"
+              city="Lagos"
               delay={0}
             />
             <TestimonialCard 
-              quote="We went from 50 to 400 daily deliveries in 4 months. Shipstack's driver management tools are a game-changer for growing logistics businesses."
-              author="Amara Diallo"
-              role="Founder"
-              company="SwiftMove"
-              city="Lagos"
+              quote="Shipstack's integration with our existing ERP was seamless. It's the first logistics OS that actually feels like it's built for scale, not just hype."
+              author="Moussa Keïta"
+              role="CTO"
+              company="Sahel Freight"
+              city="Bamako"
               delay={0.1}
             />
             <TestimonialCard 
-              quote="The M-Pesa integration alone saved us hours of manual reconciliation every week. Finally, logistics software that understands Africa."
-              author="Grace Muthoni"
-              role="Operations Lead"
-              company="QuickDeliver"
-              city="Kampala"
+              quote="The early-access support has been incredible. They aren't just selling software; they are helping us refine our entire operational flow."
+              author="Kwame Mensah"
+              role="Founder"
+              company="Nexus Courier"
+              city="Accra"
               delay={0.2}
             />
           </div>
@@ -585,53 +742,88 @@ const LandingPage: React.FC = () => {
       </SectionWrapper>
 
       {/* Payment Methods Section */}
-      <SectionWrapper className="py-32 bg-[#FF8C42]/5">
+      <SectionWrapper className="py-48 bg-[#0F172A] border-y border-white/5 overflow-hidden">
         <div className="container-responsive">
           <div className="grid lg:grid-cols-2 gap-20 items-center">
             <div>
-              <h2 className="text-4xl md:text-7xl font-black uppercase tracking-tighter text-[#1A2B4D] mb-8">
-                <span className="text-brand">Pay</span> Your Way.
+              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-brand mb-6">Fintech Infrastructure</p>
+              <h2 className="text-5xl md:text-[7rem] font-black uppercase tracking-tighter text-white mb-10 leading-[0.9]">
+                Frictionless <br />
+                <span className="text-brand">Payouts.</span>
               </h2>
-              <p className="text-lg text-slate-600 font-medium leading-relaxed mb-12">
-                We support all major payment methods across Africa—no friction, no barriers. Whether it's mobile money or bank transfers, we've got you covered.
+              <p className="text-xl text-slate-400 font-medium leading-relaxed mb-16 max-w-xl">
+                We handle the complexity of multi-regional settlements. Pay your drivers and carriers instantly after every successful trip reconciliation.
               </p>
-              <div className="grid grid-cols-2 gap-8">
-                {[
-                  { icon: Activity, label: "M-Pesa", color: "text-emerald-600 bg-emerald-50" },
-                  { icon: CreditCard, label: "Visa/Mastercard", color: "text-blue-600 bg-blue-50" },
-                  { icon: FileText, label: "Invoice/Billing", color: "text-brand bg-orange-50" },
-                  { icon: Building, label: "Bank Transfer", color: "text-slate-600 bg-slate-50" }
-                ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-4">
-                    <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${item.color}`}>
-                      <item.icon size={24} />
-                    </div>
-                    <span className="text-sm font-black uppercase tracking-tight text-[#1A2B4D]">{item.label}</span>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
+                <div className="flex flex-col gap-4 p-8 bg-white/5 rounded-[2.5rem] border border-white/5 group hover:border-brand/20 transition-all">
+                  <div className="h-12 w-12 bg-brand text-white rounded-2xl flex items-center justify-center shadow-lg shadow-brand/20">
+                    <Activity size={24} />
                   </div>
-                ))}
+                  <h4 className="text-lg font-black text-white uppercase tracking-tight">Mobile Money</h4>
+                  <p className="text-xs text-slate-500 font-medium">Direct M-Pesa, Wave, and MTN integrations across East & West Africa.</p>
+                </div>
+                <div className="flex flex-col gap-4 p-8 bg-white/5 rounded-[2.5rem] border border-white/5 group hover:border-brand/20 transition-all">
+                  <div className="h-12 w-12 bg-[#3B82F6] text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+                    <CreditCard size={24} />
+                  </div>
+                  <h4 className="text-lg font-black text-white uppercase tracking-tight">Enterprise Card</h4>
+                  <p className="text-xs text-slate-500 font-medium">Issue virtual fuel cards and maintenance wallets to your entire fleet.</p>
+                </div>
               </div>
             </div>
+            
             <div className="relative">
-               <div className="aspect-video bg-[#1A2B4D] rounded-[3rem] p-10 border border-white/10 shadow-2xl overflow-hidden relative">
-                  <div className="absolute top-0 right-0 p-12 opacity-10">
-                    <Plus size={200} className="text-brand" />
+               {/* Visual representation of a reconciliation flow */}
+               <div className="bg-slate-900 rounded-[3.5rem] p-4 border border-white/10 shadow-2xl overflow-hidden aspect-[4/3] relative flex flex-col">
+                  <div className="bg-slate-800 rounded-t-[2.5rem] h-12 flex items-center px-6 gap-2 border-b border-white/5">
+                     <div className="h-2 w-2 bg-slate-600 rounded-full" />
+                     <div className="h-2 w-2 bg-slate-600 rounded-full" />
+                     <div className="h-2 w-2 bg-slate-600 rounded-full" />
                   </div>
-                  <div className="relative z-10 h-full flex flex-col justify-center">
-                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-brand mb-4">Payout Infrastructure</p>
-                    <h4 className="text-4xl font-black text-white mb-8">Instant Settlement Flow</h4>
-                    <div className="space-y-4">
-                       {[1,2].map(i => (
-                         <div key={i} className="h-16 w-full bg-white/5 rounded-2xl border border-white/10 flex items-center justify-between px-6">
-                            <div className="flex items-center gap-4">
-                               <div className="h-8 w-8 bg-white/10 rounded-full" />
-                               <div className="h-3 w-32 bg-white/10 rounded-full" />
-                            </div>
-                            <div className="h-6 w-16 bg-emerald-500/20 rounded-full" />
-                         </div>
-                       ))}
-                    </div>
+                  <div className="p-8 flex flex-col gap-6 flex-grow">
+                     <div className="flex justify-between items-center bg-white/5 p-5 rounded-2xl border border-white/5">
+                        <div className="flex items-center gap-4">
+                           <div className="h-10 w-10 bg-brand/20 rounded-xl flex items-center justify-center text-brand">
+                              <Wallet size={20} />
+                           </div>
+                           <div>
+                              <p className="text-[10px] font-black text-slate-500 uppercase">Payout Pending</p>
+                              <p className="text-white font-black">2,450.00 KES</p>
+                           </div>
+                        </div>
+                        <div className="h-8 w-20 bg-brand text-white text-[8px] font-black uppercase tracking-widest rounded-full flex items-center justify-center">Reconcile</div>
+                     </div>
+
+                     <div className="flex-grow flex flex-col gap-3">
+                        <div className="h-2 w-full bg-white/5 rounded-full" />
+                        <div className="h-2 w-2/3 bg-white/5 rounded-full" />
+                        <div className="grid grid-cols-4 gap-4 mt-4">
+                           {[1,2,3,4].map(i => (
+                             <div key={i} className="h-12 bg-white/5 rounded-xl border border-white/5" />
+                           ))}
+                        </div>
+                     </div>
                   </div>
+                  <div className="absolute bottom-[-20%] left-[-10%] h-80 w-80 bg-brand/10 blur-[100px] rounded-full" />
                </div>
+               
+               {/* Floating elements */}
+               <motion.div 
+                 animate={{ y: [0, -10, 0] }}
+                 transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                 className="absolute top-10 -right-10 bg-[#0F172A] border border-white/10 p-6 rounded-3xl shadow-2xl backdrop-blur-xl z-20"
+               >
+                  <div className="flex items-center gap-3">
+                     <div className="h-8 w-8 bg-emerald-500 rounded-full flex items-center justify-center text-white">
+                        <CheckCircle size={16} />
+                     </div>
+                     <div>
+                        <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Status</p>
+                        <p className="text-white font-black text-xs">Settlement Paid</p>
+                     </div>
+                  </div>
+               </motion.div>
             </div>
           </div>
         </div>
@@ -645,43 +837,88 @@ const LandingPage: React.FC = () => {
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
             <PricingTier 
-              tier="Starter"
-              price="Free"
-              desc="For solo operators"
+              tier="Pilot"
+              price="Early Access"
+              desc="For founding partners"
               features={[
-                "Basic analytics",
-                "1 Active channel",
-                "Community support"
+                "Co-development support",
+                "Custom ERP integration",
+                "White-glove onboarding",
+                "Priority feature requests"
               ]}
-              cta="Deploy Free"
-              onClick={() => navigate('/register')}
+              cta="Apply for Pilot"
+              onClick={() => navigate('/contact')}
             />
             <PricingTier 
-              tier="Builder"
-              price="$49"
+              tier="Growth"
+              price="$199"
               desc="Most Popular"
               featured={true}
               features={[
                 "Advanced telemetry",
-                "Multi-region support",
-                "24/7 Priority SLA"
+                "Multi-hub sync",
+                "24/7 Priority support",
+                "API Access"
               ]}
-              cta="Start Building"
+              cta="Request Access"
               onClick={() => navigate('/register')}
             />
             <PricingTier 
               tier="Enterprise"
               price="Custom"
-              desc="Global Scale"
+              desc="Continental Scale"
               features={[
-                "Custom governance",
-                "Dedicated hardware",
-                "Full API governance"
+                "On-premise options",
+                "Custom compliance rules",
+                "Dedicated engineering team",
+                "Unlimited nodes"
               ]}
-              cta="Contact Engineering"
+              cta="Book Consultation"
               onClick={() => navigate('/contact')}
             />
           </div>
+        </div>
+      </SectionWrapper>
+
+      {/* Final CTA Section */}
+      <SectionWrapper className="py-48 relative overflow-hidden bg-slate-900 border-y border-white/5">
+        <div className="absolute inset-0 z-0">
+          <img 
+            src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?q=80&w=2600&auto=format&fit=crop" 
+            alt="Logistics Operations" 
+            className="w-full h-full object-cover opacity-60 scale-105"
+            referrerPolicy="no-referrer"
+          />
+          <div className="absolute inset-0 bg-slate-900/50" />
+        </div>
+
+        <div className="container-responsive relative z-10 text-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            className="max-w-4xl mx-auto"
+          >
+            <h2 className="text-6xl md:text-9xl font-black uppercase tracking-tighter text-white mb-12 leading-none">
+              Ready to <br/><span className="text-brand">Pilot?</span>
+            </h2>
+            <p className="text-xl md:text-3xl text-slate-400 font-bold uppercase tracking-tight mb-16 leading-tight">
+              Join the first-mover teams building the <br className="hidden md:block" /> future of transport with Shipstack.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+              <button 
+                onClick={() => navigate('/register')}
+                className="w-full sm:w-auto px-20 py-10 bg-brand hover:bg-orange-600 text-white text-base font-black uppercase tracking-[0.3em] shadow-2xl transition-all hover:translate-y-[-4px] active:scale-95 rounded-3xl"
+              >
+                Start Your Pilot
+              </button>
+              <button 
+                onClick={() => navigate('/contact')}
+                className="w-full sm:w-auto px-20 py-10 bg-white/5 border-2 border-white/10 text-white text-base font-black uppercase tracking-[0.3em] hover:bg-white/10 transition-all rounded-3xl"
+              >
+                Talk to our team
+              </button>
+            </div>
+          </motion.div>
         </div>
       </SectionWrapper>
 
