@@ -7,9 +7,7 @@
  * secure data transmission and access control.
  */
 
-const BASE_URL = import.meta.env.VITE_FRAPPE_BASE_URL || '';
-const API_KEY = import.meta.env.VITE_FRAPPE_API_KEY || '';
-const API_SECRET = import.meta.env.VITE_FRAPPE_API_SECRET || '';
+const BASE_URL = '/api/frappe';
 
 interface FrappeResponse<T> {
   data: T;
@@ -19,16 +17,10 @@ interface FrappeResponse<T> {
 
 export class FrappeService {
   private static getHeaders() {
-    const headers: HeadersInit = {
+    return {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
-
-    if (API_KEY && API_SECRET) {
-      headers['Authorization'] = `token ${API_KEY}:${API_SECRET}`;
-    }
-
-    return headers;
   }
 
   /**

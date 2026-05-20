@@ -15,6 +15,7 @@ interface MapEngineProps {
   followDriver?: boolean;
   className?: string;
   showTraffic?: boolean;
+  showRoutePins?: boolean;
   center?: { lat: number; lng: number };
   zoom?: number;
 }
@@ -28,6 +29,7 @@ const MapEngine: React.FC<MapEngineProps> = ({
   followDriver = false, 
   className = '',
   showTraffic = true,
+  showRoutePins = true,
   center,
   zoom
 }) => {
@@ -132,6 +134,13 @@ const MapEngine: React.FC<MapEngineProps> = ({
       }
       if (!map.getSource('user-location')) {
         map.addSource('user-location', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+      }
+
+      if (!map.getSource('route-origins')) {
+        map.addSource('route-origins', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+      }
+      if (!map.getSource('route-destinations')) {
+        map.addSource('route-destinations', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
       }
 
       const style = map.getStyle();
@@ -354,6 +363,36 @@ const MapEngine: React.FC<MapEngineProps> = ({
             ],
             'line-width': 5,
             'line-opacity': 1
+          }
+        });
+      }
+
+      if (!map.getLayer('route-origins-layer')) {
+        map.addLayer({
+          id: 'route-origins-layer',
+          type: 'circle',
+          source: 'route-origins',
+          paint: {
+            'circle-radius': 10,
+            'circle-color': '#10B981',
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#ffffff',
+            'circle-opacity': 0.95
+          }
+        });
+      }
+
+      if (!map.getLayer('route-destinations-layer')) {
+        map.addLayer({
+          id: 'route-destinations-layer',
+          type: 'circle',
+          source: 'route-destinations',
+          paint: {
+            'circle-radius': 12,
+            'circle-color': '#F97316',
+            'circle-stroke-width': 3,
+            'circle-stroke-color': '#ffffff',
+            'circle-opacity': 0.98
           }
         });
       }
@@ -686,12 +725,30 @@ const MapEngine: React.FC<MapEngineProps> = ({
 
         const traveledRoutes: any[] = [];
         const remainingRoutes: any[] = [];
+        const originPins: any[] = [];
+        const destinationPins: any[] = [];
 
         for (const dn of dns) {
           const isFocused = dn.id === focusedDnId;
           const lastLng = dn.lastLng ?? 0;
           const lastLat = dn.lastLat ?? 0;
           
+          if (!isNaN(lastLng) && !isNaN(lastLat)) {
+            originPins.push({
+              type: 'Feature',
+              properties: { id: dn.id, label: 'Current' },
+              geometry: { type: 'Point', coordinates: [lastLng, lastLat] }
+            });
+          }
+
+          if (!isNaN(dn.lng ?? NaN) && !isNaN(dn.lat ?? NaN)) {
+            destinationPins.push({
+              type: 'Feature',
+              properties: { id: dn.id, label: 'Destination' },
+              geometry: { type: 'Point', coordinates: [dn.lng as number, dn.lat as number] }
+            });
+          }
+
           if (isNaN(lastLng) || isNaN(lastLat)) continue;
           const pos: [number, number] = [lastLng, lastLat];
 
@@ -773,6 +830,18 @@ const MapEngine: React.FC<MapEngineProps> = ({
               properties: { weight: 1 }
             }));
           heatmapSource.setData({ type: 'FeatureCollection', features: heatmapFeatures as any });
+        }
+
+        if (showRoutePins) {
+          const originSource = map.getSource('route-origins') as any;
+          if (originSource) {
+            originSource.setData({ type: 'FeatureCollection', features: originPins as any });
+          }
+
+          const destinationSource = map.getSource('route-destinations') as any;
+          if (destinationSource) {
+            destinationSource.setData({ type: 'FeatureCollection', features: destinationPins as any });
+          }
         }
 
         const userLocationSource = map.getSource('user-location') as any;

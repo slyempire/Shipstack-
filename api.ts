@@ -56,7 +56,7 @@ import { sanitize, sanitizeObject, encryptData, decryptData } from './utils/secu
 import { FrappeService } from './services/frappe';
 import { cacheService } from './services/redis';
 
-const useFrappe = !!import.meta.env.VITE_FRAPPE_BASE_URL;
+const useFrappe = true;
 let isFrappeHealthy = true;
 
 const canUseFrappe = () => useFrappe && isFrappeHealthy;

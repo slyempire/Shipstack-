@@ -4,6 +4,8 @@ import { useAppStore } from '../store';
 
 export class SyncService {
   private isSyncing = false;
+  private intervalId: number | null = null;
+  private onlineListener = () => this.sync();
 
   async sync() {
     if (this.isSyncing) return;
@@ -63,10 +65,23 @@ export class SyncService {
   }
 
   startAutoSync() {
-    window.addEventListener('online', () => this.sync());
-    // Also poll occasionally just in case
-    setInterval(() => this.sync(), 60000);
+    window.removeEventListener('online', this.onlineListener);
+    window.addEventListener('online', this.onlineListener);
+
+    if (this.intervalId) {
+      window.clearInterval(this.intervalId);
+    }
+
+    this.intervalId = window.setInterval(() => this.sync(), 60000);
     this.sync(); // Initial sync
+  }
+
+  stopAutoSync() {
+    window.removeEventListener('online', this.onlineListener);
+    if (this.intervalId) {
+      window.clearInterval(this.intervalId);
+      this.intervalId = null;
+    }
   }
 }
 

@@ -23,7 +23,33 @@ const redis = (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_R
     })
   : null;
 
+const SECURITY_SECRET = process.env.SECURITY_SECRET;
+const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET;
+const APP_URL = process.env.APP_URL || process.env.VITE_APP_URL || '';
+const FRAPPE_BASE_URL = process.env.FRAPPE_BASE_URL || process.env.VITE_FRAPPE_BASE_URL || '';
+const FRAPPE_API_KEY = process.env.FRAPPE_API_KEY || process.env.VITE_FRAPPE_API_KEY || '';
+const FRAPPE_API_SECRET = process.env.FRAPPE_API_SECRET || process.env.VITE_FRAPPE_API_SECRET || '';
+
 const genAI = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null;
+
+const requireEnv = (name: string, value?: string) => {
+  if (!value) {
+    const message = `Missing required environment variable: ${name}`;
+    if (process.env.NODE_ENV === 'production') {
+      console.error(`CRITICAL ERROR: ${message}. Exiting.`);
+      process.exit(1);
+    }
+    console.warn(`WARNING: ${message}. This is acceptable only in local development.`);
+  }
+};
+
+requireEnv('SECURITY_SECRET', SECURITY_SECRET);
+requireEnv('INTERNAL_API_SECRET', INTERNAL_API_SECRET);
+if (process.env.NODE_ENV === 'production') {
+  requireEnv('FRAPPE_BASE_URL', FRAPPE_BASE_URL);
+  requireEnv('FRAPPE_API_KEY', FRAPPE_API_KEY);
+  requireEnv('FRAPPE_API_SECRET', FRAPPE_API_SECRET);
+}
 
 // --- Validation Schemas ---
 const IngestSchema = z.object({
@@ -49,16 +75,17 @@ const TelemetrySchema = z.object({
   signature: z.string().min(1)
 });
 
-// Shared secret - must match frontend
-const SECURITY_SECRET = process.env.VITE_SECURITY_SECRET || process.env.SECURITY_SECRET || 'shipstack-default-secret-key-2026';
-
 /**
  * Verifies the HMAC signature of a telemetry payload.
  */
 const verifyTelemetrySignature = (data: any): boolean => {
   const { signature, ...payload } = data;
-  if (!signature) return false;
-  
+  if (!signature) {
+    // Browser telemetry may not use a shared HMAC secret.
+    return true;
+  }
+  if (!SECURITY_SECRET) return false;
+
   const message = JSON.stringify(payload);
   const expected = CryptoJS.HmacSHA256(message, SECURITY_SECRET).toString();
   return expected === signature;
@@ -67,30 +94,53 @@ const verifyTelemetrySignature = (data: any): boolean => {
 async function startServer() {
   const app = express();
   const httpServer = createServer(app);
+  const allowedOrigins = process.env.NODE_ENV === 'production'
+    ? [APP_URL].filter(Boolean)
+    : ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:3000', 'http://127.0.0.1:3000'];
+
   const io = new Server(httpServer, {
     cors: {
-      origin: "*",
-      methods: ["GET", "POST"]
+      origin: (origin, callback) => {
+        if (process.env.NODE_ENV !== 'production') return callback(null, true);
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
+      methods: ['GET', 'POST'],
     }
   });
 
   const PORT = 3000;
 
-  // Security Headers (XSS, CSRF protection, etc.)
-  // app.use(helmet({
-  //   frameguard: false, // Allow iframing for AI Studio preview
-  //   contentSecurityPolicy: {
-  //     directives: {
-  //       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-  //       "img-src": ["'self'", "data:", "https:", "http:", "https://*.google.com"],
-  //       "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-  //       "connect-src": ["'self'", "https:", "http:", "wss:", "ws:", "https://*.google.com"],
-  //       "frame-ancestors": ["'self'", "https://ai.studio", "https://*.google.com"]
-  //     }
-  //   }
-  // }));
+  app.use(helmet({
+    contentSecurityPolicy: process.env.NODE_ENV === 'production' ? {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        connectSrc: ["'self'", 'https:', 'wss:', 'ws:'],
+        imgSrc: ["'self'", 'data:', 'https:'],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https:'],
+        fontSrc: ["'self'", 'https:'],
+        frameAncestors: ["'self'"]
+      }
+    } : false
+  }));
 
-  app.use(cors());
+  app.use(cors({
+    origin: (origin, callback) => {
+      if (process.env.NODE_ENV !== 'production') return callback(null, true);
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    credentials: true,
+  }));
+
   app.use(compression());
   app.use(express.json({ limit: '1mb' })); // Limit payload size
 
@@ -118,8 +168,6 @@ async function startServer() {
 
     const token = authHeader.split(' ')[1];
     
-    // In a production environment, we would validate this against a database.
-    // For this platform reconstruction, we accept valid-formatted tokens.
     if (!token.startsWith('sk_live_') && !token.startsWith('SS_PUB_')) {
       return res.status(403).json({ 
         error: "Forbidden", 
@@ -130,42 +178,96 @@ async function startServer() {
     next();
   };
 
+  const internalAuthMiddleware = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (!INTERNAL_API_SECRET) {
+      console.warn('WARNING: INTERNAL_API_SECRET is not configured. Internal routes are unprotected.');
+      return next();
+    }
+
+    const authHeader = req.headers.authorization;
+    const internalHeader = req.headers['x-shipstack-internal'];
+    const token = typeof authHeader === 'string' && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : undefined;
+    const internalToken = typeof internalHeader === 'string' ? internalHeader : undefined;
+
+    if (token === INTERNAL_API_SECRET || internalToken === INTERNAL_API_SECRET) {
+      return next();
+    }
+
+    return res.status(403).json({ error: "Forbidden", message: "Invalid internal auth token." });
+  };
+
+  const forwardFrappeRequest = async (req: express.Request, res: express.Response) => {
+    if (!FRAPPE_BASE_URL || !FRAPPE_API_KEY || !FRAPPE_API_SECRET) {
+      return res.status(503).json({ error: 'ERP Unavailable', message: 'Frappe backend is not configured on the server.' });
+    }
+
+    const forwardPath = req.path.replace(/^\/api\/frappe\/?/, '');
+    const allowedPaths = ['/api/resource/', '/api/method/'];
+    if (!allowedPaths.some((prefix) => forwardPath.startsWith(prefix))) {
+      return res.status(403).json({ error: 'Forbidden', message: 'Requested proxy path is not allowed.' });
+    }
+
+    const targetUrl = `${FRAPPE_BASE_URL}/${forwardPath}${req.url.includes('?') ? `?${req.url.split('?')[1]}` : ''}`;
+    const response = await fetch(targetUrl, {
+      method: req.method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `token ${FRAPPE_API_KEY}:${FRAPPE_API_SECRET}`,
+      },
+      body: ['GET', 'HEAD'].includes(req.method) ? undefined : JSON.stringify(req.body),
+    });
+
+    const responseText = await response.text();
+    response.headers.forEach((value, key) => {
+      if (['content-type', 'cache-control', 'expires', 'etag'].includes(key.toLowerCase())) {
+        res.setHeader(key, value);
+      }
+    });
+    return res.status(response.status).send(responseText);
+  };
+
   // API Routes
   app.get("/api/health", cacheMiddleware(60), (req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
   // Redis Cache Routes (Internal only or protected) - Moved higher
-  app.get("/api/cache/:cacheKey", async (req, res) => {
+  app.use("/api/frappe", forwardFrappeRequest);
+
+  app.get("/api/cache/:cacheKey", internalAuthMiddleware, async (req, res) => {
     if (!redis) return res.status(503).json({ error: "Cache Unavailable" });
+    const cacheKey = Array.isArray(req.params.cacheKey) ? req.params.cacheKey[0] : req.params.cacheKey;
     try {
-      const value = await redis.get(req.params.cacheKey);
+      const value = await redis.get(cacheKey);
       res.json({ value });
     } catch (err) {
-      console.error(`[CACHE] GET failed for ${req.params.cacheKey}:`, err);
+      console.error(`[CACHE] GET failed for ${cacheKey}:`, err);
       res.status(500).json({ error: "Cache GET Failed" });
     }
   });
 
-  app.post("/api/cache/:cacheKey", async (req, res) => {
+  app.post("/api/cache/:cacheKey", internalAuthMiddleware, async (req, res) => {
     if (!redis) return res.status(503).json({ error: "Cache Unavailable" });
+    const cacheKey = Array.isArray(req.params.cacheKey) ? req.params.cacheKey[0] : req.params.cacheKey;
     try {
       const { value, ttl } = req.body;
-      await redis.set(req.params.cacheKey, value, { ex: ttl || 3600 });
+      await redis.set(cacheKey, value, { ex: ttl || 3600 });
       res.json({ success: true });
     } catch (err) {
-      console.error(`[CACHE] SET failed for ${req.params.cacheKey}:`, err);
+      console.error(`[CACHE] SET failed for ${cacheKey}:`, err);
       res.status(500).json({ error: "Cache SET Failed" });
     }
   });
 
-  app.delete("/api/cache/:cacheKey", async (req, res) => {
+  app.delete("/api/cache/:cacheKey", internalAuthMiddleware, async (req, res) => {
     if (!redis) return res.status(503).json({ error: "Cache Unavailable" });
+    const cacheKey = Array.isArray(req.params.cacheKey) ? req.params.cacheKey[0] : req.params.cacheKey;
     try {
-      await redis.del(req.params.cacheKey);
+      await redis.del(cacheKey);
       res.json({ success: true });
     } catch (err) {
-      console.error(`[CACHE] DELETE failed for ${req.params.cacheKey}:`, err);
+      console.error(`[CACHE] DELETE failed for ${cacheKey}:`, err);
       res.status(500).json({ error: "Cache DELETE Failed" });
     }
   });

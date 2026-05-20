@@ -1,18 +1,9 @@
 import DOMPurify from 'dompurify';
 import CryptoJS from 'crypto-js';
 
-// In a real production app, this would be an environment variable
-// SECURITY: This MUST be set as an environment variable. No fallback allowed.
-// Fails loudly at startup if VITE_SECURITY_SECRET is not configured.
-const _rawSecret = import.meta.env.VITE_SECURITY_SECRET;
-if (!_rawSecret || _rawSecret.length < 32) {
-  throw new Error(
-    '[Shipstack Security] VITE_SECURITY_SECRET is not set or is too short (min 32 chars). ' +
-    'Set this environment variable before starting the application. ' +
-    'Generate a secure secret with: openssl rand -hex 32'
-  );
-}
-const SECURITY_SECRET: string = _rawSecret;
+// Client-side obfuscation key for local storage and lightweight browser integrity helpers.
+// This is intentionally not the same as the server-side secret.
+const CLIENT_SIDE_SECRET = import.meta.env.VITE_CLIENT_SIDE_SECRET || 'shipstack-client-obfuscation-key-2026';
 
 /**
  * Sanitizes a string to prevent XSS attacks.
@@ -57,7 +48,7 @@ export const sanitizeObject = <T extends object>(obj: T): T => {
  */
 export const signPayload = (payload: any): string => {
   const message = typeof payload === 'string' ? payload : JSON.stringify(payload);
-  return CryptoJS.HmacSHA256(message, SECURITY_SECRET).toString();
+  return CryptoJS.HmacSHA256(message, CLIENT_SIDE_SECRET).toString();
 };
 
 /**
@@ -73,7 +64,7 @@ export const verifySignature = (payload: any, signature: string): boolean => {
  */
 export const encryptData = (data: any): string => {
   const message = typeof data === 'string' ? data : JSON.stringify(data);
-  return CryptoJS.AES.encrypt(message, SECURITY_SECRET).toString();
+  return CryptoJS.AES.encrypt(message, CLIENT_SIDE_SECRET).toString();
 };
 
 /**
@@ -93,7 +84,7 @@ export const decryptData = (ciphertext: string): any => {
   }
 
   try {
-    const bytes = CryptoJS.AES.decrypt(ciphertext, SECURITY_SECRET);
+    const bytes = CryptoJS.AES.decrypt(ciphertext, CLIENT_SIDE_SECRET);
     
     // Attempt to convert to UTF-8 string. This is where "Malformed UTF-8 data" usually happens.
     let originalText: string;

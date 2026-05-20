@@ -1,5 +1,4 @@
 import { io, Socket } from "socket.io-client";
-import { signPayload } from "../utils/security";
 
 let socket: Socket | null = null;
 
@@ -39,9 +38,8 @@ export const telemetryService = {
       timestamp: new Date().toISOString(),
     };
 
-    // Sign the payload for integrity
-    const signature = signPayload(payload);
-    const signedData = { ...payload, signature };
+    // Browser telemetry doesn't expose a server secret.
+    const signedData = { ...payload };
 
     // Try socket first if connected
     if (socket?.connected) {

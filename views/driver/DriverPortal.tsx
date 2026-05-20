@@ -1,105 +1,53 @@
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import { useAuthStore, useAppStore } from '../../store';
 import { api } from '../../api';
-import { DeliveryNote, DNStatus, LogisticsDocument, LogisticsDocumentStatus, Facility, LogisticsType, SafetyEventType } from '../../types';
+import { DeliveryNote, DNStatus } from '../../types';
 import { useGeolocation } from '../../hooks/useGeolocation';
 import { useTripTelemetry } from '../../hooks/useTripTelemetry';
 import { offlineDb } from '../../services/offlineDb';
 import { syncService } from '../../services/syncService';
-import DocumentPreview from '../../components/DocumentPreview';
 import MapEngine from '../../components/MapEngine';
-import { Badge } from '../../packages/ui/Badge';
 import { DriverBottomNav, DriverTab } from '../../components/driver/DriverBottomNav';
-import { 
-  Truck, 
+import { DriverPortalOfflineBanner } from '../../components/driver/portal/DriverPortalOfflineBanner';
+import { DriverPortalChatOverlay } from '../../components/driver/portal/DriverPortalChatOverlay';
+import { DriverPortalSignaturePad } from '../../components/driver/portal/DriverPortalSignaturePad';
+import { DriverPortalTripList } from '../../components/driver/portal/DriverPortalTripList';
+import { StatsOverview } from '../../components/driver/portal/StatsOverview';
+import {
   Layers,
-  MapPin, 
-  Camera as CameraIcon, 
-  ChevronRight, 
-  ChevronLeft,
-  LogOut,
-  Navigation,
-  FileText,
+  Camera as CameraIcon,
+  ChevronRight,
   X,
   Check,
-  CheckCircle,
-  Package,
-  Play,
-  Shield,
   ShieldCheck,
-  AlertCircle,
-  RefreshCw,
-  Phone,
-  Activity,
-  User as UserIcon,
-  Circle,
-  Target,
-  Thermometer,
-  Clock,
   AlertTriangle,
-  Zap,
-  CreditCard,
-  CloudRain,
-  TrafficCone,
+  RefreshCw,
+  Activity,
   MessageSquare,
-  Map as MapIcon,
   Wallet,
-  Car,
+  Map as MapIcon,
   Bell,
-  Droplets
+  Droplets,
+  Target,
+  Zap,
+  Package,
+  Navigation,
+  FileText
 } from 'lucide-react';
-import { PaymentModal } from '../../components/PaymentModal';
-
-const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-};
 
 const DriverPortal: React.FC = () => {
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
   const { addNotification, isOnline, notifications } = useAppStore();
-  const navigate = useNavigate();
   const [dns, setDns] = useState<DeliveryNote[]>([]);
   const [currentDn, setCurrentDn] = useState<DeliveryNote | null>(null);
-  const [facilities, setFacilities] = useState<Facility[]>([]);
   const [step, setStep] = useState<'CHECK_IN' | 'BRIEFING' | 'LIST' | 'EXECUTION' | 'SUCCESS' | 'INSPECTION' | 'NOTIFICATIONS' | 'EXCEPTION' | 'RECONCILIATION' | 'FLEET_MAP' | 'SAFETY' | 'WALLET' | 'HUB'>('CHECK_IN');
-  const [allActiveDns, setAllActiveDns] = useState<DeliveryNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPanelExpanded, setIsPanelExpanded] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
-
-  // ISO & States
-  const [safetyScore, setSafetyScore] = useState(98);
-  const [fatigueLevel, setFatigueLevel] = useState(0);
-  const [ecoScore, setEcoScore] = useState(85);
-  const [driveTime, setDriveTime] = useState(0);
-  const [safetyEvents, setSafetyEvents] = useState<{ type: string, time: string }[]>([]);
-  const [sealVerified, setSealVerified] = useState(false);
-
-  // Exception/Recon States
   const [exceptionType, setExceptionType] = useState<string>('');
   const [exceptionReason, setExceptionReason] = useState<string>('');
-  const [reconData, setReconData] = useState({ codCollected: 0, returnedItemsCount: 0 });
-
-  // Payment/Intel States
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [paymentAmount, setPaymentAmount] = useState(0);
-  const [customerPhone, setCustomerPhone] = useState('');
-  const [eTimsInvoice, setETimsInvoice] = useState<any>(null);
-  const [weatherAdvisory, setWeatherAdvisory] = useState<{ type: string, severity: 'LOW' | 'MEDIUM' | 'HIGH', message: string } | null>(null);
-  const [trafficAdvisory, setTrafficAdvisory] = useState<{ type: string, delay: string, message: string } | null>(null);
-  const [showAdvisoryModal, setShowAdvisoryModal] = useState(false);
-
-  // Experience States
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatRecipient, setChatRecipient] = useState<'DISPATCH' | 'WAREHOUSE'>('DISPATCH');
   const [chatMessages, setChatMessages] = useState<{ sender: 'DRIVER' | 'DISPATCH' | 'WAREHOUSE', text: string, time: string }[]>([
@@ -108,15 +56,14 @@ const DriverPortal: React.FC = () => {
   const [newMessage, setNewMessage] = useState('');
   const [inspections, setInspections] = useState<Record<string, boolean>>({});
   const [pickedItems, setPickedItems] = useState<Record<number, boolean>>({});
-  const [itemConditions, setItemConditions] = useState<Record<number, 'GOOD' | 'DAMAGED'>>({});
-  const [loadingConfirmed, setLoadingConfirmed] = useState(false);
   const [odoStart, setOdoStart] = useState('');
   const [odoEnd, setOdoEnd] = useState('');
   const [podPhoto, setPodPhoto] = useState<string | null>(null);
   const [podSignature, setPodSignature] = useState<string | null>(null);
-  const [tempLog, setTempLog] = useState<string>('');
-  const [isTempVerified, setIsTempVerified] = useState(false);
   const [showSignaturePad, setShowSignaturePad] = useState(false);
+  const [safetyScore, setSafetyScore] = useState(98);
+  const [ecoScore, setEcoScore] = useState(83);
+  const [driveTime, setDriveTime] = useState(8.4);
 
   const isEnRouteStatus = currentDn?.status === DNStatus.IN_TRANSIT;
   const isAtSiteStatus = currentDn?.status === DNStatus.DELIVERED;
@@ -126,10 +73,21 @@ const DriverPortal: React.FC = () => {
   useEffect(() => {
     if (user?.onDuty) setStep('LIST');
     else setStep('CHECK_IN');
-    loadManifest();
-    api.getFacilities().then(setFacilities);
+
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
     syncService.startAutoSync();
-  }, [user?.onDuty]);
+    loadManifest();
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      syncService.stopAutoSync();
+    };
+  }, [user?.onDuty, isOnline]);
 
   const loadManifest = async () => {
     setLoading(true);
@@ -171,9 +129,23 @@ const DriverPortal: React.FC = () => {
 
   const handleStartTrip = async () => {
     if (!currentDn || !odoStart || isSubmitting) return;
+
+    const odometerStart = Number(odoStart);
+    const allItemsPicked = currentDn.items.every((_, index) => pickedItems[index]);
+
+    if (Number.isNaN(odometerStart) || odometerStart < 0) {
+      addNotification('Please enter a valid start odometer reading.', 'error');
+      return;
+    }
+
+    if (!allItemsPicked) {
+      addNotification('Confirm all manifest items before departure.', 'error');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      await api.updateDNStatus(currentDn.id, DNStatus.IN_TRANSIT, { odometerStart: parseFloat(odoStart) }, user?.name);
+      await api.updateDNStatus(currentDn.id, DNStatus.IN_TRANSIT, { odometerStart }, user?.name);
       await loadManifest();
       setStep('EXECUTION');
       setIsPanelExpanded(false);
@@ -182,9 +154,16 @@ const DriverPortal: React.FC = () => {
 
   const handleArrival = async () => {
     if (!currentDn || !odoEnd || isSubmitting) return;
+
+    const odometerEnd = Number(odoEnd);
+    if (Number.isNaN(odometerEnd) || odometerEnd < 0) {
+      addNotification('Please enter a valid arrival odometer reading.', 'error');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      await api.updateDNStatus(currentDn.id, DNStatus.DELIVERED, { odometerEnd: parseFloat(odoEnd) }, user?.name);
+      await api.updateDNStatus(currentDn.id, DNStatus.DELIVERED, { odometerEnd }, user?.name);
       await loadManifest();
       setIsPanelExpanded(true);
     } finally { setIsSubmitting(false); }
@@ -222,6 +201,11 @@ const DriverPortal: React.FC = () => {
     setNewMessage('');
   };
 
+  const handleCaptureSignature = () => {
+    setPodSignature('https://upload.wikimedia.org/wikipedia/commons/7/7d/Signature_of_John_Hancock.png');
+    setShowSignaturePad(false);
+  };
+
   const renderBottomNav = (activeTab: DriverTab) => (
     <DriverBottomNav 
       activeTab={activeTab} 
@@ -234,6 +218,14 @@ const DriverPortal: React.FC = () => {
       }}
       hasUnreadNotifications={notifications.some(n => !n.read)}
     />
+  );
+
+  const renderOfflineBanner = () => (
+    isOffline ? (
+      <div className="bg-amber-200 border-b border-amber-300 text-center text-[10px] font-black uppercase tracking-[0.3em] text-slate-900 py-3">
+        Offline mode active — using cached trip data.
+      </div>
+    ) : null
   );
 
   // --- RENDERING BRANCHES ---
@@ -285,6 +277,7 @@ const DriverPortal: React.FC = () => {
 
   if (step === 'LIST') return (
     <div className="min-h-screen bg-white flex flex-col animate-in fade-in duration-500">
+      <DriverPortalOfflineBanner isOffline={isOffline} />
       <main className="flex-1 px-8 py-20 space-y-20 overflow-y-auto no-scrollbar pb-32">
         <div className="flex justify-between items-end">
           <div className="space-y-4">
@@ -296,30 +289,19 @@ const DriverPortal: React.FC = () => {
           </div>
         </div>
 
+        <StatsOverview driveTime={driveTime} ecoScore={ecoScore} dnsCount={dns.length} />
+
         <div className="space-y-2">
-           {dns.length === 0 ? (
-             <div className="py-48 text-center border-t border-slate-100">
-                <p className="text-xs font-black text-slate-300 uppercase tracking-widest">No active deployments found.</p>
-             </div>
-           ) : (
-             dns.map((dn) => (
-               <button 
-                key={dn.id} 
-                onClick={() => { setCurrentDn(dn); setStep('EXECUTION'); }}
-                className="w-full p-12 bg-white border border-slate-100 hover:border-slate-900 transition-all text-left flex justify-between items-center group shadow-sm hover:shadow-xl"
-               >
-                 <div className="space-y-3">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-300">Target #{dn.id.slice(-6)}</p>
-                    <h3 className="text-2xl md:text-4xl font-black uppercase tracking-tighter leading-none">{dn.recipient || (dn as any).clientName}</h3>
-                    <div className="flex items-center gap-4">
-                      <span className="px-3 py-1 bg-slate-900 text-white text-[8px] font-black uppercase tracking-widest">{dn.type}</span>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">ETA 25m</span>
-                    </div>
-                 </div>
-                 <ChevronRight size={32} strokeWidth={3} className="text-slate-200 group-hover:text-slate-900 transition-colors" />
-               </button>
-             ))
-           )}
+          {dns.length === 0 ? (
+            <div className="py-48 text-center border-t border-slate-100">
+              <p className="text-xs font-black text-slate-300 uppercase tracking-widest">No active deployments found.</p>
+            </div>
+          ) : (
+            <DriverPortalTripList
+              dns={dns}
+              onSelect={(dn) => { setCurrentDn(dn); setStep('EXECUTION'); }}
+            />
+          )}
         </div>
       </main>
       {renderBottomNav('LIST')}
@@ -333,13 +315,45 @@ const DriverPortal: React.FC = () => {
 
     return (
       <div className="h-screen bg-white flex flex-col overflow-hidden animate-in fade-in duration-500">
+         {renderOfflineBanner()}
          {/* Monochromatic Tactical Interface */}
          <div className="flex-1 relative">
             <div className="absolute inset-0 grayscale">
                <MapEngine 
+                  dns={currentDn ? [currentDn] : []}
+                  focusedDnId={currentDn?.id}
+                  followDriver={isEnRoute}
+                  showTraffic={true}
                   center={isEnRoute ? { lat: currentCoords?.lat || 0, lng: currentCoords?.lng || 0 } : { lat: currentDn.lat || 0, lng: currentDn.lng || 0 }} 
                   zoom={15} 
                />
+            </div>
+
+            <div className="absolute top-6 left-6 z-50 pointer-events-auto w-full max-w-sm">
+              <div className="rounded-3xl bg-white/95 border border-slate-200/80 p-5 shadow-2xl backdrop-blur-xl">
+                <div className="flex items-start gap-3">
+                  <div className="h-11 w-11 rounded-3xl bg-slate-900 text-white flex items-center justify-center text-xl font-black">{currentDn?.recipient?.charAt(0) || currentDn?.clientName?.charAt(0) || 'D'}</div>
+                  <div className="flex-1">
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Live Delivery Map</p>
+                    <h2 className="text-xl font-black uppercase tracking-tight text-slate-900 mt-1 line-clamp-2">{currentDn?.recipient || currentDn?.clientName || 'Delivery Target'}</h2>
+                    <p className="mt-2 text-[11px] text-slate-500 leading-snug line-clamp-2">{currentDn?.address || 'Destination address unavailable'}</p>
+                  </div>
+                </div>
+                <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+                  <div className="rounded-2xl bg-slate-100 p-3">
+                    <p className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-400">Status</p>
+                    <p className="text-sm font-black uppercase tracking-tight text-slate-900">{currentDn?.status.replace('_', ' ')}</p>
+                  </div>
+                  <div className="rounded-2xl bg-slate-100 p-3">
+                    <p className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-400">Type</p>
+                    <p className="text-sm font-black uppercase tracking-tight text-slate-900">{currentDn?.type || 'N/A'}</p>
+                  </div>
+                  <div className="rounded-2xl bg-slate-100 p-3">
+                    <p className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-400">ETA</p>
+                    <p className="text-sm font-black uppercase tracking-tight text-slate-900">25 min</p>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Tactical HUD Overlay */}
@@ -445,7 +459,7 @@ const DriverPortal: React.FC = () => {
 
                        <button 
                          onClick={handleStartTrip}
-                         disabled={!odoStart || Object.keys(pickedItems).length < currentDn.items.length}
+                         disabled={!odoStart || !currentDn.items.every((_, index) => pickedItems[index])}
                          className="w-full h-24 bg-slate-900 text-white text-2xl font-black uppercase tracking-widest disabled:opacity-5 transition-all shadow-2xl shadow-slate-900/40"
                        >
                          Initialize Transit
@@ -524,20 +538,22 @@ const DriverPortal: React.FC = () => {
          </div>
 
          {showSignaturePad && (
-            <div className="fixed inset-0 z-[9000] bg-black text-white flex flex-col items-center justify-center p-12 transition-all">
-               <h3 className="text-4xl font-black uppercase tracking-tighter mb-20">Customer Signing</h3>
-               <div className="w-full max-w-lg aspect-video bg-white border-8 border-slate-500/20 relative flex items-center justify-center overflow-hidden">
-                  <p className="text-black/5 text-8xl font-black uppercase tracking-[0.5em] rotate-[-20deg]">Sign Here</p>
-                  <div 
-                    className="absolute inset-0 cursor-crosshair" 
-                    onClick={() => {
-                        setPodSignature('https://upload.wikimedia.org/wikipedia/commons/7/7d/Signature_of_John_Hancock.png');
-                        setShowSignaturePad(false);
-                    }}
-                  />
-               </div>
-               <button onClick={() => setShowSignaturePad(false)} className="mt-20 text-xs font-black uppercase tracking-[1em] opacity-40">Abort</button>
-            </div>
+           <DriverPortalSignaturePad
+             open={showSignaturePad}
+             onClose={() => setShowSignaturePad(false)}
+             onSign={handleCaptureSignature}
+           />
+         )}
+
+         {isChatOpen && (
+           <DriverPortalChatOverlay
+             messages={chatMessages}
+             recipient={chatRecipient}
+             newMessage={newMessage}
+             onChangeMessage={setNewMessage}
+             onSendMessage={handleSendMessage}
+             onClose={() => setIsChatOpen(false)}
+           />
          )}
       </div>
     );
