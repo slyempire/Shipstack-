@@ -6,8 +6,10 @@ import {
   RoleDefinition,
   UserPreferences,
   Permission,
-  Facility, 
-  Vehicle, 
+  Facility,
+  Bay,
+  BayStatus,
+  Vehicle,
   VehicleType,
   Trip, 
   OperationalMetrics, 
@@ -514,6 +516,17 @@ const initialFacilities: Facility[] = [
   { id: 'f-2', name: 'Mombasa Port Hub', type: 'DISTRIBUTION_CENTER', lat: -4.0435, lng: 39.6682, address: 'Port Reitz, Mombasa', tenantId: 'tenant-1' },
   { id: 'f-3', name: 'Kisumu Depot', type: 'WAREHOUSE', lat: -0.1022, lng: 34.7617, address: 'Kondele, Kisumu', tenantId: 'tenant-1' },
   { id: 'f-4', name: 'Eldoret Fulfillment', type: 'DISTRIBUTION_CENTER', lat: 0.5143, lng: 35.2698, address: 'Uganda Rd, Eldoret', tenantId: 'tenant-1' }
+];
+
+const initialBays: Bay[] = [
+  { id: 'b-f1-1', facilityId: 'f-1', tenantId: 'tenant-1', number: 1, status: BayStatus.LOADING,   dnId: 'DN-772', updatedAt: new Date().toISOString() },
+  { id: 'b-f1-2', facilityId: 'f-1', tenantId: 'tenant-1', number: 2, status: BayStatus.EMPTY,                   updatedAt: new Date().toISOString() },
+  { id: 'b-f1-3', facilityId: 'f-1', tenantId: 'tenant-1', number: 3, status: BayStatus.UNLOADING, dnId: 'DN-881', updatedAt: new Date().toISOString() },
+  { id: 'b-f1-4', facilityId: 'f-1', tenantId: 'tenant-1', number: 4, status: BayStatus.RESERVED,  dnId: 'DN-902', updatedAt: new Date().toISOString() },
+  { id: 'b-f1-5', facilityId: 'f-1', tenantId: 'tenant-1', number: 5, status: BayStatus.EMPTY,                   updatedAt: new Date().toISOString() },
+  { id: 'b-f1-6', facilityId: 'f-1', tenantId: 'tenant-1', number: 6, status: BayStatus.LOADING,   dnId: 'DN-102', updatedAt: new Date().toISOString() },
+  { id: 'b-f1-7', facilityId: 'f-1', tenantId: 'tenant-1', number: 7, status: BayStatus.EMPTY,                   updatedAt: new Date().toISOString() },
+  { id: 'b-f1-8', facilityId: 'f-1', tenantId: 'tenant-1', number: 8, status: BayStatus.EMPTY,                   updatedAt: new Date().toISOString() },
 ];
 
 const initialInventory: InventoryItem[] = [
@@ -2167,6 +2180,137 @@ export const api = {
     const current = await api.getFacilities(tenantId);
     const updated = current.filter(f => f.id !== id);
     setStore('facilities', [...getStore('facilities', initialFacilities).filter(f => f.tenantId !== tenantId), ...updated]);
+  },
+
+  // --- Bay Management (per-facility loading docks) ---
+  async getBays(facilityId: string, tenantId: string = 'tenant-1'): Promise<Bay[]> {
+    const cacheKey = `bays_${facilityId}_${tenantId}`;
+    const cached = getCached(cacheKey);
+    if (cached) return cached;
+
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('bays')
+          .select('*')
+          .eq('facility_id', facilityId)
+          .eq('tenant_id', tenantId)
+          .order('number', { ascending: true });
+        if (error) throw error;
+        if (data) {
+          const mapped: Bay[] = data.map((row: any) => ({
+            id: row.id,
+            facilityId: row.facility_id,
+            tenantId: row.tenant_id,
+            number: row.number,
+            status: row.status as BayStatus,
+            dnId: row.dn_id || undefined,
+            notes: row.notes || undefined,
+            updatedAt: row.updated_at,
+            updatedBy: row.updated_by || undefined,
+          }));
+          setCached(cacheKey, mapped);
+          return mapped;
+        }
+      } catch (err) {
+        console.warn('Supabase getBays failed, falling back to local store', err);
+      }
+    }
+
+    const all = getStore<Bay[]>('bays', initialBays);
+    const filtered = all.filter(b => b.facilityId === facilityId && (!b.tenantId || b.tenantId === tenantId));
+    setCached(cacheKey, filtered);
+    return filtered;
+  },
+
+  async createBay(data: Partial<Bay>, tenantId: string = 'tenant-1', requestId?: string): Promise<Bay> {
+    if (!checkIdempotency(requestId)) {
+      const existing = getStore<Bay[]>('bays', initialBays);
+      const match = existing.find(b => b.facilityId === data.facilityId && b.number === data.number);
+      if (match) return match;
+    }
+    clearCache('bays');
+    const newBay: Bay = {
+      id: data.id || `bay-${Date.now()}`,
+      facilityId: data.facilityId || '',
+      tenantId: data.tenantId || tenantId,
+      number: data.number ?? 0,
+      status: (data.status as BayStatus) || BayStatus.EMPTY,
+      dnId: data.dnId,
+      notes: data.notes,
+      updatedAt: new Date().toISOString(),
+      updatedBy: data.updatedBy,
+    };
+
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase.from('bays').insert([{
+          id: newBay.id,
+          facility_id: newBay.facilityId,
+          tenant_id: newBay.tenantId,
+          number: newBay.number,
+          status: newBay.status,
+          dn_id: newBay.dnId || null,
+          notes: newBay.notes || null,
+          updated_at: newBay.updatedAt,
+          updated_by: newBay.updatedBy || null,
+        }]);
+        if (error) throw error;
+      } catch (err) {
+        console.warn('Supabase createBay failed, falling back to local store', err);
+      }
+    }
+
+    const all = getStore<Bay[]>('bays', initialBays);
+    setStore('bays', [...all, newBay]);
+    await logAudit('CREATE_BAY', { id: newBay.id, facilityId: newBay.facilityId, number: newBay.number });
+    return newBay;
+  },
+
+  async updateBay(id: string, data: Partial<Bay>, tenantId: string = 'tenant-1'): Promise<Bay> {
+    clearCache('bays');
+    const patch = {
+      ...data,
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (isSupabaseConfigured) {
+      try {
+        const dbPatch: any = { updated_at: patch.updatedAt };
+        if (patch.status !== undefined) dbPatch.status = patch.status;
+        if (patch.dnId !== undefined) dbPatch.dn_id = patch.dnId || null;
+        if (patch.notes !== undefined) dbPatch.notes = patch.notes || null;
+        if (patch.updatedBy !== undefined) dbPatch.updated_by = patch.updatedBy || null;
+        if (patch.number !== undefined) dbPatch.number = patch.number;
+        const { error } = await supabase.from('bays').update(dbPatch).eq('id', id);
+        if (error) throw error;
+      } catch (err) {
+        console.warn('Supabase updateBay failed, falling back to local store', err);
+      }
+    }
+
+    const all = getStore<Bay[]>('bays', initialBays);
+    const updated = all.map(b => b.id === id ? { ...b, ...patch } as Bay : b);
+    setStore('bays', updated);
+    const result = updated.find(b => b.id === id);
+    if (!result) throw new Error(`Bay ${id} not found`);
+    await logAudit('UPDATE_BAY', { id, patch });
+    return result;
+  },
+
+  async deleteBay(id: string, tenantId: string = 'tenant-1'): Promise<void> {
+    clearCache('bays');
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase.from('bays').delete().eq('id', id);
+        if (error) throw error;
+      } catch (err) {
+        console.warn('Supabase deleteBay failed, falling back to local store', err);
+      }
+    }
+    const all = getStore<Bay[]>('bays', initialBays);
+    setStore('bays', all.filter(b => b.id !== id));
+    await logAudit('DELETE_BAY', { id });
   },
 
   // --- Tenant Management ---
