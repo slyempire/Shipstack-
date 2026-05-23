@@ -6,7 +6,7 @@ import { DeliveryNote, DNStatus } from '../../types';
 import { useGeolocation } from '../../hooks/useGeolocation';
 import { useTripTelemetry } from '../../hooks/useTripTelemetry';
 import { offlineDb } from '../../services/offlineDb';
-import { syncService } from '../../services/syncService';
+import { syncService, runOrQueue } from '../../services/syncService';
 import MapEngine from '../../components/MapEngine';
 import { DriverBottomNav, DriverTab } from '../../components/driver/DriverBottomNav';
 import { DriverPortalOfflineBanner } from '../../components/driver/portal/DriverPortalOfflineBanner';
@@ -110,21 +110,54 @@ const DriverPortal: React.FC = () => {
   };
 
   const handleClockIn = async () => {
+    if (!user?.id) return;
     setIsSubmitting(true);
     try {
-      await api.clockIn(user?.id || '');
+      const { queued } = await runOrQueue(
+        () => api.clockIn(user.id),
+        { type: 'CLOCK_IN', targetId: user.id, data: {} }
+      );
+      // Apply locally either way so the UI reflects the action immediately.
       useAuthStore.getState().updateUser({ onDuty: true });
       setStep('BRIEFING');
+      if (queued) addNotification('Clock-in queued — will sync when online.', 'info');
     } finally { setIsSubmitting(false); }
   };
 
   const handleClockOut = async () => {
+    if (!user?.id) return;
     setIsSubmitting(true);
     try {
-      await api.clockOut(user?.id || '');
+      const { queued } = await runOrQueue(
+        () => api.clockOut(user.id),
+        { type: 'CLOCK_OUT', targetId: user.id, data: {} }
+      );
       useAuthStore.getState().updateUser({ onDuty: false });
       setStep('CHECK_IN');
+      if (queued) addNotification('Clock-out queued — will sync when online.', 'info');
     } finally { setIsSubmitting(false); }
+  };
+
+  const handleSubmitInspection = async () => {
+    if (!user) return;
+    const vehicleId = (user as any).vehicleId || currentDn?.vehicleId || '';
+    const allPassed = Object.values(inspections).every(Boolean);
+    const inspectionPayload = {
+      vehicleId,
+      driverId: user.id,
+      status: (allPassed ? 'PASS' : 'FAIL') as 'PASS' | 'FAIL',
+      date: new Date().toISOString().slice(0, 10),
+      items: inspections,
+    };
+    const { queued } = await runOrQueue(
+      () => api.saveInspection(inspectionPayload),
+      { type: 'INSPECTION', targetId: vehicleId || user.id, data: inspectionPayload }
+    );
+    addNotification(
+      queued ? 'Inspection saved offline — will sync when online.' : 'Inspection completed.',
+      queued ? 'info' : 'success'
+    );
+    setStep('LIST');
   };
 
   const handleStartTrip = async () => {
@@ -724,8 +757,8 @@ const DriverPortal: React.FC = () => {
              ))}
           </div>
 
-          <button 
-             onClick={() => { setStep('LIST'); addNotification("Inspection completed.", "success"); }}
+          <button
+             onClick={handleSubmitInspection}
              disabled={Object.keys(inspections).length < 4}
              className="w-full h-24 bg-black text-white text-2xl font-black uppercase tracking-widest disabled:opacity-10"
           >
