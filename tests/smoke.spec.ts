@@ -119,56 +119,85 @@ async function loginAs(page: Page, { role }: FakeAuthBundle) {
   await page.goto(PORTAL_PATH[role]);
 }
 
+/**
+ * Helper: wait for any pending Supabase REST traffic to settle, so the
+ * underlying api.updateBay localStorage fallback write has happened before
+ * we reload the page. Network-idle is sufficient because the Supabase
+ * client always issues an HTTP request before localStorage falls back.
+ * Wrapped in catch() so it's a safe no-op when no requests are in flight.
+ */
+async function settleNetwork(page: Page) {
+  await page.waitForLoadState('networkidle', { timeout: 5_000 }).catch(() => { /* noop */ });
+}
+
 test.describe('Facility bay management (feat/facility)', () => {
   test('bay status cycles on click and persists across reload', async ({ page }) => {
     await loginAs(page, { role: 'facility' });
 
     // The portal renders "Dock Bay Status" as the bay-grid heading.
     await expect(page.locator('text=Dock Bay Status')).toBeVisible({ timeout: 15_000 });
+    await settleNetwork(page); // initial Supabase fallback to localStorage
 
     // Pick bay 02, which the seed data places in EMPTY status.
     const bay02 = page.locator('button', { hasText: '02' }).first();
     await expect(bay02).toBeVisible();
     await expect(bay02).toContainText('EMPTY');
 
-    // Click cycles: EMPTY -> RESERVED -> LOADING.
-    await bay02.click();
-    await expect(bay02).toContainText('RESERVED');
+    // Each cycle does:
+    //   1. Click (optimistic UI update is synchronous in React)
+    //   2. Assert the optimistic state appeared
+    //   3. Wait for api.updateBay's actual persistence to settle. The function
+    //      writes to localStorage AFTER awaiting Supabase, and Supabase is
+    //      configured but the bays table isn't migrated, so the write only
+    //      happens after the 404 round-trip returns. waitForResponse against
+    //      any rest/v1/bays PATCH catches that round-trip deterministically.
+    const clickAndAssert = async (expected: string) => {
+      const responsePromise = page.waitForResponse(
+        res => res.url().includes('/rest/v1/bays') && res.request().method() === 'PATCH',
+        { timeout: 10_000 }
+      ).catch(() => null /* Supabase not configured */);
+      await bay02.click();
+      await expect(bay02).toContainText(expected);
+      await responsePromise;
+    };
 
-    await bay02.click();
-    await expect(bay02).toContainText('LOADING');
+    await clickAndAssert('RESERVED');
+    await clickAndAssert('LOADING');
 
     // Persistence check: reload and confirm bay 02 is still LOADING.
     await page.reload();
     await expect(page.locator('text=Dock Bay Status')).toBeVisible({ timeout: 15_000 });
     const bay02AfterReload = page.locator('button', { hasText: '02' }).first();
     await expect(bay02AfterReload).toContainText('LOADING');
-
-    // Reset to EMPTY so the test is idempotent across local re-runs.
-    await bay02AfterReload.click(); // UNLOADING
-    await bay02AfterReload.click(); // MAINTENANCE
-    await bay02AfterReload.click(); // EMPTY
-    await expect(bay02AfterReload).toContainText('EMPTY');
+    // No teardown: each test gets a fresh Playwright browser context with its
+    // own clean localStorage, so the next run starts from the seed.
   });
 
   test('Manage Bays modal can add and delete a bay', async ({ page }) => {
     await loginAs(page, { role: 'facility' });
     await expect(page.locator('text=Dock Bay Status')).toBeVisible({ timeout: 15_000 });
+    // Wait for the bay grid to actually populate. With Supabase configured,
+    // the initial load goes Supabase -> 404 -> localStorage fallback, which
+    // takes ~1s. Without this wait, the modal could open before the bays
+    // state is populated, making the initial-count measurement wrong.
+    await settleNetwork(page);
 
     // Open the modal.
     await page.locator('button:has-text("Manage Bays")').click();
     await expect(page.locator('text=Add, remove or reassign loading docks.')).toBeVisible();
+    // Wait for at least the existing bays to render in the modal.
+    await expect(page.locator('button[title="Delete bay"]').first()).toBeVisible({ timeout: 5_000 });
 
     const initialDeleteButtons = await page.locator('button[title="Delete bay"]').count();
 
     // Add a bay; modal should grow by one row.
     await page.locator('button:has-text("Add Bay")').click();
-    await expect.poll(() => page.locator('button[title="Delete bay"]').count())
+    await expect.poll(() => page.locator('button[title="Delete bay"]').count(), { timeout: 10_000 })
       .toBe(initialDeleteButtons + 1);
 
     // Delete the freshly added row (last in the list).
     await page.locator('button[title="Delete bay"]').last().click();
-    await expect.poll(() => page.locator('button[title="Delete bay"]').count())
+    await expect.poll(() => page.locator('button[title="Delete bay"]').count(), { timeout: 10_000 })
       .toBe(initialDeleteButtons);
 
     // Close the modal.
@@ -239,15 +268,26 @@ test.describe('Supabase realtime (feat/realtime)', () => {
   test('useRealtimeTable opens a realtime websocket when supabase is configured', async ({ page }) => {
     test.skip(!process.env.VITE_SUPABASE_URL, 'Supabase not configured in this environment');
 
-    // supabase-js opens a WebSocket to /realtime/v1/websocket when any channel
-    // subscribes. Listen for either the WS upgrade or any /realtime/v1/ request.
-    const wsPromise = page.waitForRequest(req => req.url().includes('/realtime/v1/'), { timeout: 15_000 });
+    // supabase-js opens a WebSocket (wss://) to /realtime/v1/websocket when
+    // any channel subscribes. waitForRequest only tracks HTTP requests; for
+    // WS we need page.on('websocket').
+    const wsUrlPromise = new Promise<string>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('No realtime websocket opened within 20s')), 20_000);
+      page.on('websocket', ws => {
+        const url = ws.url();
+        if (url.includes('/realtime/v1/')) {
+          clearTimeout(timer);
+          resolve(url);
+        }
+      });
+    });
 
     await loginAs(page, { role: 'admin' });
-    // DNQueue subscribes to delivery_notes + trips.
+    // DNQueue subscribes to delivery_notes + trips, which triggers the
+    // supabase-js WebSocket handshake.
     await page.goto('/#/admin/queue');
 
-    const wsReq = await wsPromise;
-    expect(wsReq.url()).toContain('/realtime/v1/');
+    const wsUrl = await wsUrlPromise;
+    expect(wsUrl).toContain('/realtime/v1/');
   });
 });

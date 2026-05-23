@@ -1,4 +1,24 @@
 import { defineConfig, devices } from '@playwright/test';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+// Vite auto-loads .env for the browser bundle, but the Playwright test runner
+// runs in Node and needs it loaded explicitly so test.skip() checks against
+// VITE_SUPABASE_URL behave correctly. Tiny inline loader avoids a dotenv dep.
+// Project is ESM ("type": "module") so __dirname is unavailable; cwd works
+// because playwright runs from the repo root.
+const envPath = resolve(process.cwd(), '.env');
+if (existsSync(envPath)) {
+  for (const line of readFileSync(envPath, 'utf8').split(/\r?\n/)) {
+    const match = line.match(/^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(.*?)\s*$/i);
+    if (!match) continue;
+    const [, key, rawValue] = match;
+    if (process.env[key] === undefined) {
+      // Strip surrounding quotes if present.
+      process.env[key] = rawValue.replace(/^["'](.*)["']$/, '$1');
+    }
+  }
+}
 
 /**
  * Smoke-test config. Boots the Shipstack dev server (Express + Vite) and runs
