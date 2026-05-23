@@ -103,9 +103,11 @@ export const syncService = new SyncService();
 /**
  * Run an action online; on failure or when offline, enqueue it for later sync.
  *
- * Returns the online result when it succeeds, or `undefined` when the work was
- * queued. Use this for fire-and-forget driver actions (clock in/out, inspection)
- * where the offline UX is "apply locally, sync when reconnected".
+ * Returns `{ queued: true }` when the action was deferred to the offline queue
+ * (either because `navigator.onLine` was false or because `onlineFn` threw),
+ * and `{ queued: false }` when it ran successfully online. Use this for
+ * fire-and-forget driver actions (clock in/out, inspection) where the offline
+ * UX is "apply locally, sync when reconnected".
  */
 export async function runOrQueue(
   onlineFn: () => Promise<unknown>,

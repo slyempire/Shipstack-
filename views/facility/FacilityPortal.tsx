@@ -174,7 +174,7 @@ const FacilityPortal: React.FC = () => {
               {user?.company || 'Facility'} Dashboard
             </h1>
             <div className="flex items-center gap-3">
-              <p className="label-logistics !text-brand !text-[10px] !mb-0">Facility ID: {user?.facilityId || 'WH-NBO-01'}</p>
+              <p className="label-logistics !text-brand !text-[10px] !mb-0">Facility ID: {facilityId}</p>
               <span className="h-1 w-1 bg-white/20 rounded-full" />
               <p className="label-logistics !text-[10px] !mb-0">{currentTime.toLocaleTimeString()} &bull; {currentTime.toLocaleDateString()}</p>
             </div>
