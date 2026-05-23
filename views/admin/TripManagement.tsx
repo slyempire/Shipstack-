@@ -10,6 +10,7 @@ import MapEngine from '../../components/MapEngine';
 import DocumentPreview from '../../components/DocumentPreview';
 import { useAuthStore, useAppStore } from '../../store';
 import { useTenant } from '../../hooks/useTenant';
+import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 import { 
   Truck, 
   Plus, 
@@ -79,6 +80,10 @@ const TripManagement: React.FC = () => {
   });
 
   useEffect(() => { loadData(); }, []);
+
+  // Live updates: refresh when trips or delivery_notes change in Supabase.
+  useRealtimeTable('trips', () => loadData(), tenant?.id ? { column: 'tenant_id', value: tenant.id } : undefined);
+  useRealtimeTable('delivery_notes', () => loadData(), tenant?.id ? { column: 'tenant_id', value: tenant.id } : undefined);
 
   useEffect(() => {
     let interval: any;

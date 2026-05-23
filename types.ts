@@ -619,6 +619,26 @@ export interface Facility {
   tenantId?: string;
 }
 
+export enum BayStatus {
+  EMPTY = 'EMPTY',
+  RESERVED = 'RESERVED',
+  LOADING = 'LOADING',
+  UNLOADING = 'UNLOADING',
+  MAINTENANCE = 'MAINTENANCE'
+}
+
+export interface Bay {
+  id: string;
+  facilityId: string;
+  tenantId?: string;
+  number: number;
+  status: BayStatus;
+  dnId?: string;
+  notes?: string;
+  updatedAt: string;
+  updatedBy?: string;
+}
+
 export interface TelemetryPoint {
   tripId: string;
   lat: number;

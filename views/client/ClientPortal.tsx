@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store';
 import { api } from '../../api';
 import { useTenant } from '../../hooks/useTenant';
+import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 import { DeliveryNote, DNStatus, Vehicle } from '../../types';
 import { Badge } from '../../packages/ui/Badge';
 import { 
@@ -43,6 +44,9 @@ const ClientPortal: React.FC = () => {
   useEffect(() => {
     loadClientData();
   }, [user]);
+
+  // Live updates: customer tracking refreshes the moment a DN row changes.
+  useRealtimeTable('delivery_notes', () => loadClientData(), tenant?.id ? { column: 'tenant_id', value: tenant.id } : undefined);
 
   const loadClientData = async () => {
     if (!user || !tenant?.id) return;
