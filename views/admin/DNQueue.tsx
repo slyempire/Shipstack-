@@ -6,6 +6,7 @@ import { DeliveryNote, DNStatus, Trip, Zone, DeliveryItem, LogisticsType, Priori
 import { Badge } from '../../packages/ui/Badge';
 import { useAuthStore, useAppStore } from '../../store';
 import { useTenant } from '../../hooks/useTenant';
+import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 import { telemetryService } from '../../services/socket';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -84,6 +85,11 @@ const OperationsHub: React.FC = () => {
   }, [dns]);
 
   useEffect(() => { loadData(); }, [page, activeTab, search, filterPriority, filterIndustry, filterZone, filterType]);
+
+  // Live updates: any change to delivery_notes or trips for this tenant
+  // refreshes the list without polling.
+  useRealtimeTable('delivery_notes', () => loadData(), tenant?.id ? { column: 'tenant_id', value: tenant.id } : undefined);
+  useRealtimeTable('trips', () => loadData(), tenant?.id ? { column: 'tenant_id', value: tenant.id } : undefined);
 
   useEffect(() => {
     const fetchZones = async () => {
