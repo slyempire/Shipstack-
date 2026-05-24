@@ -87,6 +87,15 @@ export interface Tenant {
     primaryColor: string;
     allowSelfRegistration?: boolean;
     onboardingCompleted?: boolean;
+    // Operational region picked during onboarding (e.g. "East Africa").
+    // Drives the currency + timezone defaults above.
+    region?: string;
+    // Headline fleet size bucket from onboarding (e.g. "11-50 Units").
+    // Drives dashboardDensity.
+    organizationSize?: string;
+    // UI density picked at onboarding time based on organizationSize.
+    // Small fleets prefer compact, large ones prefer comfortable.
+    dashboardDensity?: 'compact' | 'standard' | 'comfortable';
     businessLogic?: {
       autoDispatch?: boolean;
       podRequirements?: ('SIGNATURE' | 'PHOTO' | 'OTP')[];
