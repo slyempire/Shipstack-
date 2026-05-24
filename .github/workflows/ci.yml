@@ -1,0 +1,90 @@
+name: CI
+
+# Runs on every PR targeting main and on every push to main.
+# Deploys are deliberately not wired up here yet; that's a separate PR once
+# we settle on a host.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Avoid stacking duplicate runs on the same branch.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: Lint, Test & Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          # Pinned to match the local dev version (v22.17.1). Bump intentionally.
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Type-check (npm run lint = tsc --noEmit)
+        run: npm run lint
+
+      # Cache Playwright browser binaries keyed by the installed Playwright
+      # version. Without this, every CI run re-downloads ~150MB of Chromium
+      # which doubles the pipeline time.
+      - name: Resolve Playwright version
+        id: pw-version
+        run: |
+          PW_VERSION=$(node -p "require('@playwright/test/package.json').version")
+          echo "version=$PW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw-version.outputs.version }}
+
+      - name: Install Playwright browsers (cache miss)
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright system deps (cache hit)
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      # The Playwright config starts `npm run dev` itself via webServer.
+      # /api/health is the readiness probe. The realtime smoke test skips
+      # automatically when VITE_SUPABASE_URL is not set; we don't pass it
+      # so CI runs a deterministic 3-passing / 1-skipped subset.
+      - name: Run Playwright smoke tests
+        run: npm test
+        env:
+          # Silences the noisy missing-env warnings that the dev server prints
+          # in CI. They're informational; the server still boots.
+          CI: 'true'
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
+
+      # Final check: the production build compiles. Catches regressions that
+      # only surface in `vite build` (esbuild errors, missing exports, etc.)
+      # that `tsc --noEmit` might miss.
+      - name: Build (vite + esbuild)
+        run: npm run build
