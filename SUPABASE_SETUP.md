@@ -147,6 +147,19 @@ CREATE TABLE IF NOT EXISTS exceptions (
 );
 ```
 
+### Bays (Loading-Dock State)
+Persistent state for the Facility Portal's dock-bay grid. Apply the
+self-contained migration in
+[`backend_design/supabase-bays-migration.sql`](backend_design/supabase-bays-migration.sql) —
+it creates the table, the RLS policies, registers the table for Realtime,
+and seeds 8 demo bays for `facility_id='f-1'` / `tenant_id='tenant-1'` so
+the demo accounts have data out of the box. Idempotent; safe to re-run.
+
+The migration is FK-free on purpose: `facility_id` and `dn_id` are tracked
+as plain text columns. The application enforces those relationships in code,
+which keeps the migration runnable in projects that haven't yet created the
+optional `facilities` / `delivery_notes` tables above.
+
 ## 3. RLS (Row Level Security) - HARDENED
 Enable RLS on all tables and create strict tenant-aware policies.
 

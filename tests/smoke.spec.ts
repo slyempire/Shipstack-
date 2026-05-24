@@ -131,6 +131,19 @@ async function settleNetwork(page: Page) {
 }
 
 test.describe('Facility bay management (feat/facility)', () => {
+  // The bay tests verify the localStorage-backed UI flow. In production demo
+  // mode (mock auth, no Supabase profiles row), RLS blocks anon reads against
+  // public.bays anyway, so api.getBays falls back to localStorage. We force
+  // that same path in tests by short-circuiting /rest/v1/bays before each
+  // bay test. The realtime test below exercises the live Supabase WS path.
+  test.beforeEach(async ({ page }) => {
+    await page.route('**/rest/v1/bays**', route => route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({ code: 'PGRST205', message: 'test-stub: forcing localStorage fallback' }),
+    }));
+  });
+
   test('bay status cycles on click and persists across reload', async ({ page }) => {
     await loginAs(page, { role: 'facility' });
 
@@ -146,14 +159,14 @@ test.describe('Facility bay management (feat/facility)', () => {
     // Each cycle does:
     //   1. Click (optimistic UI update is synchronous in React)
     //   2. Assert the optimistic state appeared
-    //   3. Wait for api.updateBay's actual persistence to settle. The function
-    //      writes to localStorage AFTER awaiting Supabase, and Supabase is
-    //      configured but the bays table isn't migrated, so the write only
-    //      happens after the 404 round-trip returns. waitForResponse against
-    //      any rest/v1/bays PATCH catches that round-trip deterministically.
+    //   3. Wait for api.updateBay's persistence chain to settle. The function
+    //      writes to localStorage AFTER awaiting Supabase; the beforeEach stub
+    //      makes Supabase return 404 immediately so the localStorage write
+    //      happens promptly. waitForResponse against any /rest/v1/bays request
+    //      (PATCH or otherwise) catches that round-trip deterministically.
     const clickAndAssert = async (expected: string) => {
       const responsePromise = page.waitForResponse(
-        res => res.url().includes('/rest/v1/bays') && res.request().method() === 'PATCH',
+        res => res.url().includes('/rest/v1/bays'),
         { timeout: 10_000 }
       ).catch(() => null /* Supabase not configured */);
       await bay02.click();
