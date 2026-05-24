@@ -179,10 +179,10 @@ const OnboardingFlow: React.FC = () => {
         enabledModules: formData.enabledModules as any,
         company: formData.name
       });
-      addNotification("Operational Cluster Initialized.", "success");
+      addNotification("You're all set. Welcome to Shipstack.", "success");
       navigate('/admin');
     } catch (err: any) {
-      addNotification(err.message || "Failed to initialize cluster.", "error");
+      addNotification(err.message || "Setup didn't complete. Please try again.", "error");
     }
   };
 
@@ -212,12 +212,12 @@ const OnboardingFlow: React.FC = () => {
        <header className="p-8 flex items-center justify-between relative z-10">
           <div className="flex items-center gap-3">
              <div className="h-10 w-10 bg-slate-900 text-white rounded-xl flex items-center justify-center italic font-black shadow-xl">S</div>
-             <h1 className="text-xl font-black uppercase tracking-tighter text-slate-900 leading-none">Shipstack <span className="text-brand">Terminal</span></h1>
+             <h1 className="text-xl font-black uppercase tracking-tighter text-slate-900 leading-none">Shipstack <span className="text-brand">Setup</span></h1>
           </div>
           <div className="flex items-center gap-6">
              <div className="hidden md:block text-right">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Provisioning Node</p>
-                <p className="text-[12px] font-black text-slate-900 leading-none">ALPHA-TER-04</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Step</p>
+                <p className="text-[12px] font-black text-slate-900 leading-none">{currentStep + 1} of {STEPS.length}</p>
              </div>
              <div className="h-10 w-10 rounded-xl bg-white border border-slate-100 overflow-hidden shadow-sm flex items-center justify-center p-0.5">
                 <img className="rounded-lg h-full w-full object-cover" src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email}`} alt="Avatar" />
@@ -230,8 +230,8 @@ const OnboardingFlow: React.FC = () => {
              {/* Stepper Sidebar */}
              <div className="lg:col-span-4 space-y-6">
                 <div className="space-y-4">
-                   <h2 className="text-4xl font-black uppercase tracking-tighter text-slate-900 leading-[0.85]">Provision<br/>New Cluster</h2>
-                   <p className="text-[11px] font-bold text-slate-400 leading-relaxed max-w-[240px] uppercase tracking-wider"> Configure architectural foundations and operational DNA for your logistics grid.</p>
+                   <h2 className="text-4xl font-black uppercase tracking-tighter text-slate-900 leading-[0.85]">Set up<br/>your account.</h2>
+                   <p className="text-[11px] font-bold text-slate-400 leading-relaxed max-w-[240px] uppercase tracking-wider">Tell us about your business so we can tailor Shipstack to fit.</p>
                 </div>
                 
                 <div className="space-y-6 pt-10">
@@ -267,11 +267,11 @@ const OnboardingFlow: React.FC = () => {
                       className="flex-1 space-y-12"
                     >
                        <div className="space-y-4">
-                          <label className="text-[11px] font-black uppercase tracking-widest text-brand">Organization Registry</label>
-                          <input 
-                            type="text" 
+                          <label className="text-[11px] font-black uppercase tracking-widest text-brand">Company name</label>
+                          <input
+                            type="text"
                             autoFocus
-                            placeholder="Enter Legal Entity Name"
+                            placeholder="e.g. Blue Star Logistics"
                             value={formData.name}
                             onChange={(e) => setFormData({...formData, name: e.target.value})}
                             className="w-full text-4xl font-black uppercase placeholder:text-slate-100 border-none outline-none tracking-tighter text-slate-900"
@@ -282,7 +282,7 @@ const OnboardingFlow: React.FC = () => {
                        <div className="grid grid-cols-2 gap-12 pt-8">
                           <div className="space-y-6">
                              <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2 italic">
-                                <Globe size={14} /> Operational Region
+                                <Globe size={14} /> Region
                              </label>
                              <div className="grid grid-cols-1 gap-3">
                                 {['East Africa', 'Central Africa', 'South Africa', 'Pan-African HUB'].map(r => (
@@ -298,7 +298,7 @@ const OnboardingFlow: React.FC = () => {
                           </div>
                           <div className="space-y-6">
                              <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2 italic">
-                                <Users size={14} /> Organization Size
+                                <Users size={14} /> Fleet size
                              </label>
                              <div className="grid grid-cols-1 gap-3">
                                 {['1-10 Units', '11-50 Units', '50-100 Units', 'Enterprise 100+'].map(s => (
@@ -325,8 +325,8 @@ const OnboardingFlow: React.FC = () => {
                       className="flex-1 space-y-8"
                     >
                        <div className="space-y-2">
-                          <h4 className="text-[12px] font-black uppercase tracking-widest text-slate-400">Industry Vertical DNA</h4>
-                          <p className="text-sm font-bold text-slate-500 leading-relaxed uppercase tracking-tight">Choose your business sector. We will tailor the modules and workflows to match your operational requirements.</p>
+                          <h4 className="text-[12px] font-black uppercase tracking-widest text-slate-400">What industry are you in?</h4>
+                          <p className="text-sm font-bold text-slate-500 leading-relaxed uppercase tracking-tight">Pick your industry and we'll switch on the right tools for you. You can change this later.</p>
                        </div>
                        
                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 overflow-y-auto max-h-[450px] pr-2 pb-4 no-scrollbar">
@@ -367,7 +367,7 @@ const OnboardingFlow: React.FC = () => {
                       className="flex-1 space-y-8"
                     >
                        <div className="space-y-4">
-                          <h4 className="text-[12px] font-black uppercase tracking-widest text-slate-400">Core Infrastructure</h4>
+                          <h4 className="text-[12px] font-black uppercase tracking-widest text-slate-400">Essentials</h4>
                           <div className="grid grid-cols-2 gap-4">
                              <button
                                onClick={() => toggleModule('fleet')}
@@ -377,8 +377,8 @@ const OnboardingFlow: React.FC = () => {
                                    <Truck size={22} />
                                 </div>
                                 <div>
-                                   <h5 className="text-[12px] font-black uppercase tracking-tight text-slate-900 leading-none mb-1">Managed Fleet</h5>
-                                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Own/manage vehicles</p>
+                                   <h5 className="text-[12px] font-black uppercase tracking-tight text-slate-900 leading-none mb-1">Fleet</h5>
+                                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Manage your vehicles</p>
                                 </div>
                                 <div className={`ml-auto h-6 w-6 rounded-lg border-2 flex items-center justify-center ${formData.enabledModules.includes('fleet') ? 'bg-brand border-brand text-white' : 'border-slate-100'}`}>
                                    {formData.enabledModules.includes('fleet') && <Check size={14} strokeWidth={4} />}
@@ -392,8 +392,8 @@ const OnboardingFlow: React.FC = () => {
                                    <Users size={22} />
                                 </div>
                                 <div>
-                                   <h5 className="text-[12px] font-black uppercase tracking-tight text-slate-900 leading-none mb-1">Relationships</h5>
-                                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Customer CRM</p>
+                                   <h5 className="text-[12px] font-black uppercase tracking-tight text-slate-900 leading-none mb-1">Customers</h5>
+                                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Track relationships</p>
                                 </div>
                                 <div className={`ml-auto h-6 w-6 rounded-lg border-2 flex items-center justify-center ${formData.enabledModules.includes('crm') ? 'bg-brand border-brand text-white' : 'border-slate-100'}`}>
                                    {formData.enabledModules.includes('crm') && <Check size={14} strokeWidth={4} />}
@@ -403,8 +403,8 @@ const OnboardingFlow: React.FC = () => {
                        </div>
 
                        <div className="space-y-2">
-                          <h4 className="text-[12px] font-black uppercase tracking-widest text-slate-400">Additional Vertical Modules</h4>
-                          <p className="text-sm font-bold text-slate-500 leading-relaxed uppercase tracking-tight">Expand capabilities with specialized {formData.industry.toLowerCase()} tools.</p>
+                          <h4 className="text-[12px] font-black uppercase tracking-widest text-slate-400">Industry-specific tools</h4>
+                          <p className="text-sm font-bold text-slate-500 leading-relaxed uppercase tracking-tight">Extra tools tailored for {formData.industry.toLowerCase()}. Pick the ones you'll use.</p>
                        </div>
 
                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 overflow-y-auto max-h-[300px] pr-2 pb-4 no-scrollbar">
@@ -451,8 +451,8 @@ const OnboardingFlow: React.FC = () => {
                       className="flex-1 space-y-8"
                     >
                        <div className="space-y-2">
-                          <h4 className="text-[12px] font-black uppercase tracking-widest text-slate-400">Select Service Level</h4>
-                          <p className="text-sm font-bold text-slate-500 leading-relaxed uppercase tracking-tight">Choose the throughput and processing power required for your fleet.</p>
+                          <h4 className="text-[12px] font-black uppercase tracking-widest text-slate-400">Choose a plan</h4>
+                          <p className="text-sm font-bold text-slate-500 leading-relaxed uppercase tracking-tight">Pick the plan that fits your team. You can change this anytime.</p>
                        </div>
 
                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 overflow-y-auto max-h-[450px] no-scrollbar pb-4 pr-1">
@@ -471,7 +471,7 @@ const OnboardingFlow: React.FC = () => {
                                         <h5 className="text-[14px] font-black uppercase tracking-tight text-slate-900">{plan.name}</h5>
                                         <span className="text-[16px] font-black text-brand tracking-tighter">{plan.price}</span>
                                      </div>
-                                     <p className="text-[9px] font-bold text-brand/60 uppercase tracking-widest">Platform Core</p>
+                                     <p className="text-[9px] font-bold text-brand/60 uppercase tracking-widest">Per month</p>
                                   </div>
                                </div>
 
@@ -513,22 +513,22 @@ const OnboardingFlow: React.FC = () => {
                           </div>
                        </div>
                        <div className="space-y-4">
-                          <h3 className="text-5xl font-black uppercase tracking-tighter text-slate-900 leading-none">Manifest Readiness</h3>
+                          <h3 className="text-5xl font-black uppercase tracking-tighter text-slate-900 leading-none">You're ready.</h3>
                           <p className="text-sm font-bold text-slate-500 max-w-sm mx-auto leading-relaxed uppercase tracking-tight">
-                            Cluster configuration is verified. Initializing secure node for <span className="text-slate-900">{formData.name}</span> in the <span className="text-slate-900">{formData.region}</span> region.
+                            Setting up Shipstack for <span className="text-slate-900">{formData.name}</span> in <span className="text-slate-900">{formData.region}</span>.
                           </p>
                        </div>
                        <div className="grid grid-cols-3 gap-4 w-full max-w-2xl">
                           <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-left">
-                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">DNA TYPE</p>
+                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Industry</p>
                              <p className="text-[11px] font-black text-slate-900 uppercase truncate">{formData.industry.replace('_', ' ')}</p>
                           </div>
                           <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-left">
-                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">MODULES</p>
-                             <p className="text-[11px] font-black text-slate-900 uppercase truncate">{formData.enabledModules.length} Active</p>
+                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Modules</p>
+                             <p className="text-[11px] font-black text-slate-900 uppercase truncate">{formData.enabledModules.length} active</p>
                           </div>
                           <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 text-left">
-                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">SERVICE LEVEL</p>
+                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Plan</p>
                              <p className="text-[11px] font-black text-slate-900 uppercase truncate">{formData.plan}</p>
                           </div>
                        </div>
@@ -544,7 +544,7 @@ const OnboardingFlow: React.FC = () => {
                                    onChange={(e) => setFormData({...formData, termsAccepted: e.target.checked})}
                                  />
                               </div>
-                              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight leading-tight pt-1">I verify that the above information is accurate and agree to the platform mission protocols and enterprise service agreement.</span>
+                              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight leading-tight pt-1">I agree to the Terms of Service and Privacy Policy.</span>
                           </label>
                        </div>
                     </motion.div>
@@ -565,7 +565,7 @@ const OnboardingFlow: React.FC = () => {
                      onClick={currentStep === STEPS.length - 1 ? handleComplete : next}
                      className="px-12 py-5 bg-slate-900 text-white rounded-[1.5rem] text-[11px] font-black uppercase tracking-widest shadow-2xl shadow-slate-900/40 active:scale-95 transition-all flex items-center gap-3 group disabled:opacity-50 disabled:grayscale"
                    >
-                     {currentStep === STEPS.length - 1 ? 'Execute Provisioning' : 'Next Protocol'} <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                     {currentStep === STEPS.length - 1 ? 'Finish setup' : 'Continue'} <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                    </button>
                 </div>
              </div>
@@ -573,7 +573,7 @@ const OnboardingFlow: React.FC = () => {
        </main>
 
        <footer className="p-8 text-center text-[9px] font-black text-slate-300 uppercase tracking-[0.4em] relative z-10 italic">
-          Shipstack Engineering Systems • Secure Node Provisioning v4.5.2-LST
+          Shipstack &mdash; getting you set up.
        </footer>
     </div>
   );
