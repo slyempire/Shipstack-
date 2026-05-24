@@ -9,25 +9,25 @@ const PricingPage: React.FC = () => {
     {
       name: 'Pilot',
       price: 'Early Access',
-      desc: 'For industry partners helping us build the future.',
+      desc: 'For founding partners helping shape the product.',
       features: ['Full platform access', 'Co-development support', 'Custom ERP integration', 'White-glove onboarding', 'Priority support', 'Weekly progress reviews'],
-      cta: 'Apply for Pilot',
+      cta: 'Apply for pilot',
       highlight: false
     },
     {
       name: 'Growth',
       price: '199',
-      desc: 'Optimized for high-throughput logistics hubs.',
-      features: ['Unlimited shipments', 'Advanced telemetry', 'M-Pesa/Flutterwave payouts', 'Up to 20 dispatchers', 'Fraud detection suite', 'AI: Route Intelligence', 'Dedicated training'],
-      cta: 'Request Early Access',
+      desc: 'For growing teams running 20+ vehicles.',
+      features: ['Unlimited shipments', 'Live telemetry', 'M-Pesa & Flutterwave payouts', 'Up to 20 dispatchers', 'Fraud detection', 'Smart route optimization', 'Onboarding training'],
+      cta: 'Sign up',
       highlight: true
     },
     {
       name: 'Enterprise',
       price: 'Custom',
-      desc: 'Continental architecture for national networks.',
-      features: ['Multi-country/Region sync', 'On-premise deployment options', 'Unlimited enterprise users', '99.99% SLA Guarantee', 'Custom compliance engine', 'Direct engineer access'],
-      cta: 'Book Consultation',
+      desc: 'For national networks and multi-country operators.',
+      features: ['Multi-country sync', 'On-premise deployment', 'Unlimited users', '99.99% uptime SLA', 'Custom compliance rules', 'Dedicated engineer access'],
+      cta: 'Talk to sales',
       highlight: false
     }
   ];
@@ -44,9 +44,9 @@ const PricingPage: React.FC = () => {
           />
           <div className="absolute inset-0 bg-white/70" />
         </div>
-        <h1 className="text-6xl md:text-8xl font-black tracking-tighter uppercase mb-6 leading-none text-slate-900">Simple, Reliable <br/><span className="text-brand">Pricing.</span></h1>
+        <h1 className="text-6xl md:text-8xl font-black tracking-tighter uppercase mb-6 leading-none text-slate-900">Simple <br/><span className="text-brand">pricing.</span></h1>
         <p className="text-xl md:text-2xl text-slate-500 max-w-4xl mx-auto mb-8 font-bold uppercase tracking-tight leading-tight">
-          Choose the stack that fits your operational scale. <br className="hidden md:block" /> All plans include a mission-critical 14-day trial.
+          Pick the plan that fits your team. <br className="hidden md:block" /> All plans include a 14-day free trial.
         </p>
         <p className="text-[10px] font-black uppercase tracking-[0.3em] text-brand mb-20">
           Pay via M-Pesa, card, or invoice • No setup fees
@@ -57,7 +57,7 @@ const PricingPage: React.FC = () => {
             <div key={plan.name} className={`bg-white rounded-[3rem] p-10 flex flex-col h-full text-left relative overflow-hidden transition-all hover:scale-[1.02] border border-slate-100 ${plan.highlight ? 'shadow-2xl shadow-brand/10 ring-2 ring-brand' : 'shadow-sm'}`}>
               {plan.highlight && (
                 <div className="absolute top-8 right-8 bg-brand text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
-                   Popular Choice
+                   Most popular
                 </div>
               )}
               <div className="mb-10">
@@ -99,12 +99,12 @@ const PricingPage: React.FC = () => {
            <div className="h-16 w-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-2xl border border-white/20">
               <ShieldCheck size={32} />
            </div>
-           <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter mb-6">Built for Industrial Scale.</h2>
+           <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter mb-6">Need something custom?</h2>
            <p className="text-lg text-white/60 mb-12 font-medium leading-relaxed">
-             Need a custom deployment across 1,000+ hubs? Our enterprise architects can manifest a custom grid solution for your national fleet.
+             Running 1,000+ hubs or a national fleet? Our team can build a custom deployment to match.
            </p>
            <button className="bg-white text-brand px-12 py-5 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all">
-             Contact Enterprise Support
+             Talk to enterprise
            </button>
         </div>
       </section>

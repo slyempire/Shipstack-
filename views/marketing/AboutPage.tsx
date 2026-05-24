@@ -34,7 +34,7 @@ const AboutPage: React.FC = () => {
           className="inline-flex items-center gap-2 bg-brand/5 border border-brand/10 px-4 py-2 rounded-full mb-8 shadow-sm"
         >
           <Heart size={14} className="text-brand" />
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand">The Shipstack Protocol</span>
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand">Our story</span>
         </motion.div>
         <motion.h1 
           initial={{ opacity: 0, y: 30 }}
@@ -60,10 +60,10 @@ const AboutPage: React.FC = () => {
         <div className="space-y-10">
           <h2 className="text-4xl font-black uppercase tracking-tighter leading-none">The <span className="text-brand-accent">Challenge.</span></h2>
           <p className="text-lg text-slate-500 font-medium leading-relaxed">
-            Logistics in Africa is complex—fragmented systems, limited visibility, and inefficient processes. For too long, businesses have had to rely on manual spreadsheets and fragmented communication to move goods across borders and corridors.
+            Logistics in Africa is complex &mdash; fragmented systems, limited visibility, and processes still running on spreadsheets and WhatsApp. We started Shipstack because we believe African operators deserve software built for the way they actually work.
           </p>
           <p className="text-lg text-slate-500 font-medium leading-relaxed">
-            We saw this firsthand at the border points, in the warehouses, and in the truck cabins. We realized that the solution wasn't just "more trucks"—it was a unified operating system that could stabilize the supply chain and empower the workforce.
+            We're early. We're spending our first months on the ground in Nairobi and Lagos &mdash; in warehouses, at border posts, in truck cabins &mdash; learning from operators and building the product alongside them. If that sounds like something you want to help shape, we'd love to talk.
           </p>
           <div className="flex items-center gap-6">
             <div className="h-12 w-12 bg-brand/5 text-brand rounded-2xl flex items-center justify-center shadow-sm">
@@ -145,10 +145,10 @@ const AboutPage: React.FC = () => {
           </div>
 
           <div className="mt-32 pt-20 border-t border-slate-200 text-center">
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 mb-6">The Team Behind the Stack</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 mb-6">Who's behind this</p>
             <h3 className="text-3xl font-black text-slate-900 uppercase tracking-tighter mb-4">A Product of <a href="https://murzaktech.com" target="_blank" rel="noopener noreferrer" className="text-brand hover:underline">Murzak Technologies</a></h3>
             <p className="text-slate-500 font-medium max-w-xl mx-auto">
-              Shipstack is engineered and maintained by the specialized systems division at Murzak Technologies, dedicated to solving complex infrastructure challenges through elegant code.
+              Shipstack is built and run by the team at Murzak Technologies &mdash; engineers solving real African logistics problems with clean code.
             </p>
           </div>
         </div>
@@ -168,13 +168,13 @@ const AboutPage: React.FC = () => {
 
         <div className="max-w-4xl mx-auto px-6 relative z-10 text-center">
           <h2 className="text-6xl md:text-8xl font-black uppercase tracking-tighter text-white mb-12 leading-none">
-            Ready to <br/><span className="text-brand">Collaborate?</span>
+            Want to <br/><span className="text-brand">work together?</span>
           </h2>
           <p className="text-xl md:text-3xl text-slate-400 font-bold uppercase tracking-tight mb-16 leading-tight">
-            Join the movement of engineers and logistics <br className="hidden md:block" /> specialists defining the new standard.
+            Join us in building the new standard <br className="hidden md:block" /> for African logistics.
           </p>
           <Link to="/register" className="inline-flex bg-brand hover:bg-orange-600 text-white px-16 py-8 rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] shadow-2xl active:scale-95 transition-all">
-            Join the Network
+            Get started
           </Link>
         </div>
       </section>
