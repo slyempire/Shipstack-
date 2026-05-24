@@ -79,7 +79,7 @@ const SolutionsPage: React.FC = () => {
           className="inline-flex items-center gap-2 bg-brand/5 border border-brand/10 px-4 py-2 rounded-full mb-8 shadow-sm"
         >
           <Globe size={14} className="text-brand" />
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand">Vectored Solutions</span>
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand">Solutions</span>
         </motion.div>
         <motion.h1 
           initial={{ opacity: 0, y: 30 }}
@@ -87,15 +87,15 @@ const SolutionsPage: React.FC = () => {
           transition={{ delay: 0.1 }}
           className="text-5xl md:text-8xl font-black text-slate-900 tracking-tighter leading-none mb-8 uppercase font-display"
         >
-          Built for <br/><span className="text-brand">specific mission sets.</span>
+          Built for <br/><span className="text-brand">your industry.</span>
         </motion.h1>
-        <motion.p 
+        <motion.p
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           className="text-lg md:text-2xl text-slate-500 max-w-4xl mx-auto font-bold uppercase tracking-tight leading-tight"
         >
-          Shipstack is engineered to handle the unique physics <br className="hidden md:block" /> of diverse African supply chain verticals.
+          Shipstack works the way your industry works. <br className="hidden md:block" /> Pick the playbook for yours.
         </motion.p>
       </header>
 
@@ -125,7 +125,7 @@ const SolutionsPage: React.FC = () => {
                   <div className={`h-20 w-20 bg-${item.color}-50 text-${item.color}-600 rounded-[2rem] flex items-center justify-center shadow-sm group-hover:bg-slate-900 group-hover:text-white transition-all duration-300`}>
                     <item.icon size={40} />
                   </div>
-                  <span className="text-[10px] font-black text-slate-200">SECTOR / 0{i+1}</span>
+                  <span className="text-[10px] font-black text-slate-200">Industry / 0{i+1}</span>
                 </div>
 
                 <h3 className="text-4xl font-black uppercase tracking-tight mb-6">{item.title}</h3>
@@ -145,7 +145,7 @@ const SolutionsPage: React.FC = () => {
                     to={item.link} 
                     className="inline-flex items-center gap-4 text-[10px] font-black uppercase tracking-[0.3em] text-slate-900 bg-slate-50 px-10 py-6 rounded-2xl group-hover:bg-slate-900 group-hover:text-white transition-all shadow-sm"
                   >
-                    Analyze Protocol <ArrowRight size={16} />
+                    Learn more <ArrowRight size={16} />
                   </Link>
                 </div>
               </div>
@@ -157,12 +157,12 @@ const SolutionsPage: React.FC = () => {
       {/* Trust Section */}
       <section className="py-32 bg-slate-950 text-white overflow-hidden">
         <div className="max-w-7xl mx-auto px-6 text-center">
-          <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter mb-12">Powering large-scale operations <br /> <span className="text-brand-accent">across Africa.</span></h2>
+          <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter mb-12">Where we're piloting <br /> <span className="text-brand-accent">right now.</span></h2>
           <div className="flex flex-wrap justify-center gap-12 opacity-30 grayscale filter">
-            <div className="text-2xl font-black uppercase tracking-tighter">Nairobi Retail</div>
-            <div className="text-2xl font-black uppercase tracking-tighter">Lagos FMCG</div>
-            <div className="text-2xl font-black uppercase tracking-tighter">Kigali Agri-Hub</div>
-            <div className="text-2xl font-black uppercase tracking-tighter">Dar Logistics</div>
+            <div className="text-2xl font-black uppercase tracking-tighter">Nairobi</div>
+            <div className="text-2xl font-black uppercase tracking-tighter">Lagos</div>
+            <div className="text-2xl font-black uppercase tracking-tighter">Kigali</div>
+            <div className="text-2xl font-black uppercase tracking-tighter">Dar es Salaam</div>
           </div>
         </div>
       </section>
@@ -181,13 +181,13 @@ const SolutionsPage: React.FC = () => {
 
         <div className="max-w-4xl mx-auto px-6 relative z-10 text-center">
           <h2 className="text-6xl md:text-8xl font-black uppercase tracking-tighter text-white mb-12 leading-none">
-            Ready to <br/><span className="text-brand">Automate?</span>
+            Ready to <br/><span className="text-brand">get started?</span>
           </h2>
           <p className="text-xl md:text-3xl text-slate-400 font-bold uppercase tracking-tight mb-16 leading-tight">
-            Connect your region's supply chain to a <br className="hidden md:block" /> single, intelligent command plane.
+            Bring your supply chain onto one platform <br className="hidden md:block" /> built for African logistics.
           </p>
           <Link to="/register" className="inline-flex bg-brand hover:bg-orange-600 text-white px-16 py-8 rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] shadow-2xl active:scale-95 transition-all">
-            Get Started Now
+            Sign up free
           </Link>
         </div>
       </section>

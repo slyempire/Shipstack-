@@ -37,7 +37,7 @@ const ProductPage: React.FC = () => {
           className="inline-flex items-center gap-2 bg-brand/5 border border-brand/10 px-4 py-2 rounded-full mb-8 shadow-sm"
         >
           <Package size={14} className="text-brand" />
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand">The Shipstack Protocol</span>
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand">What you get</span>
         </motion.div>
         <motion.h1 
           initial={{ opacity: 0, y: 30 }}
@@ -48,13 +48,13 @@ const ProductPage: React.FC = () => {
           Everything you need <br />
           <span className="text-brand-accent">to run logistics.</span>
         </motion.h1>
-        <motion.p 
+        <motion.p
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           className="text-lg md:text-xl text-slate-500 max-w-3xl mx-auto font-medium"
         >
-          A modular platform designed to handle the complexities of African trade, from the first mile to the final delivery.
+          Everything you need to run modern logistics in Africa &mdash; from first mile to last.
         </motion.p>
       </header>
 
@@ -87,7 +87,7 @@ const ProductPage: React.FC = () => {
                  </div>
                  <div>
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Throughput</p>
-                    <p className="text-sm font-black text-slate-900">+124% Optimization</p>
+                    <p className="text-sm font-black text-slate-900">+124% efficiency</p>
                  </div>
               </div>
             </div>
@@ -96,12 +96,12 @@ const ProductPage: React.FC = () => {
             <div className="h-20 w-20 bg-blue-50 text-blue-600 rounded-[2rem] flex items-center justify-center mb-10 shadow-sm">
               <Package size={40} />
             </div>
-            <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tighter mb-8 leading-none">Digitize <br/><span className="text-blue-600">The Ground.</span></h2>
+            <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tighter mb-8 leading-none">Digital <br/><span className="text-blue-600">manifests.</span></h2>
             <p className="text-xl text-slate-500 font-medium leading-relaxed mb-12">
-              Transform physical inventory into digital assets. Instantly generate manifests, calculate multi-modal pricing, and trigger dispatch protocols from a single command node.
+              Turn physical shipments into digital manifests in seconds. Auto-calculate pricing, route dispatch, and store regulatory documents in one place.
             </p>
             <ul className="space-y-6">
-              {['Smart Manifest Generation', 'Automated Pricing Logic', 'Bulk Digital Import', 'Regulatory Document Vault'].map((item, i) => (
+              {['Auto-generated manifests', 'Auto-pricing across modes', 'Bulk import', 'Regulatory document vault'].map((item, i) => (
                 <li key={i} className="flex items-center gap-4 text-base font-bold text-slate-800">
                   <div className="h-3 w-3 bg-blue-500 rounded-full" />
                   {item}
@@ -117,12 +117,12 @@ const ProductPage: React.FC = () => {
             <div className="h-20 w-20 bg-emerald-50 text-emerald-600 rounded-[2rem] flex items-center justify-center mb-10 shadow-sm">
               <Truck size={40} />
             </div>
-            <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tighter mb-8 leading-none">Total Fleet <br/><span className="text-emerald-600">Awareness.</span></h2>
+            <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tighter mb-8 leading-none">See every <br/><span className="text-emerald-600">vehicle.</span></h2>
             <p className="text-xl text-slate-500 font-medium leading-relaxed mb-12">
-              Shipstack provides a high-fidelity window into your mobile assets. Monitor GPS telemetry, fuel diagnostics, and driver health in sub-second intervals.
+              Live GPS for every vehicle, with fuel readings, vehicle health, and driver status &mdash; all updated in real time.
             </p>
             <ul className="space-y-6">
-              {['Precision GPS Telemetry', 'Dynamic Route Re-assignment', 'Fuel Integrity Monitoring', 'Asset Health Analytics'].map((item, i) => (
+              {['Live GPS tracking', 'Reroute on the fly', 'Fuel monitoring', 'Vehicle health analytics'].map((item, i) => (
                 <li key={i} className="flex items-center gap-4 text-base font-bold text-slate-800">
                   <div className="h-3 w-3 bg-emerald-500 rounded-full" />
                   {item}
@@ -149,24 +149,24 @@ const ProductPage: React.FC = () => {
             <div className="h-20 w-20 bg-orange-50 text-orange-600 rounded-[2rem] flex items-center justify-center mb-10 shadow-sm">
               <Smartphone size={40} />
             </div>
-            <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tighter mb-8 leading-none">The Mobile <br/><span className="text-orange-600">Command Node.</span></h2>
+            <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tighter mb-8 leading-none">The driver <br/><span className="text-orange-600">app.</span></h2>
             <p className="text-xl text-slate-500 font-medium leading-relaxed mb-12">
-              Engineered for the realities of the road. Our field application works in low-bandwidth environments, providing drivers with real-time route vectors and instant mobile money settlements.
+              Built for the real road. Works offline, syncs when drivers are back online, and pays them instantly when each trip is reconciled.
             </p>
             <div className="grid grid-cols-2 gap-8">
               <div className="space-y-4">
                 <div className="flex items-center gap-3 text-orange-600">
                   <WifiOff size={24} />
-                  <span className="text-sm font-black uppercase tracking-widest">Resilient Mode</span>
+                  <span className="text-sm font-black uppercase tracking-widest">Works offline</span>
                 </div>
-                <p className="text-sm text-slate-500 font-medium leading-tight">Bi-directional sync that tolerates intermittent network loss.</p>
+                <p className="text-sm text-slate-500 font-medium leading-tight">Drivers keep working in low-signal areas. Everything syncs back when reconnected.</p>
               </div>
               <div className="space-y-4">
                 <div className="flex items-center gap-3 text-orange-600">
                   <DollarSign size={24} />
-                  <span className="text-sm font-black uppercase tracking-widest">Instant Liquidity</span>
+                  <span className="text-sm font-black uppercase tracking-widest">Instant payouts</span>
                 </div>
-                <p className="text-sm text-slate-500 font-medium leading-tight">Zero-wait settlements directly to mobile money wallets.</p>
+                <p className="text-sm text-slate-500 font-medium leading-tight">Drivers get paid to M-Pesa, Wave, or bank the moment a trip clears.</p>
               </div>
             </div>
           </div>
@@ -180,11 +180,11 @@ const ProductPage: React.FC = () => {
               </div>
               <div className="p-8 pt-16 space-y-8">
                 <div className="bg-slate-900/50 border border-white/5 rounded-3xl p-6 text-white">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 mb-3 text-brand">Current Protocol</p>
-                  <p className="text-lg font-black uppercase tracking-tight">Active Dispatch #772</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 mb-3 text-brand">Current trip</p>
+                  <p className="text-lg font-black uppercase tracking-tight">Trip #772</p>
                   <div className="mt-6 flex items-center gap-4">
                     <div className="h-2 w-2 bg-emerald-500 rounded-full animate-pulse" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Live Mapping</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Live</span>
                   </div>
                 </div>
                 <div className="space-y-4">
@@ -220,13 +220,13 @@ const ProductPage: React.FC = () => {
 
         <div className="max-w-4xl mx-auto px-6 relative z-10 text-center">
           <h2 className="text-6xl md:text-8xl font-black uppercase tracking-tighter text-white mb-12 leading-none">
-            Scale your <br/><span className="text-brand">Infrastructure.</span>
+            Want to <br/><span className="text-brand">pilot it?</span>
           </h2>
           <p className="text-xl md:text-3xl text-slate-400 font-bold uppercase tracking-tight mb-16 leading-tight">
-            Deploy the most advanced logistics operating <br className="hidden md:block" /> system in Africa today.
+            Join our first cohort of pilot partners <br className="hidden md:block" /> shaping African logistics with us.
           </p>
           <Link to="/register" className="inline-flex bg-brand hover:bg-orange-600 text-white px-16 py-8 rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] shadow-2xl active:scale-95 transition-all">
-            Initialize Free Tier
+            Apply for pilot
           </Link>
         </div>
       </section>

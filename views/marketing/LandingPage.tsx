@@ -360,7 +360,7 @@ const LandingPage: React.FC = () => {
       {/* Social Proof */}
       <div className="bg-slate-50 py-24 border-y border-slate-100">
         <div className="container-responsive">
-          <p className="text-center text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 mb-16">Built with operators across Africa. Trusted by first-mover teams.</p>
+          <p className="text-center text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 mb-16">Building with our first pilot partners &mdash; looking for the next.</p>
           <div className="grid grid-cols-2 md:grid-cols-4 items-center justify-center gap-8 md:gap-16">
              <div className="flex flex-col items-center gap-2 grayscale hover:grayscale-0 transition-all opacity-60">
                 <div className="h-12 w-full bg-slate-200 rounded-xl flex items-center justify-center px-4">
@@ -598,7 +598,7 @@ const LandingPage: React.FC = () => {
         <div className="container-responsive">
           <div className="text-center mb-24">
             <h2 className="text-4xl md:text-7xl font-black uppercase tracking-tighter text-white mb-6">Built with <span className="text-brand">operators.</span></h2>
-            <p className="text-slate-400 font-bold uppercase tracking-tight">Shaped on the ground with logistics teams across Africa.</p>
+            <p className="text-slate-400 font-bold uppercase tracking-tight">Shaped on the ground with the operators piloting Shipstack today.</p>
           </div>
           
           <div className="grid lg:grid-cols-2 gap-10 mb-10">
@@ -623,8 +623,8 @@ const LandingPage: React.FC = () => {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent opacity-60" />
                 <div className="absolute bottom-10 left-10 text-white">
-                   <p className="text-4xl font-black uppercase tracking-tighter">Battle-tested</p>
-                   <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Verified in production</p>
+                   <p className="text-4xl font-black uppercase tracking-tighter">Pilot live</p>
+                   <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Running with first partners</p>
                 </div>
              </div>
           </div>
@@ -709,8 +709,8 @@ const LandingPage: React.FC = () => {
       <SectionWrapper className="py-32 bg-slate-50">
         <div className="container-responsive">
           <div className="text-center mb-24">
-            <h2 className="text-4xl md:text-7xl font-black uppercase tracking-tighter text-[#1A2B4D] mb-6">What our partners say.</h2>
-            <p className="text-slate-500 font-bold uppercase tracking-tight text-sm">From the teams using Shipstack today.</p>
+            <h2 className="text-4xl md:text-7xl font-black uppercase tracking-tighter text-[#1A2B4D] mb-6">Early pilot feedback.</h2>
+            <p className="text-slate-500 font-bold uppercase tracking-tight text-sm">Early notes from operators piloting Shipstack with us.</p>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
             <TestimonialCard 
@@ -899,10 +899,10 @@ const LandingPage: React.FC = () => {
             className="max-w-4xl mx-auto"
           >
             <h2 className="text-6xl md:text-9xl font-black uppercase tracking-tighter text-white mb-12 leading-none">
-              Ready to <br/><span className="text-brand">get started?</span>
+              Join the <br/><span className="text-brand">first wave.</span>
             </h2>
             <p className="text-xl md:text-3xl text-slate-400 font-bold uppercase tracking-tight mb-16 leading-tight">
-              Join teams across Africa already simplifying <br className="hidden md:block" /> their logistics with Shipstack.
+              We're onboarding pilot partners now. <br className="hidden md:block" /> Be part of the team shaping it.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
               <button
@@ -937,11 +937,11 @@ const LandingPage: React.FC = () => {
               />
               <FAQItem
                 question="How long does setup take?"
-                answer="Most teams are up and running within a day. Larger fleets typically take about a week with our onboarding team."
+                answer="Pilot partners are typically up and running within a day. Larger fleets, about a week, with our team alongside you."
               />
               <FAQItem
                 question="What kind of support do you offer?"
-                answer="Email support for everyone. Priority chat for Growth and Scale. Dedicated engineering for Enterprise."
+                answer="Pilot partners get direct chat with our team while we shape the product together. Plan-tiered support kicks in as we scale beyond pilot."
               />
             </div>
           </div>
