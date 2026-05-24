@@ -1,6 +1,8 @@
 
 # MEDS Logistics Platform
 
+[![CI](https://github.com/slyempire/Shipstack-/actions/workflows/ci.yml/badge.svg)](https://github.com/slyempire/Shipstack-/actions/workflows/ci.yml)
+
 A modern, high-performance logistics suite built for the Frappe Framework backend. This platform manages the entire lifecycle of a **Delivery Note**, from ingestion to final invoicing.
 
 ## Architecture Overview
@@ -38,6 +40,25 @@ A modern, high-performance logistics suite built for the Frappe Framework backen
    ```bash
    npm run dev
    ```
+
+## Testing
+
+Smoke tests live under `tests/` and run via [Playwright](https://playwright.dev/) against a real Chromium browser. They cover the facility bay management flow, the driver offline-sync queue, and (when Supabase is configured) the realtime subscription handshake.
+
+```bash
+# Install browser binaries (one-time, ~150MB chromium)
+npx playwright install chromium
+
+# Run the suite (boots `npm run dev` automatically)
+npm test
+
+# Same, with the browser visible — useful for debugging
+npm run test:headed
+```
+
+The realtime test auto-skips when `VITE_SUPABASE_URL` is not set, so local runs against the localStorage fallback get a clean 3-passing / 1-skipped result.
+
+CI runs the same `npm run lint`, `npm test`, and `npm run build` on every PR — see `.github/workflows/ci.yml`.
 
 ## Deployment
 
