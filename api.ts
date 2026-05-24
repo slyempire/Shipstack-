@@ -58,6 +58,23 @@ import { sanitize, sanitizeObject, encryptData, decryptData } from './utils/secu
 import { FrappeService } from './services/frappe';
 import { cacheService } from './services/redis';
 
+// Onboarding -> tenant.settings customization tables. Kept here so the same
+// mapping is used regardless of which UI calls completeOnboarding (the
+// in-app onboarding flow today; potentially admin "Reset tenant" later).
+const REGION_DEFAULTS: Record<string, { currency: string; timezone: string }> = {
+  'East Africa':     { currency: 'KES', timezone: 'Africa/Nairobi' },
+  'Central Africa':  { currency: 'XAF', timezone: 'Africa/Kinshasa' },
+  'South Africa':    { currency: 'ZAR', timezone: 'Africa/Johannesburg' },
+  'Pan-African HUB': { currency: 'USD', timezone: 'UTC' },
+};
+
+const SIZE_TO_DENSITY: Record<string, 'compact' | 'standard' | 'comfortable'> = {
+  '1-10 Units':      'compact',
+  '11-50 Units':     'standard',
+  '50-100 Units':    'standard',
+  'Enterprise 100+': 'comfortable',
+};
+
 // We no longer expose Frappe URL to the client. The backend handles the proxy.
 const useFrappe = true; // Enabled by default, health check will verify availability
 let isFrappeHealthy = true;
@@ -1021,18 +1038,34 @@ export const api = {
     return { user, token: 'mock-jwt-token' };
   },
 
-  async completeOnboarding(userId: string, data: { industry: IndustryType, modules: ModuleId[], companyName?: string }): Promise<void> {
+  async completeOnboarding(
+    userId: string,
+    data: {
+      industry: IndustryType;
+      modules: ModuleId[];
+      companyName?: string;
+      region?: string;
+      organizationSize?: string;
+      plan?: Tenant['plan'];
+    }
+  ): Promise<Tenant> {
     const user = await api.getUserById(userId);
     if (!user) throw new Error('User not found');
 
     const tenantId = user.tenantId || `tenant-${Date.now()}`;
-    
+
     // Update User
-    await api.updateUser(userId, { 
-      isOnboarded: true, 
+    await api.updateUser(userId, {
+      isOnboarded: true,
       onboardingStep: 5,
       company: data.companyName || user.company
     }, tenantId);
+
+    // Map region -> currency + timezone defaults, size -> dashboardDensity.
+    // Falls back to East Africa / standard if onboarding skipped these (legacy
+    // callers from before this change).
+    const regionDefaults = REGION_DEFAULTS[data.region || ''] || REGION_DEFAULTS['East Africa'];
+    const density = SIZE_TO_DENSITY[data.organizationSize || ''] || 'standard';
 
     // Update Tenant
     const tenant = getStore<Tenant | null>('tenant', null);
@@ -1042,13 +1075,19 @@ export const api = {
       name: data.companyName || (tenant?.name || 'My Organization'),
       industry: data.industry,
       enabledModules: data.modules,
+      plan: data.plan || tenant?.plan || initialTenants[0].plan,
       settings: {
         ...(tenant?.settings || initialTenants[0].settings),
+        currency: regionDefaults.currency,
+        timezone: regionDefaults.timezone,
+        region: data.region,
+        organizationSize: data.organizationSize,
+        dashboardDensity: density,
         onboardingCompleted: true
       }
     };
     setStore('tenant', updatedTenant);
-    
+
     // Also persist to tenants_list for getTenants/getTenant lookups
     const tenants = getStore('tenants_list', initialTenants);
     const exists = tenants.findIndex(t => t.id === tenantId);
@@ -1058,7 +1097,7 @@ export const api = {
       tenants.push(updatedTenant);
     }
     setStore('tenants_list', tenants);
-    
+
     if (isSupabaseConfigured) {
       try {
         const { error } = await supabase
@@ -1080,7 +1119,18 @@ export const api = {
 
     clearCache('tenant');
     clearCache('tenants_list');
-    await logAudit('ONBOARDING_COMPLETED', { industry: data.industry, modules: data.modules }, user.name);
+    await logAudit(
+      'ONBOARDING_COMPLETED',
+      {
+        industry: data.industry,
+        modules: data.modules,
+        region: data.region,
+        organizationSize: data.organizationSize,
+        plan: updatedTenant.plan,
+      },
+      user.name
+    );
+    return updatedTenant;
   },
 
   async getUsers(tenantId: string = 'tenant-1', requesterRole?: UserRole): Promise<User[]> {

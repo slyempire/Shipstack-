@@ -160,33 +160,22 @@ const OnboardingFlow: React.FC = () => {
   const handleComplete = async () => {
     if (!user) return;
     try {
-      await api.completeOnboarding(user.id, {
+      // completeOnboarding now persists region/size/plan and applies the
+      // currency/timezone/dashboardDensity mapping in api.ts, then returns
+      // the fully-resolved Tenant. Use that directly instead of rebuilding
+      // a local copy with stale hard-coded defaults.
+      const updatedTenant = await api.completeOnboarding(user.id, {
         industry: formData.industry as any,
         modules: formData.enabledModules as any,
-        companyName: formData.name
+        companyName: formData.name,
+        region: formData.region,
+        organizationSize: formData.size,
+        plan: formData.plan as any,
       });
 
-      // Finalize tenant setup (state-side)
-      const newTenant = {
-        id: user.tenantId || `tenant-${Date.now()}`,
-        name: formData.name,
-        slug: formData.name.toLowerCase().replace(/ /g, '-'),
-        industry: formData.industry as any,
-        plan: formData.plan as any,
-        status: 'ACTIVE' as any,
-        enabledModules: formData.enabledModules,
-        settings: {
-          primaryColor: '#0F2A44',
-          currency: 'KES',
-          timezone: 'Africa/Nairobi',
-          onboardingCompleted: true
-        },
-        createdAt: new Date().toISOString()
-      };
-
-      setTenant(newTenant as any);
-      updateUser({ 
-        isOnboarded: true, 
+      setTenant(updatedTenant);
+      updateUser({
+        isOnboarded: true,
         enabledModules: formData.enabledModules as any,
         company: formData.name
       });
