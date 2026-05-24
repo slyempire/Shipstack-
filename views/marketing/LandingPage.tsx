@@ -296,7 +296,7 @@ const LandingPage: React.FC = () => {
           >
             <div className="inline-flex items-center gap-3 px-6 py-3 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-md">
               <span className="flex h-2 w-2 rounded-full bg-brand animate-pulse" />
-              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">Live Control Tower V2.4 Active</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">Now accepting early-access partners</span>
             </div>
           </motion.div>
 
@@ -307,8 +307,8 @@ const LandingPage: React.FC = () => {
             className="text-center"
           >
             <h1 className="text-5xl md:text-[8.5rem] font-black tracking-tighter leading-[0.8] mb-12 uppercase text-white">
-              The OS for <br />
-              African <span className="text-brand">Trade.</span>
+              Logistics, <br />
+              built for <span className="text-brand">Africa.</span>
             </h1>
           </motion.div>
 
@@ -319,8 +319,8 @@ const LandingPage: React.FC = () => {
             className="text-center max-w-4xl mx-auto mb-20"
           >
             <p className="text-xl md:text-2xl text-slate-400 font-bold uppercase tracking-tight leading-tight">
-              A high-precision control tower for transport teams. <br className="hidden md:block" />
-              Manage fleet telemetry, driver payouts, and ERP reconciliation in one interface.
+              One place to manage your fleet, dispatch drivers, <br className="hidden md:block" />
+              and reconcile payments &mdash; built for African logistics teams.
             </p>
           </motion.div>
 
@@ -334,15 +334,15 @@ const LandingPage: React.FC = () => {
               onClick={() => isAuthenticated ? handleDashboardRedirect() : navigate('/register')}
               className="w-full sm:w-auto px-16 py-8 bg-brand hover:bg-orange-600 text-white text-base font-black uppercase tracking-widest shadow-[0_20px_50px_rgba(255,140,66,0.2)] transition-all hover:translate-y-[-4px] active:scale-95 rounded-2xl flex items-center justify-center gap-3"
             >
-              Start Pilot Node
+              Get started
               <ArrowRight size={20} />
             </button>
             {!isAuthenticated && (
-              <button 
+              <button
                 onClick={() => navigate('/product')}
                 className="w-full sm:w-auto px-16 py-8 bg-white/5 border-2 border-white/10 text-white text-base font-black uppercase tracking-widest transition-all hover:bg-white/10 flex items-center justify-center gap-3 rounded-2xl"
               >
-                Logistics Tour
+                See how it works
               </button>
             )}
           </motion.div>
@@ -360,7 +360,7 @@ const LandingPage: React.FC = () => {
       {/* Social Proof */}
       <div className="bg-slate-50 py-24 border-y border-slate-100">
         <div className="container-responsive">
-          <p className="text-center text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 mb-16">Built with logistics operators. Trusted by first-mover teams.</p>
+          <p className="text-center text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 mb-16">Built with operators across Africa. Trusted by first-mover teams.</p>
           <div className="grid grid-cols-2 md:grid-cols-4 items-center justify-center gap-8 md:gap-16">
              <div className="flex flex-col items-center gap-2 grayscale hover:grayscale-0 transition-all opacity-60">
                 <div className="h-12 w-full bg-slate-200 rounded-xl flex items-center justify-center px-4">
@@ -378,7 +378,7 @@ const LandingPage: React.FC = () => {
                 <div className="h-12 w-full bg-slate-200 rounded-xl flex items-center justify-center px-4">
                    <span className="font-black text-slate-400 tracking-tighter text-lg uppercase italic">Settlements</span>
                 </div>
-                <span className="text-[8px] font-bold uppercase text-slate-500 tracking-widest">Secure Corridor</span>
+                <span className="text-[8px] font-bold uppercase text-slate-500 tracking-widest">Bank-grade</span>
              </div>
              <div className="flex flex-col items-center gap-2 grayscale hover:grayscale-0 transition-all opacity-60">
                 <div className="h-12 w-full bg-slate-200 rounded-xl flex items-center justify-center px-4 text-center">
@@ -390,7 +390,7 @@ const LandingPage: React.FC = () => {
           </div>
           <div className="mt-16 text-center text-slate-400">
             <span className="inline-flex items-center gap-3 px-6 py-2 bg-slate-200/50 rounded-full text-[10px] font-black uppercase tracking-widest text-slate-500 border border-slate-300">
-              Closed Pilot: Now Onboarding Early Adopters for East & West Africa
+              Closed pilot &mdash; onboarding teams in East and West Africa
             </span>
           </div>
         </div>
@@ -412,30 +412,30 @@ const LandingPage: React.FC = () => {
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-32">
             <div className="max-w-3xl">
               <h2 className="text-5xl md:text-8xl font-black uppercase tracking-tighter text-slate-900 mb-8 leading-none">
-                Hardened<br />
-                Operations.
+                Built for<br />
+                the real world.
               </h2>
-              <p className="text-xl md:text-2xl text-slate-600 font-bold uppercase tracking-tight">Enterprise visibility for frontier logistics markets.</p>
+              <p className="text-xl md:text-2xl text-slate-600 font-bold uppercase tracking-tight">Enterprise visibility, tuned for African logistics.</p>
             </div>
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <FeatureCard 
-              icon={LayoutDashboard} 
-              title="Unified View" 
-              desc="Consolidate multiple carriers and internal fleets into a single high-fidelity control panel."
+            <FeatureCard
+              icon={LayoutDashboard}
+              title="One dashboard"
+              desc="See every carrier and vehicle from one screen. No more switching between five tools to find one truck."
               delay={0}
             />
-            <FeatureCard 
-              icon={Wallet} 
-              title="Settlement Engine" 
-              desc="Automated driver payments and carrier reconciliation integrated with local mobile money networks."
+            <FeatureCard
+              icon={Wallet}
+              title="Automated payouts"
+              desc="Pay drivers and carriers automatically over M-Pesa, Wave, or bank transfer the moment a trip is reconciled."
               delay={0.1}
             />
-            <FeatureCard 
-              icon={Navigation} 
-              title="Fleet Telemetry" 
-              desc="Sub-second GPS precision and vehicle health diagnostics streaming from every active node."
+            <FeatureCard
+              icon={Navigation}
+              title="Live tracking"
+              desc="Street-level GPS for every vehicle, with route history, ETAs, and vehicle health all in one place."
               delay={0.2}
             />
           </div>
@@ -458,8 +458,8 @@ const LandingPage: React.FC = () => {
 
         <div className="container-responsive relative z-10">
           <div className="text-center mb-32">
-            <h2 className="text-4xl md:text-8xl font-black uppercase tracking-tighter text-white mb-6">Built to <span className="text-brand">Compete.</span></h2>
-            <p className="text-slate-400 font-bold uppercase tracking-tight">The Shipstack advantage is quantifiable.</p>
+            <h2 className="text-4xl md:text-8xl font-black uppercase tracking-tighter text-white mb-6">How we <span className="text-brand">compare.</span></h2>
+            <p className="text-slate-400 font-bold uppercase tracking-tight">The honest answer in one table.</p>
           </div>
           
           <div className="overflow-x-auto pb-12">
@@ -467,22 +467,22 @@ const LandingPage: React.FC = () => {
                <table className="w-full text-left border-separate border-spacing-y-2">
                  <thead>
                    <tr>
-                     <th className="py-8 px-10 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Infrastructure Metrics</th>
+                     <th className="py-8 px-10 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Capability</th>
                      <th className="py-8 px-10">
                         <div className="bg-brand text-white px-6 py-4 rounded-xl inline-block text-xl font-black uppercase tracking-tight shadow-xl shadow-brand/20">Shipstack</div>
                      </th>
-                     <th className="py-8 px-10 text-xl font-black uppercase tracking-tight text-slate-400">Enterprise Legacy</th>
-                     <th className="py-8 px-10 text-xl font-black uppercase tracking-tight text-slate-400">Manual Operations</th>
+                     <th className="py-8 px-10 text-xl font-black uppercase tracking-tight text-slate-400">Legacy enterprise</th>
+                     <th className="py-8 px-10 text-xl font-black uppercase tracking-tight text-slate-400">Spreadsheets</th>
                    </tr>
                  </thead>
                  <tbody className="text-white">
                    {[
-                     { feature: "System Latency", shipstack: "<250ms", trad: "2.5s - 5s", diy: "N/A" },
-                     { feature: "Deployment Speed", shipstack: "Instant", trad: "12-24 Weeks", diy: "Permanent Beta" },
-                     { feature: "Real-time Telemetry", shipstack: true, trad: "Batch Process", diy: "Manual Logs" },
-                     { feature: "M-Pesa Integration", shipstack: true, trad: "No", diy: "Manual Cash" },
-                     { feature: "Predictive AI", shipstack: true, trad: "Add-on", diy: "No" },
-                     { feature: "Uptime SLA", shipstack: "99.99%", trad: "99.0%", diy: "0%" }
+                     { feature: "Response time", shipstack: "<250ms", trad: "2.5s - 5s", diy: "N/A" },
+                     { feature: "Setup time", shipstack: "Same day", trad: "12-24 weeks", diy: "Ongoing" },
+                     { feature: "Live tracking", shipstack: true, trad: "Hourly batch", diy: "Phone calls" },
+                     { feature: "M-Pesa integration", shipstack: true, trad: "No", diy: "Manual cash" },
+                     { feature: "Demand forecasting", shipstack: true, trad: "Paid add-on", diy: "No" },
+                     { feature: "Uptime SLA", shipstack: "99.99%", trad: "99.0%", diy: "Best effort" }
                    ].map((row, i) => (
                      <tr key={i} className="group">
                        <td className="py-10 px-10 bg-white/5 rounded-l-3xl border-y border-l border-white/5 group-hover:bg-white/10 transition-colors font-bold text-slate-300">{row.feature}</td>
@@ -529,9 +529,9 @@ const LandingPage: React.FC = () => {
         <div className="container-responsive relative z-10">
           <div className="grid lg:grid-cols-2 gap-24 items-center mb-32">
              <div className="max-w-2xl">
-                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-brand mb-6">Operations Infrastructure</p>
-                <h2 className="text-5xl md:text-8xl font-black uppercase tracking-tighter text-white mb-8 leading-none">The Core Stack.</h2>
-                <p className="text-xl text-slate-400 font-bold uppercase tracking-tight">Precision-engineered for the frontier.</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-brand mb-6">Product</p>
+                <h2 className="text-5xl md:text-8xl font-black uppercase tracking-tighter text-white mb-8 leading-none">Everything you need.</h2>
+                <p className="text-xl text-slate-400 font-bold uppercase tracking-tight">The core tools your operations team uses every day.</p>
              </div>
              <div className="rounded-[3rem] overflow-hidden shadow-[0_0_80px_rgba(255,140,66,0.1)] border border-white/5 relative group bg-slate-900 aspect-video flex items-center justify-center p-8">
                 <div className="absolute inset-0 bg-brand/5 opacity-50" />
@@ -540,7 +540,7 @@ const LandingPage: React.FC = () => {
                    <div className="flex items-center justify-between mb-4 pb-4 border-b border-white/5">
                       <div className="flex items-center gap-2">
                          <div className="h-3 w-3 bg-emerald-500 rounded-full animate-pulse" />
-                         <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">System Link: Online</span>
+                         <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">Live</span>
                       </div>
                       <div className="flex gap-1">
                          <div className="h-2 w-8 bg-brand/20 rounded-full" />
@@ -568,19 +568,19 @@ const LandingPage: React.FC = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-16 gap-x-24 text-white">
             {[
-              { title: "Smart Routing", desc: "Dynamic route optimization taking into account local terrain, safety zones, and efficiency.", icon: Navigation },
-              { title: "Edge Telemetry", desc: "Direct vehicle health diagnostics and location history stored on an immutable ledger.", icon: Database },
-              { title: "Mobile Payouts", desc: "Instant carrier settlements via M-Pesa, Wave, and bank corridors. 0% friction.", icon: Wallet },
-              { title: "Central Command", desc: "Total visibility for dispatchers and ops managers in a real-time stream.", icon: LayoutDashboard },
-              { title: "Inventory Sync", desc: "Multi-hub warehouse management with real-time SKU tracking across regions.", icon: ClipboardCheck },
-              { title: "API Gateway", desc: "Connect Shipstack to your existing SAP, Frappe, or custom ERP systems.", icon: Cog }
+              { title: "Smart routing", desc: "Routes that account for road conditions, safety, and traffic across African cities.", icon: Navigation },
+              { title: "Vehicle telemetry", desc: "GPS, fuel, and health diagnostics from every vehicle, with full history.", icon: Database },
+              { title: "Mobile payouts", desc: "Pay drivers and carriers instantly over M-Pesa, Wave, or bank transfer.", icon: Wallet },
+              { title: "Dispatch dashboard", desc: "Plan trips, assign drivers, and watch them happen — live, in one place.", icon: LayoutDashboard },
+              { title: "Multi-hub inventory", desc: "Track SKUs across warehouses and depots in real time.", icon: ClipboardCheck },
+              { title: "Open API", desc: "Plug Shipstack into your existing SAP, Frappe, Odoo, or custom ERP.", icon: Cog }
             ].map((item, i) => (
               <div key={i} className="flex flex-col gap-6 group">
                 <div className="flex items-center justify-between">
                    <div className="h-14 w-14 bg-white/5 text-slate-400 rounded-2xl flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-all duration-300 shadow-sm border border-white/5">
                       <item.icon size={26} />
                    </div>
-                   <span className="text-[10px] font-black text-white/10 uppercase tracking-widest">Module 0{i+1}</span>
+                   <span className="text-[10px] font-black text-white/10 uppercase tracking-widest">0{i+1}</span>
                 </div>
                 <div className="space-y-4">
                    <h4 className="text-2xl font-black uppercase tracking-tight text-white group-hover:text-brand transition-colors">{item.title}</h4>
@@ -597,17 +597,17 @@ const LandingPage: React.FC = () => {
       <SectionWrapper className="py-32 bg-[#1A2B4D]">
         <div className="container-responsive">
           <div className="text-center mb-24">
-            <h2 className="text-4xl md:text-7xl font-black uppercase tracking-tighter text-white mb-6">Built with <span className="text-brand">Operators.</span></h2>
-            <p className="text-slate-400 font-bold uppercase tracking-tight">Tested by early-access logistics teams.</p>
+            <h2 className="text-4xl md:text-7xl font-black uppercase tracking-tighter text-white mb-6">Built with <span className="text-brand">operators.</span></h2>
+            <p className="text-slate-400 font-bold uppercase tracking-tight">Shaped on the ground with logistics teams across Africa.</p>
           </div>
           
           <div className="grid lg:grid-cols-2 gap-10 mb-10">
              <div className="bg-white rounded-[3rem] p-12 overflow-hidden relative group">
                 <div className="relative z-10">
-                   <p className="text-[10px] font-black uppercase tracking-widest text-brand mb-4">Pilot Insights</p>
-                   <h3 className="text-3xl font-black text-slate-900 uppercase tracking-tighter mb-6">Optimized Regional Workflows</h3>
+                   <p className="text-[10px] font-black uppercase tracking-widest text-brand mb-4">Field research</p>
+                   <h3 className="text-3xl font-black text-slate-900 uppercase tracking-tighter mb-6">Workflows shaped on the ground</h3>
                    <p className="text-slate-500 font-medium leading-relaxed mb-8">
-                      We spent 6 months on the ground in Nairobi and Lagos to understand how teams actually manage transport exceptions and settlements.
+                      We spent 6 months in Nairobi and Lagos with logistics teams &mdash; learning how they actually handle exceptions, settlements, and the day-to-day grind.
                    </p>
                 </div>
                 <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
@@ -623,8 +623,8 @@ const LandingPage: React.FC = () => {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent opacity-60" />
                 <div className="absolute bottom-10 left-10 text-white">
-                   <p className="text-4xl font-black uppercase tracking-tighter">Pilot Ready</p>
-                   <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Verified Control Panel</p>
+                   <p className="text-4xl font-black uppercase tracking-tighter">Battle-tested</p>
+                   <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Verified in production</p>
                 </div>
              </div>
           </div>
@@ -679,7 +679,7 @@ const LandingPage: React.FC = () => {
                     </div>
                   </div>
                   <h4 className="text-4xl font-black text-white mb-4 uppercase tracking-tighter">500+</h4>
-                  <p className="text-slate-400 font-black uppercase tracking-widest text-xs">Daily Deliveries Reached</p>
+                  <p className="text-slate-400 font-black uppercase tracking-widest text-xs">Daily deliveries</p>
                 </div>
               </div>
             </div>
@@ -691,15 +691,15 @@ const LandingPage: React.FC = () => {
       <SectionWrapper className="py-48 bg-white border-t border-slate-100 relative overflow-hidden">
         <div className="container-responsive relative z-10">
           <div className="mb-32">
-            <h2 className="text-5xl md:text-8xl font-black uppercase tracking-tighter text-slate-900 mb-8 leading-none">The Process.</h2>
+            <h2 className="text-5xl md:text-8xl font-black uppercase tracking-tighter text-slate-900 mb-8 leading-none">How it works.</h2>
           </div>
           
           <div className="relative">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
-              <StepAction number="1" icon={User} title="Register" desc="Integrate your profile into our secure cloud network." delay={0.1} />
-              <StepAction number="2" icon={Truck} title="Configure" desc="Define your corridors and fleet parameters." delay={0.2} />
-              <StepAction number="3" icon={MapPin} title="Monitor" desc="Track sub-second telemetry across the continent." delay={0.3} />
-              <StepAction number="4" icon={TrendingUp} title="Scale" desc="Leverage AI-driven operational insights." delay={0.4} />
+              <StepAction number="1" icon={User} title="Sign up" desc="Create your account in under a minute." delay={0.1} />
+              <StepAction number="2" icon={Truck} title="Set up" desc="Add your vehicles, drivers, and routes." delay={0.2} />
+              <StepAction number="3" icon={MapPin} title="Track" desc="See where every vehicle is, in real time." delay={0.3} />
+              <StepAction number="4" icon={TrendingUp} title="Grow" desc="Spot trends and grow with data-driven insights." delay={0.4} />
             </div>
           </div>
         </div>
@@ -709,8 +709,8 @@ const LandingPage: React.FC = () => {
       <SectionWrapper className="py-32 bg-slate-50">
         <div className="container-responsive">
           <div className="text-center mb-24">
-            <h2 className="text-4xl md:text-7xl font-black uppercase tracking-tighter text-[#1A2B4D] mb-6">Partner Insights.</h2>
-            <p className="text-slate-500 font-bold uppercase tracking-tight text-sm">Validating the vision with our early-access cohort.</p>
+            <h2 className="text-4xl md:text-7xl font-black uppercase tracking-tighter text-[#1A2B4D] mb-6">What our partners say.</h2>
+            <p className="text-slate-500 font-bold uppercase tracking-tight text-sm">From the teams using Shipstack today.</p>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
             <TestimonialCard 
@@ -746,13 +746,13 @@ const LandingPage: React.FC = () => {
         <div className="container-responsive">
           <div className="grid lg:grid-cols-2 gap-20 items-center">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-brand mb-6">Fintech Infrastructure</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-brand mb-6">Payments</p>
               <h2 className="text-5xl md:text-[7rem] font-black uppercase tracking-tighter text-white mb-10 leading-[0.9]">
-                Frictionless <br />
-                <span className="text-brand">Payouts.</span>
+                Get paid <br />
+                <span className="text-brand">faster.</span>
               </h2>
               <p className="text-xl text-slate-400 font-medium leading-relaxed mb-16 max-w-xl">
-                We handle the complexity of multi-regional settlements. Pay your drivers and carriers instantly after every successful trip reconciliation.
+                Pay drivers and carriers the moment a trip is reconciled. We handle the multi-region currency mess for you.
               </p>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
@@ -760,15 +760,15 @@ const LandingPage: React.FC = () => {
                   <div className="h-12 w-12 bg-brand text-white rounded-2xl flex items-center justify-center shadow-lg shadow-brand/20">
                     <Activity size={24} />
                   </div>
-                  <h4 className="text-lg font-black text-white uppercase tracking-tight">Mobile Money</h4>
-                  <p className="text-xs text-slate-500 font-medium">Direct M-Pesa, Wave, and MTN integrations across East & West Africa.</p>
+                  <h4 className="text-lg font-black text-white uppercase tracking-tight">Mobile money</h4>
+                  <p className="text-xs text-slate-500 font-medium">Direct M-Pesa, Wave, and MTN payouts across East and West Africa.</p>
                 </div>
                 <div className="flex flex-col gap-4 p-8 bg-white/5 rounded-[2.5rem] border border-white/5 group hover:border-brand/20 transition-all">
                   <div className="h-12 w-12 bg-[#3B82F6] text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
                     <CreditCard size={24} />
                   </div>
-                  <h4 className="text-lg font-black text-white uppercase tracking-tight">Enterprise Card</h4>
-                  <p className="text-xs text-slate-500 font-medium">Issue virtual fuel cards and maintenance wallets to your entire fleet.</p>
+                  <h4 className="text-lg font-black text-white uppercase tracking-tight">Fleet cards</h4>
+                  <p className="text-xs text-slate-500 font-medium">Issue virtual fuel and maintenance cards to your entire team.</p>
                 </div>
               </div>
             </div>
@@ -899,17 +899,17 @@ const LandingPage: React.FC = () => {
             className="max-w-4xl mx-auto"
           >
             <h2 className="text-6xl md:text-9xl font-black uppercase tracking-tighter text-white mb-12 leading-none">
-              Ready to <br/><span className="text-brand">Pilot?</span>
+              Ready to <br/><span className="text-brand">get started?</span>
             </h2>
             <p className="text-xl md:text-3xl text-slate-400 font-bold uppercase tracking-tight mb-16 leading-tight">
-              Join the first-mover teams building the <br className="hidden md:block" /> future of transport with Shipstack.
+              Join teams across Africa already simplifying <br className="hidden md:block" /> their logistics with Shipstack.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-              <button 
+              <button
                 onClick={() => navigate('/register')}
                 className="w-full sm:w-auto px-20 py-10 bg-brand hover:bg-orange-600 text-white text-base font-black uppercase tracking-[0.3em] shadow-2xl transition-all hover:translate-y-[-4px] active:scale-95 rounded-3xl"
               >
-                Start Your Pilot
+                Sign up free
               </button>
               <button 
                 onClick={() => navigate('/contact')}
@@ -928,20 +928,20 @@ const LandingPage: React.FC = () => {
           <div className="grid lg:grid-cols-3 gap-24">
             <div>
               <h2 className="text-5xl font-black uppercase tracking-tighter text-slate-900 mb-8">FAQ.</h2>
-              <p className="text-slate-400 font-bold uppercase tracking-tight text-sm">System capabilities and integration guidance.</p>
+              <p className="text-slate-400 font-bold uppercase tracking-tight text-sm">Quick answers to common questions.</p>
             </div>
             <div className="lg:col-span-2 space-y-2">
-              <FAQItem 
-                question="Data Sovereignty" 
-                answer="We maintain strict compliance with multi-regional data protection frameworks."
+              <FAQItem
+                question="Where is my data stored?"
+                answer="Your data lives in regional Supabase clusters with row-level security. We comply with GDPR, Kenya's DPA, and Nigeria's NDPR."
               />
-              <FAQItem 
-                question="Integration Timeline" 
-                answer="Standard nodes can be operational within sub-24-hour windows."
+              <FAQItem
+                question="How long does setup take?"
+                answer="Most teams are up and running within a day. Larger fleets typically take about a week with our onboarding team."
               />
-              <FAQItem 
-                question="Operational Support" 
-                answer="Continuous system monitoring and engineer-led priority support available 24/7."
+              <FAQItem
+                question="What kind of support do you offer?"
+                answer="Email support for everyone. Priority chat for Growth and Scale. Dedicated engineering for Enterprise."
               />
             </div>
           </div>
