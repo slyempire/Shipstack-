@@ -32,24 +32,24 @@ const RegisterPage: React.FC = () => {
 
     switch (name) {
       case 'name':
-        if (!value) newErrors.name = 'Full identity name is required';
+        if (!value) newErrors.name = 'Name is required';
         else delete newErrors.name;
         break;
       case 'email':
-        if (!value) newErrors.email = 'Secure email is required';
-        else if (!emailRegex.test(value)) newErrors.email = 'Invalid operational email format';
+        if (!value) newErrors.email = 'Email is required';
+        else if (!emailRegex.test(value)) newErrors.email = 'Please enter a valid email';
         else delete newErrors.email;
         break;
       case 'password':
-        if (value.length < 8) newErrors.password = 'Security protocol requires 8+ characters';
+        if (value.length < 8) newErrors.password = 'Password must be at least 8 characters';
         else delete newErrors.password;
         break;
       case 'confirmPassword':
-        if (value !== formData.password) newErrors.confirmPassword = 'Identity verification mismatch';
+        if (value !== formData.password) newErrors.confirmPassword = "Passwords don't match";
         else delete newErrors.confirmPassword;
         break;
       case 'company':
-        if (!value) newErrors.company = 'Fleet/Organization name is mandatory';
+        if (!value) newErrors.company = 'Company name is required';
         else delete newErrors.company;
         break;
     }
@@ -73,14 +73,14 @@ const RegisterPage: React.FC = () => {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       const stepErrors: Record<string, string> = {};
 
-      if (!formData.name) stepErrors.name = "Commander name required";
-      if (!emailRegex.test(formData.email)) stepErrors.email = "Invalid secure email";
-      if (formData.password.length < 8) stepErrors.password = "Insufficient entropy (8+ chars)";
-      if (formData.password !== formData.confirmPassword) stepErrors.confirmPassword = "Verify password mismatch";
+      if (!formData.name) stepErrors.name = "Name is required";
+      if (!emailRegex.test(formData.email)) stepErrors.email = "Please enter a valid email";
+      if (formData.password.length < 8) stepErrors.password = "Password must be at least 8 characters";
+      if (formData.password !== formData.confirmPassword) stepErrors.confirmPassword = "Passwords don't match";
 
       if (Object.keys(stepErrors).length > 0) {
         setErrors(stepErrors);
-        addNotification("Validation Failure. Check core identity fields.", "error");
+        addNotification("Please check the fields below and try again.", "error");
         return;
       }
       setStep(2);
@@ -108,7 +108,7 @@ const RegisterPage: React.FC = () => {
         role: formData.role
       });
       login(user, token);
-      addNotification("Mission Initialized. Proceed to Onboarding.", "success");
+      addNotification("Account created. Let's set you up.", "success");
       navigate('/onboarding');
     } catch (err: any) {
       addNotification(err.message, "error");
@@ -132,7 +132,7 @@ const RegisterPage: React.FC = () => {
           <span className="text-xl font-black tracking-tighter uppercase">Shipstack</span>
         </Link>
         <Link to="/" className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-brand flex items-center gap-2">
-           <ChevronLeft size={16} /> Abort Registration
+           <ChevronLeft size={16} /> Cancel
         </Link>
       </motion.nav>
 
@@ -155,10 +155,10 @@ const RegisterPage: React.FC = () => {
                   <div className={`h-2 w-12 rounded-full transition-all duration-500 ${step >= 2 ? 'bg-brand' : 'bg-slate-100'}`} />
                </div>
                <h1 className="text-4xl font-black tracking-tighter uppercase mb-2">
-                 {step === 1 ? 'Core Profile.' : 'Organization.'}
+                 {step === 1 ? 'Create your account.' : 'About your company.'}
                </h1>
                <div className="text-slate-500 font-bold uppercase tracking-widest text-[10px] leading-relaxed">
-                 {step === 1 ? 'Define your digital identity for the Northern Corridor.' : 'Tell us about your logistics operation.'}
+                 {step === 1 ? 'Two quick steps to get you up and running.' : 'Tell us about your logistics operation.'}
                </div>
             </motion.div>
 
@@ -208,8 +208,8 @@ const RegisterPage: React.FC = () => {
                    </div>
 
                    <div className="space-y-4">
-                      <PasswordInput 
-                        label="Master Password"
+                      <PasswordInput
+                        label="Password"
                         required
                         value={formData.password}
                         error={errors.password}
@@ -225,9 +225,9 @@ const RegisterPage: React.FC = () => {
                       {formData.password && (
                         <div className="px-1 space-y-2">
                            <div className="flex justify-between items-center text-[9px] font-bold uppercase tracking-widest">
-                              <span className="text-slate-400 text-[10px]">Entropy Status</span>
+                              <span className="text-slate-400 text-[10px]">Password strength</span>
                               <span className={strength < 50 ? 'text-red-500' : strength < 100 ? 'text-amber-500' : 'text-emerald-500'}>
-                                 {strength < 50 ? 'Weak' : strength < 100 ? 'Solid' : 'Indestructible'}
+                                 {strength < 50 ? 'Weak' : strength < 100 ? 'Good' : 'Strong'}
                               </span>
                            </div>
                            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
@@ -239,8 +239,8 @@ const RegisterPage: React.FC = () => {
                         </div>
                       )}
 
-                      <PasswordInput 
-                        label="Verify Password"
+                      <PasswordInput
+                        label="Confirm password"
                         required
                         value={formData.confirmPassword}
                         error={errors.confirmPassword}
@@ -259,7 +259,7 @@ const RegisterPage: React.FC = () => {
                      whileTap={{ scale: 0.98 }}
                      className="w-full bg-brand text-white py-6 rounded-2xl font-black uppercase text-sm tracking-[0.2em] shadow-2xl shadow-brand/20 active:scale-95 transition-all flex items-center justify-center gap-3 mt-10"
                    >
-                      Next Phase <ArrowRight size={20} />
+                      Continue <ArrowRight size={20} />
                    </motion.button>
                 </motion.div>
               ) : (
@@ -298,7 +298,7 @@ const RegisterPage: React.FC = () => {
                           {agreedToTerms && <CheckCircle2 size={16} strokeWidth={4} />}
                         </span>
                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight leading-tight pt-1">
-                          By clicking "Deploy", you agree to the <span className="text-brand">Service Protocols</span> and <span className="text-brand">Privacy Shield</span> measures under Shipstack ISO guidance.
+                          By creating an account, you agree to our <span className="text-brand">Terms of Service</span> and <span className="text-brand">Privacy Policy</span>.
                         </span>
                       </label>
                    </div>
@@ -319,7 +319,7 @@ const RegisterPage: React.FC = () => {
                         whileTap={{ scale: 0.98 }}
                         className="flex-[2] bg-brand text-white py-6 rounded-2xl font-black uppercase text-sm tracking-[0.2em] shadow-2xl shadow-brand/20 active:scale-95 disabled:opacity-50 transition-all flex items-center justify-center gap-3"
                       >
-                         {isLoading ? <RefreshCw className="animate-spin" size={20} /> : <><CheckCircle2 size={20} /> Deploy Base</>}
+                         {isLoading ? <RefreshCw className="animate-spin" size={20} /> : <><CheckCircle2 size={20} /> Create account</>}
                       </motion.button>
                    </div>
                 </motion.form>
@@ -332,8 +332,8 @@ const RegisterPage: React.FC = () => {
               transition={{ delay: 0.5, duration: 0.8 }}
               className="mt-10 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest space-y-4"
             >
-               <div>Already running on Shipstack? <Link to="/login" className="text-brand-accent hover:underline">Sign In Terminal</Link></div>
-               <div className="pt-2">Not ready to deploy? <Link to="/login" className="text-slate-500 hover:text-brand underline decoration-brand/30 underline-offset-4 transition-colors">Explore Simulation Mode</Link></div>
+               <div>Already have an account? <Link to="/login" className="text-brand-accent hover:underline">Sign in</Link></div>
+               <div className="pt-2">Want to look around first? <Link to="/login" className="text-slate-500 hover:text-brand underline decoration-brand/30 underline-offset-4 transition-colors">Try the demo</Link></div>
             </motion.div>
           </div>
         </motion.div>
@@ -363,20 +363,20 @@ const RegisterPage: React.FC = () => {
                 Your Logistics Data, Secured.
               </motion.h2>
               <div className="space-y-8">
-                 <RegisterBenefit 
+                 <RegisterBenefit
                    index={0}
-                   title="High-Precision Tracking" 
-                   desc="Street-level telemetry for every unit in your fleet pool." 
+                   title="Live fleet tracking"
+                   desc="Street-level GPS for every vehicle, with route history and ETAs."
                  />
-                 <RegisterBenefit 
+                 <RegisterBenefit
                    index={1}
-                   title="Audit-Grade Compliance" 
-                   desc="Permanent manifest and document trails for every manifest." 
+                   title="Audit-ready records"
+                   desc="Every delivery note, signature, and document stored automatically."
                  />
-                 <RegisterBenefit 
+                 <RegisterBenefit
                    index={2}
-                   title="Automated Settlement" 
-                   desc="Reduce billing disputes with verified proof of delivery." 
+                   title="Faster invoicing"
+                   desc="Cut billing disputes with verified proof of delivery."
                  />
               </div>
            </div>

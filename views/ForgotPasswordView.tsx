@@ -27,9 +27,9 @@ const ForgotPasswordView: React.FC = () => {
     try {
       await api.resetPassword(email);
       setIsSent(true);
-      addNotification("Instructions sent to your email.", "success");
+      addNotification("We've sent reset instructions to your email.", "success");
     } catch (err: any) {
-      addNotification(err.message || 'Failed to request password reset.', 'error');
+      addNotification(err.message || "Couldn't send the reset email. Please try again.", 'error');
     } finally {
       setIsLoading(false);
     }
@@ -61,26 +61,26 @@ const ForgotPasswordView: React.FC = () => {
             <div className="h-20 w-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
               <CheckCircle2 size={40} />
             </div>
-            <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Email Sent!</h3>
+            <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Check your email</h3>
             <p className="text-slate-500 font-medium leading-relaxed">
-              We've sent recovery instructions to <span className="font-bold text-slate-900">{email}</span>. Please check your inbox.
+              We sent reset instructions to <span className="font-bold text-slate-900">{email}</span>. The link expires in an hour.
             </p>
-            <button 
+            <button
               onClick={() => navigate('/login')}
               className="w-full bg-slate-900 text-white py-6 rounded-2xl font-black uppercase text-sm tracking-[0.2em] shadow-xl transition-all hover:scale-105 active:scale-95"
             >
-              Return to Sign In
+              Back to sign in
             </button>
           </div>
         ) : (
           <form className="space-y-6" onSubmit={handleReset}>
             <div className="text-center mb-8">
-              <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight mb-2">Recover Access</h3>
-              <p className="text-slate-500 font-medium text-xs uppercase tracking-widest">Enter your email for recovery instructions.</p>
+              <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight mb-2">Forgot your password?</h3>
+              <p className="text-slate-500 font-medium text-xs uppercase tracking-widest">Enter your email and we'll send you a reset link.</p>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Email</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email</label>
               <div className="relative">
                 <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
                 <input
@@ -101,11 +101,11 @@ const ForgotPasswordView: React.FC = () => {
               whileTap={{ scale: 0.98 }}
               className="w-full bg-brand text-white py-6 rounded-2xl font-black uppercase text-sm tracking-[0.2em] shadow-xl shadow-brand/20 active:scale-[0.98] disabled:opacity-50 transition-all flex items-center justify-center gap-3"
             >
-              {isLoading ? <RefreshCw className="animate-spin" size={20} /> : 'Send Reset Link'}
+              {isLoading ? <RefreshCw className="animate-spin" size={20} /> : 'Send reset link'}
             </motion.button>
 
             <p className="text-center text-[10px] font-black text-slate-400 uppercase tracking-widest pt-4">
-              Need assistance? <Link to="/contact" className="text-brand hover:underline">Contact Mission Control</Link>
+              Need help? <Link to="/contact" className="text-brand hover:underline">Contact us</Link>
             </p>
           </form>
         )}

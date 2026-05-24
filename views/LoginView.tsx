@@ -30,13 +30,13 @@ const LoginView: React.FC = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (name === 'email') {
-      if (!value) newErrors.email = 'Operational ID is required';
-      else if (!emailRegex.test(value)) newErrors.email = 'Invalid identity format';
+      if (!value) newErrors.email = 'Email is required';
+      else if (!emailRegex.test(value)) newErrors.email = 'Please enter a valid email';
       else delete newErrors.email;
     }
 
     if (name === 'password') {
-      if (!value) newErrors.password = 'Security token is required';
+      if (!value) newErrors.password = 'Password is required';
       else delete newErrors.password;
     }
 
@@ -52,7 +52,7 @@ const LoginView: React.FC = () => {
     const isPasswordValid = validateField('password', password);
 
     if (!isEmailValid || !isPasswordValid) {
-      addNotification("Credentials validation failed.", "error");
+      addNotification("Please check your email and password.", "error");
       return;
     }
 
@@ -76,7 +76,7 @@ const LoginView: React.FC = () => {
       else if (userRole === 'finance' || userRole === 'finance_manager') navigate('/admin/billing');
       else navigate('/admin');
     } catch (err: any) {
-      addNotification(err.message || 'Authentication failed. Check credentials.', 'error');
+      addNotification(err.message || "Couldn't sign you in. Please try again.", 'error');
     } finally {
       setIsLoading(false);
     }
@@ -89,7 +89,7 @@ const LoginView: React.FC = () => {
       const { user, token } = await api.login(demoEmail, 'password');
       localStorage.setItem('shipstack_demo_mode', 'true');
       login(user, token);
-      addNotification(`Demo session started as ${user.role}`, 'info');
+      addNotification(`Signed in as ${user.role}`, 'info');
       
       const userRole = user.role.toLowerCase();
       if (userRole === 'driver') navigate('/driver');
@@ -99,7 +99,7 @@ const LoginView: React.FC = () => {
       else if (userRole === 'finance' || userRole === 'finance_manager') navigate('/admin/billing');
       else navigate('/admin');
     } catch (err: any) {
-      addNotification(err.message || 'Authentication failed.', 'error');
+      addNotification(err.message || "Couldn't sign you in.", 'error');
     } finally {
       setIsLoading(false);
     }
@@ -123,7 +123,7 @@ const LoginView: React.FC = () => {
             exit={{ height: 0, opacity: 0 }}
             className="bg-slate-900 text-white px-6 py-2 flex items-center justify-center gap-2 sticky top-0 z-50 overflow-hidden"
           >
-            <span className="text-[9px] font-black uppercase tracking-[0.4em]">Offline Node Detected</span>
+            <span className="text-[9px] font-black uppercase tracking-[0.4em]">You're offline</span>
           </motion.div>
         )}
       </AnimatePresence>
@@ -139,8 +139,8 @@ const LoginView: React.FC = () => {
                  <Layers size={32} className="text-slate-900" />
               </div>
               <div className="space-y-6">
-                 <h1 className="text-5xl xl:text-7xl font-black text-white uppercase tracking-tighter leading-[0.85]">Digitizing<br/>the corridor.</h1>
-                 <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] leading-loose">Shipstack OS / v4.2.0<br/>Secured by Antigravity Protocol</p>
+                 <h1 className="text-5xl xl:text-7xl font-black text-white uppercase tracking-tighter leading-[0.85]">Welcome<br/>back.</h1>
+                 <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] leading-loose">Shipstack &mdash; logistics<br/>infrastructure for Africa.</p>
               </div>
            </div>
 
@@ -162,8 +162,8 @@ const LoginView: React.FC = () => {
 
             <div className="space-y-12">
                <div>
-                  <h3 className="text-4xl font-black tracking-tighter uppercase mb-2">Gate Access.</h3>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Provide your secure operational token.</p>
+                  <h3 className="text-4xl font-black tracking-tighter uppercase mb-2">Sign in.</h3>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Welcome back. Enter your email and password.</p>
                </div>
 
                <form onSubmit={handleLogin} className="space-y-8">
@@ -175,9 +175,9 @@ const LoginView: React.FC = () => {
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           className="w-full bg-white border-b-2 border-slate-100 py-6 text-2xl font-black outline-none focus:border-slate-900 transition-all placeholder:text-slate-200 tracking-tighter"
-                          placeholder="Operational ID"
+                          placeholder="Email"
                         />
-                        <label className="absolute -top-4 left-0 text-[9px] font-black uppercase tracking-widest text-slate-400 opacity-0 group-focus-within:opacity-100 transition-all">Operational ID</label>
+                        <label className="absolute -top-4 left-0 text-[9px] font-black uppercase tracking-widest text-slate-400 opacity-0 group-focus-within:opacity-100 transition-all">Email</label>
                      </div>
 
                      <div className="relative group">
@@ -187,9 +187,9 @@ const LoginView: React.FC = () => {
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           className="w-full bg-white border-b-2 border-slate-100 py-6 text-2xl font-black outline-none focus:border-slate-900 transition-all placeholder:text-slate-200 tracking-tighter"
-                          placeholder="Security Token"
+                          placeholder="Password"
                         />
-                        <label className="absolute -top-4 left-0 text-[9px] font-black uppercase tracking-widest text-slate-400 opacity-0 group-focus-within:opacity-100 transition-all">Security Token</label>
+                        <label className="absolute -top-4 left-0 text-[9px] font-black uppercase tracking-widest text-slate-400 opacity-0 group-focus-within:opacity-100 transition-all">Password</label>
                      </div>
                   </div>
 
@@ -201,9 +201,9 @@ const LoginView: React.FC = () => {
                            onChange={() => setRememberMe(!rememberMe)}
                            className="h-5 w-5 border-2 border-slate-200 checked:bg-slate-900 rounded-none transition-all cursor-pointer accent-slate-900"
                         />
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] group-hover:text-slate-900 transition-colors">Remember Node</span>
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] group-hover:text-slate-900 transition-colors">Remember me</span>
                      </label>
-                     <Link to="/forgot-password" virtual-id="forgot-password-link" className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em] hover:text-slate-900 transition-colors">Recovery</Link>
+                     <Link to="/forgot-password" virtual-id="forgot-password-link" className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em] hover:text-slate-900 transition-colors">Forgot password?</Link>
                   </div>
 
                   <button
@@ -211,12 +211,12 @@ const LoginView: React.FC = () => {
                     disabled={isLoading || !isOnline}
                     className="w-full bg-slate-900 text-white h-20 text-sm font-black uppercase tracking-[0.3em] hover:bg-black active:scale-[0.98] transition-all disabled:opacity-20 flex items-center justify-center gap-4 shadow-2xl shadow-slate-900/10"
                   >
-                    {isLoading ? <RefreshCw className="animate-spin" size={20} /> : <><LogIn size={18} strokeWidth={3} /> Validate Identity</>}
+                    {isLoading ? <RefreshCw className="animate-spin" size={20} /> : <><LogIn size={18} strokeWidth={3} /> Sign in</>}
                   </button>
 
                   <div className="flex items-center gap-4 py-4">
                      <div className="flex-1 h-px bg-slate-100" />
-                     <span className="text-[9px] font-black text-slate-200 uppercase tracking-widest">External Provider</span>
+                     <span className="text-[9px] font-black text-slate-200 uppercase tracking-widest">Or continue with</span>
                      <div className="flex-1 h-px bg-slate-100" />
                   </div>
 
@@ -226,14 +226,14 @@ const LoginView: React.FC = () => {
                     className="w-full h-20 border-2 border-slate-100 flex items-center justify-center gap-4 text-[11px] font-black uppercase tracking-[0.2em] hover:border-slate-900 transition-all active:scale-[0.98]"
                   >
                     <img src="https://authjs.dev/img/providers/google.svg" alt="Google" className="w-5 h-5 grayscale group-hover:grayscale-0 transition-all" />
-                    Azure / Google SSO
+                    Continue with Google
                   </button>
                </form>
             </div>
 
             <div className="space-y-8 pt-12 border-t border-slate-50">
                <div className="flex justify-between items-center">
-                  <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-200">Simulation Environments</h4>
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-200">Try a demo account</h4>
                   <div className="flex gap-1">
                      <div className="h-1 w-4 bg-slate-900" />
                      <div className="h-1 w-2 bg-slate-100" />
@@ -261,7 +261,7 @@ const LoginView: React.FC = () => {
 
             <div className="text-center">
                <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.3em]">
-                  Unregistered station? <Link to="/register" className="text-slate-900 hover:underline">Deploy My Stack</Link>
+                  New to Shipstack? <Link to="/register" className="text-slate-900 hover:underline">Create an account</Link>
                </p>
             </div>
           </div>
