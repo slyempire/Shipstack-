@@ -260,7 +260,7 @@ const RetailSolution: React.FC = () => {
           <div className="grid md:grid-cols-3 gap-8">
             <div className="p-10 bg-white/5 rounded-3xl border border-white/10">
               <p className="text-4xl font-black text-blue-600 mb-2">25%</p>
-              <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Operational Cost Reduction</p>
+              <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Lower operational cost</p>
             </div>
             <div className="p-10 bg-white/5 rounded-3xl border border-white/10">
               <p className="text-4xl font-black text-blue-600 mb-2">99%</p>

@@ -763,7 +763,7 @@ export const api = {
               console.warn('[AUTH] Supabase verification bypass: applying local identity protocol for', normalizedEmail);
               return { user: mockUser, token: 'sk_local_' + btoa(normalizedEmail).substring(0, 16) };
             }
-            throw new Error(`Authentication conflict: The identity '${sanitizedEmail}' is not recognized in the secure corridor.`);
+            throw new Error(`We couldn't find an account for '${sanitizedEmail}'. Check your email or sign up.`);
           }
           
           console.error('[AUTH] Gateway Failure:', error);

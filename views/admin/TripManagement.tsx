@@ -11,6 +11,7 @@ import DocumentPreview from '../../components/DocumentPreview';
 import { useAuthStore, useAppStore } from '../../store';
 import { useTenant } from '../../hooks/useTenant';
 import { useRealtimeTable } from '../../hooks/useRealtimeTable';
+import { EmptyState } from '../../components/EmptyState';
 import { 
   Truck, 
   Plus, 
@@ -164,12 +165,12 @@ const TripManagement: React.FC = () => {
     setLoading(true);
     try {
       await api.updateTrip(editTripFormData.id, editTripFormData, tenant?.id || 'tenant-1');
-      addNotification("Manifest updated successfully", "success");
+      addNotification("Trip updated.", "success");
       setIsEditingTrip(false);
       setSelectedTrip(null);
       await loadData();
     } catch (err) {
-      addNotification("Failed to update manifest", "error");
+      addNotification("Couldn't update the trip. Please try again.", "error");
     } finally {
       setLoading(false);
     }
@@ -178,16 +179,16 @@ const TripManagement: React.FC = () => {
   const handleCreateRun = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.driverId || !formData.vehicleId || formData.dnIds.length === 0) {
-      addNotification("Complete all required fields", "error");
+      addNotification("Please fill in all required fields.", "error");
       return;
     }
-    
+
     await api.createTrip({
       ...formData,
       routeGeometry: plannedRoute
     }, tenant?.id || 'tenant-1');
-    
-    addNotification("New run manifested successfully", "success");
+
+    addNotification("Trip created.", "success");
     setIsFormOpen(false);
     setPlannedRoute(null);
     loadData();
@@ -198,12 +199,12 @@ const TripManagement: React.FC = () => {
     setLoading(true);
     try {
       await api.deleteTrip(selectedTrip.id, tenant?.id || 'tenant-1');
-      addNotification(`Trip ${selectedTrip.externalId} disbanded. Orders returned to queue.`, 'success');
+      addNotification(`Trip ${selectedTrip.externalId} cancelled. Its delivery notes are back in the queue.`, 'success');
       setSelectedTrip(null);
       setShowConfirmDisband(false);
       await loadData();
     } catch (err) {
-      addNotification('Failed to disband trip.', 'error');
+      addNotification("Couldn't cancel the trip. Please try again.", 'error');
     } finally {
       setLoading(false);
     }
@@ -323,9 +324,14 @@ const TripManagement: React.FC = () => {
           {loading ? (
             [1, 2].map(i => <div key={i} className="h-64 bg-white rounded-3xl border border-slate-100 animate-pulse" />)
           ) : trips.length === 0 ? (
-            <div className="col-span-full py-20 bg-white rounded-3xl border border-dashed border-slate-200 text-center">
-              <RouteIcon className="mx-auto text-slate-200 mb-4" size={48} />
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No active vehicle runs found</p>
+            <div className="col-span-full bg-white rounded-3xl border border-dashed border-slate-200">
+              <EmptyState
+                icon={<RouteIcon size={32} />}
+                title="No trips yet"
+                description="Trips are created by bundling delivery notes into a route for a driver. Add a delivery note in the DN Queue, then come back here to dispatch it."
+                actionLabel="Create your first trip"
+                onAction={() => setIsFormOpen(true)}
+              />
             </div>
           ) : (
             trips.map(trip => (
@@ -720,7 +726,7 @@ const TripManagement: React.FC = () => {
                     <button 
                       type="button" 
                       onClick={() => {
-                        if (formStep === 1 && formData.dnIds.length === 0) return addNotification("Select at least one order", "error");
+                        if (formStep === 1 && formData.dnIds.length === 0) return addNotification("Pick at least one delivery note to continue.", "error");
                         setFormStep(formStep + 1);
                       }} 
                       className="flex-[2] bg-brand text-white py-5 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all"

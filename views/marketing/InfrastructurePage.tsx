@@ -51,21 +51,21 @@ const InfrastructurePage: React.FC = () => {
         
         <div className="inline-flex items-center gap-2 bg-white border border-slate-200 px-6 py-3 rounded-full mb-12 shadow-sm">
           <Server size={14} className="text-brand" />
-          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Tier-4 Mission Critical Stack</span>
+          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Built for scale</span>
         </div>
 
         <h1 className="text-6xl md:text-[8rem] lg:text-[10rem] font-black text-slate-900 tracking-tighter leading-[0.8] mb-12 uppercase font-display">
-          Deep <br className="hidden md:block" /> <span className="text-brand">Protocol.</span>
+          Built for <br className="hidden md:block" /> <span className="text-brand">scale.</span>
         </h1>
-        
+
         <p className="text-xl md:text-3xl text-slate-500 max-w-4xl mx-auto mb-20 font-bold uppercase tracking-tight leading-tight">
-          ShipStack isn't just a dashboard. It's a high-performance distributed network designed to stabilize the most complex supply chains in Africa.
+          Shipstack isn't just a dashboard. It's a platform built to handle the complexities of African supply chains.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
-          <StatCard label="Uptime SLA" value="99.999%" sub="Carrier Grade Resilience" />
-          <StatCard label="Latency" value="< 25ms" sub="Regional Edge Convergence" />
-          <StatCard label="Data Encryption" value="Quantum-Ready" sub="Next-Gen Security Protocols" />
+          <StatCard label="Uptime SLA" value="99.99%" sub="Built for production" />
+          <StatCard label="Latency" value="<25 ms" sub="Regional edge servers" />
+          <StatCard label="Data encryption" value="AES-256" sub="Bank-grade security" />
         </div>
       </header>
 
@@ -75,27 +75,27 @@ const InfrastructurePage: React.FC = () => {
           <div className="flex flex-col lg:flex-row gap-20 items-center">
             <div className="lg:w-1/2 space-y-12">
               <div className="space-y-6">
-                <h2 className="mobile-h2 uppercase font-display text-slate-900">The <span className="text-brand-teal">Stack</span> Architecture</h2>
+                <h2 className="mobile-h2 uppercase font-display text-slate-900">How it&rsquo;s <span className="text-brand-teal">built.</span></h2>
                 <p className="text-slate-500 font-medium leading-relaxed">
-                  Our infrastructure is built on a multi-layered architecture that ensures data integrity from the driver's handset to the corporate boardroom.
+                  Built on a multi-layered architecture that keeps your data safe from the driver's phone all the way to your dashboard.
                 </p>
               </div>
 
               <div className="space-y-8">
-                <LayerItem 
-                  icon={Cloud} 
-                  title="Regional Edge Network" 
-                  desc="Strategically placed nodes in Nairobi, Mombasa, and Kampala ensure low-latency telemetry even in low-bandwidth environments."
+                <LayerItem
+                  icon={Cloud}
+                  title="Regional edge servers"
+                  desc="Servers in Nairobi, Mombasa, and Kampala mean fast response times even on slow networks."
                 />
-                <LayerItem 
-                  icon={Database} 
-                  title="Immutable Ledger" 
-                  desc="Every manifest, delivery note, and settlement is recorded in an immutable audit trail, providing 100% transparency for KRA compliance."
+                <LayerItem
+                  icon={Database}
+                  title="Audit log"
+                  desc="Every manifest, delivery note, and payment is logged for full, KRA-compliant traceability."
                 />
-                <LayerItem 
-                  icon={Lock} 
-                  title="Identity & Access (RBAC)" 
-                  desc="Granular security roles ensure that drivers, dispatchers, and facility managers only access the data relevant to their unit."
+                <LayerItem
+                  icon={Lock}
+                  title="Role-based access"
+                  desc="Drivers, dispatchers, and facility managers only see the data they need."
                 />
               </div>
             </div>
@@ -135,30 +135,30 @@ const InfrastructurePage: React.FC = () => {
       {/* Feature Deep Dive */}
       <section className="py-32 px-6 max-w-7xl mx-auto">
         <div className="text-center mb-24 space-y-6">
-          <h2 className="mobile-h2 uppercase font-display text-slate-900">Advanced <span className="text-brand-accent">Capabilities</span></h2>
-          <p className="text-slate-500 max-w-2xl mx-auto font-medium">Engineered for the specific demands of the East African trade corridors.</p>
+          <h2 className="mobile-h2 uppercase font-display text-slate-900">What sets us <span className="text-brand-accent">apart.</span></h2>
+          <p className="text-slate-500 max-w-2xl mx-auto font-medium">Built for the specific demands of African logistics.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-          <FeatureCard 
-            icon={Zap} 
-            title="Predictive Dispatch" 
-            desc="AI-driven manifest optimization that accounts for historical border crossing times and seasonal road conditions in the region."
+          <FeatureCard
+            icon={Zap}
+            title="Smart dispatch"
+            desc="AI-powered route planning that factors in border crossing times and seasonal road conditions."
           />
-          <FeatureCard 
-            icon={Globe} 
-            title="Multi-Currency Settlements" 
-            desc="Seamlessly handle KES, UGX, and RWF with real-time exchange rate integration and automated M-Pesa payouts."
+          <FeatureCard
+            icon={Globe}
+            title="Multi-currency payouts"
+            desc="Pay in KES, UGX, or RWF with live exchange rates and M-Pesa payouts."
           />
-          <FeatureCard 
-            icon={Network} 
-            title="Offline-First Telemetry" 
-            desc="Our mobile infrastructure buffers data in dead zones, ensuring no kilometer is untracked across remote transit routes."
+          <FeatureCard
+            icon={Network}
+            title="Works offline"
+            desc="Buffers GPS data in dead zones so no trip goes untracked, even on remote routes."
           />
-          <FeatureCard 
-            icon={ShieldCheck} 
-            title="Biometric Verification" 
-            desc="Optional fingerprint or facial verification for high-value cargo handovers at secure facilities."
+          <FeatureCard
+            icon={ShieldCheck}
+            title="Biometric verification"
+            desc="Optional fingerprint or face verification for high-value cargo handovers."
           />
         </div>
       </section>
@@ -177,15 +177,15 @@ const InfrastructurePage: React.FC = () => {
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-24 items-center">
             <div className="space-y-12">
-              <h2 className="mobile-h2 uppercase font-display">Enterprise <br /> <span className="text-brand-accent">Security Shield</span></h2>
+              <h2 className="mobile-h2 uppercase font-display">Bank-grade <br /> <span className="text-brand-accent">security.</span></h2>
               <p className="text-white/40 font-medium leading-relaxed">
-                We maintain the highest standards of data sovereignty and protection, ensuring your operational intelligence remains private and secure.
+                We hold your data to the highest security standards. Your operations stay private and protected.
               </p>
               <ul className="space-y-6">
-                <SecurityPoint text="SOC2 Type II Compliant Infrastructure" />
-                <SecurityPoint text="Regional Data Residency (KE-NBO-1)" />
-                <SecurityPoint text="End-to-End Encrypted Telemetry Streams" />
-                <SecurityPoint text="Automated Threat Detection & Mitigation" />
+                <SecurityPoint text="SOC2 Type II compliant infrastructure" />
+                <SecurityPoint text="Regional data residency (Kenya)" />
+                <SecurityPoint text="End-to-end encrypted data streams" />
+                <SecurityPoint text="Automated threat detection" />
               </ul>
             </div>
             <div className="grid grid-cols-2 gap-6">
@@ -216,17 +216,17 @@ const InfrastructurePage: React.FC = () => {
 
         <div className="max-w-4xl mx-auto px-6 relative z-10 text-center">
           <h2 className="text-6xl md:text-8xl font-black uppercase tracking-tighter text-white mb-12 leading-none">
-            Scale the <br/><span className="text-brand">Protocol.</span>
+            Want to <br/><span className="text-brand">scale?</span>
           </h2>
           <p className="text-xl md:text-3xl text-slate-400 font-bold uppercase tracking-tight mb-16 leading-tight">
-            Integrate your enterprise into the most resilient <br className="hidden md:block" /> logistics network in the region.
+            Join our pilot and help build the most resilient <br className="hidden md:block" /> logistics platform in Africa.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-6">
             <Link to="/register" className="bg-brand hover:bg-orange-600 text-white px-16 py-8 rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] shadow-2xl active:scale-95 transition-all text-center">
-              Initialize Stack
+              Apply for pilot
             </Link>
             <Link to="/pricing" className="bg-white/5 border-2 border-white/10 text-white px-16 py-8 rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] hover:bg-white/10 transition-all text-center">
-              Analyze Pricing
+              See pricing
             </Link>
           </div>
         </div>

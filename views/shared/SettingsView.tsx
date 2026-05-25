@@ -221,10 +221,10 @@ const SettingsView: React.FC = () => {
         updateTenant(savedTenant);
       }
       
-      addNotification('Configurations applied successfully.', 'success');
+      addNotification('Settings saved.', 'success');
     } catch (err) {
       console.error('[Settings] Save failed:', err);
-      addNotification('Sync error: Failed to apply configurations.', 'error');
+      addNotification("Couldn't save your settings. Please try again.", 'error');
     }
   };
 

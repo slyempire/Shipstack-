@@ -306,7 +306,7 @@ const LandingPage: React.FC = () => {
             transition={{ duration: 1, ease: "circOut" }}
             className="text-center"
           >
-            <h1 className="text-5xl md:text-[8.5rem] font-black tracking-tighter leading-[0.8] mb-12 uppercase text-white">
+            <h1 className="text-5xl md:text-[8rem] font-black tracking-tight leading-[0.9] mb-12 text-white">
               Logistics, <br />
               built for <span className="text-brand">Africa.</span>
             </h1>
@@ -318,7 +318,7 @@ const LandingPage: React.FC = () => {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="text-center max-w-4xl mx-auto mb-20"
           >
-            <p className="text-xl md:text-2xl text-slate-400 font-bold uppercase tracking-tight leading-tight">
+            <p className="text-xl md:text-2xl text-slate-400 font-medium leading-relaxed">
               One place to manage your fleet, dispatch drivers, <br className="hidden md:block" />
               and reconcile payments &mdash; built for African logistics teams.
             </p>
@@ -411,11 +411,11 @@ const LandingPage: React.FC = () => {
         <div className="container-responsive relative z-10">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-32">
             <div className="max-w-3xl">
-              <h2 className="text-5xl md:text-8xl font-black uppercase tracking-tighter text-slate-900 mb-8 leading-none">
+              <h2 className="text-5xl md:text-7xl font-black tracking-tight text-slate-900 mb-8 leading-tight">
                 Built for<br />
                 the real world.
               </h2>
-              <p className="text-xl md:text-2xl text-slate-600 font-bold uppercase tracking-tight">Enterprise visibility, tuned for African logistics.</p>
+              <p className="text-xl md:text-2xl text-slate-600 font-medium">Enterprise visibility, tuned for African logistics.</p>
             </div>
           </div>
           
@@ -458,8 +458,8 @@ const LandingPage: React.FC = () => {
 
         <div className="container-responsive relative z-10">
           <div className="text-center mb-32">
-            <h2 className="text-4xl md:text-8xl font-black uppercase tracking-tighter text-white mb-6">How we <span className="text-brand">compare.</span></h2>
-            <p className="text-slate-400 font-bold uppercase tracking-tight">The honest answer in one table.</p>
+            <h2 className="text-4xl md:text-7xl font-black tracking-tight text-white mb-6">How we <span className="text-brand">compare.</span></h2>
+            <p className="text-slate-400 font-medium">The honest answer, in one table.</p>
           </div>
           
           <div className="overflow-x-auto pb-12">
@@ -530,8 +530,8 @@ const LandingPage: React.FC = () => {
           <div className="grid lg:grid-cols-2 gap-24 items-center mb-32">
              <div className="max-w-2xl">
                 <p className="text-[10px] font-black uppercase tracking-[0.4em] text-brand mb-6">Product</p>
-                <h2 className="text-5xl md:text-8xl font-black uppercase tracking-tighter text-white mb-8 leading-none">Everything you need.</h2>
-                <p className="text-xl text-slate-400 font-bold uppercase tracking-tight">The core tools your operations team uses every day.</p>
+                <h2 className="text-5xl md:text-7xl font-black tracking-tight text-white mb-8 leading-tight">Everything you need.</h2>
+                <p className="text-xl text-slate-400 font-medium">The core tools your operations team uses every day.</p>
              </div>
              <div className="rounded-[3rem] overflow-hidden shadow-[0_0_80px_rgba(255,140,66,0.1)] border border-white/5 relative group bg-slate-900 aspect-video flex items-center justify-center p-8">
                 <div className="absolute inset-0 bg-brand/5 opacity-50" />
@@ -597,8 +597,8 @@ const LandingPage: React.FC = () => {
       <SectionWrapper className="py-32 bg-[#1A2B4D]">
         <div className="container-responsive">
           <div className="text-center mb-24">
-            <h2 className="text-4xl md:text-7xl font-black uppercase tracking-tighter text-white mb-6">Built with <span className="text-brand">operators.</span></h2>
-            <p className="text-slate-400 font-bold uppercase tracking-tight">Shaped on the ground with the operators piloting Shipstack today.</p>
+            <h2 className="text-4xl md:text-6xl font-black tracking-tight text-white mb-6">Built with <span className="text-brand">operators.</span></h2>
+            <p className="text-slate-400 font-medium">Shaped on the ground with the operators piloting Shipstack today.</p>
           </div>
           
           <div className="grid lg:grid-cols-2 gap-10 mb-10">
@@ -691,7 +691,7 @@ const LandingPage: React.FC = () => {
       <SectionWrapper className="py-48 bg-white border-t border-slate-100 relative overflow-hidden">
         <div className="container-responsive relative z-10">
           <div className="mb-32">
-            <h2 className="text-5xl md:text-8xl font-black uppercase tracking-tighter text-slate-900 mb-8 leading-none">How it works.</h2>
+            <h2 className="text-5xl md:text-7xl font-black tracking-tight text-slate-900 mb-8 leading-tight">How it works.</h2>
           </div>
           
           <div className="relative">
@@ -709,8 +709,8 @@ const LandingPage: React.FC = () => {
       <SectionWrapper className="py-32 bg-slate-50">
         <div className="container-responsive">
           <div className="text-center mb-24">
-            <h2 className="text-4xl md:text-7xl font-black uppercase tracking-tighter text-[#1A2B4D] mb-6">Early pilot feedback.</h2>
-            <p className="text-slate-500 font-bold uppercase tracking-tight text-sm">Early notes from operators piloting Shipstack with us.</p>
+            <h2 className="text-4xl md:text-6xl font-black tracking-tight text-[#1A2B4D] mb-6">Early pilot feedback.</h2>
+            <p className="text-slate-500 font-medium text-base">Early notes from operators piloting Shipstack with us.</p>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
             <TestimonialCard 
@@ -747,7 +747,7 @@ const LandingPage: React.FC = () => {
           <div className="grid lg:grid-cols-2 gap-20 items-center">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.4em] text-brand mb-6">Payments</p>
-              <h2 className="text-5xl md:text-[7rem] font-black uppercase tracking-tighter text-white mb-10 leading-[0.9]">
+              <h2 className="text-5xl md:text-[6rem] font-black tracking-tight text-white mb-10 leading-tight">
                 Get paid <br />
                 <span className="text-brand">faster.</span>
               </h2>
@@ -833,7 +833,7 @@ const LandingPage: React.FC = () => {
       <SectionWrapper id="pricing" className="py-48 bg-white border-t border-slate-100">
         <div className="container-responsive">
           <div className="mb-32">
-            <h2 className="text-5xl md:text-8xl font-black uppercase tracking-tighter text-slate-900 mb-8 leading-none">Pricing.</h2>
+            <h2 className="text-5xl md:text-7xl font-black tracking-tight text-slate-900 mb-8 leading-tight">Pricing.</h2>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
             <PricingTier 
@@ -898,10 +898,10 @@ const LandingPage: React.FC = () => {
             whileInView={{ opacity: 1, scale: 1 }}
             className="max-w-4xl mx-auto"
           >
-            <h2 className="text-6xl md:text-9xl font-black uppercase tracking-tighter text-white mb-12 leading-none">
+            <h2 className="text-6xl md:text-8xl font-black tracking-tight text-white mb-12 leading-tight">
               Join the <br/><span className="text-brand">first wave.</span>
             </h2>
-            <p className="text-xl md:text-3xl text-slate-400 font-bold uppercase tracking-tight mb-16 leading-tight">
+            <p className="text-xl md:text-2xl text-slate-400 font-medium mb-16 leading-relaxed">
               We're onboarding pilot partners now. <br className="hidden md:block" /> Be part of the team shaping it.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
@@ -927,8 +927,8 @@ const LandingPage: React.FC = () => {
         <div className="container-responsive">
           <div className="grid lg:grid-cols-3 gap-24">
             <div>
-              <h2 className="text-5xl font-black uppercase tracking-tighter text-slate-900 mb-8">FAQ.</h2>
-              <p className="text-slate-400 font-bold uppercase tracking-tight text-sm">Quick answers to common questions.</p>
+              <h2 className="text-5xl font-black tracking-tight text-slate-900 mb-8">FAQ.</h2>
+              <p className="text-slate-400 font-medium text-base">Quick answers to common questions.</p>
             </div>
             <div className="lg:col-span-2 space-y-2">
               <FAQItem

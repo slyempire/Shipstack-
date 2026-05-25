@@ -529,9 +529,9 @@ export const TaskManagement: React.FC<{ fullView?: boolean }> = ({ fullView = fa
         subtasks: []
       });
       setTasks(prev => [newTask, ...prev]);
-      addNotification('Tactical objective updated', 'success');
+      addNotification('Task created.', 'success');
     } catch (err) {
-      addNotification('Failed to commit task', 'error');
+      addNotification("Couldn't create the task. Please try again.", 'error');
     }
   };
 
@@ -543,7 +543,7 @@ export const TaskManagement: React.FC<{ fullView?: boolean }> = ({ fullView = fa
          setSelectedTask(updated);
       }
     } catch (err) {
-      addNotification('Failed to sync changes', 'error');
+      addNotification("Couldn't save the changes. Please try again.", 'error');
     }
   };
 
@@ -567,7 +567,7 @@ export const TaskManagement: React.FC<{ fullView?: boolean }> = ({ fullView = fa
         history: [activity, ...(task.history || [])]
       });
     } catch (err) {
-      addNotification('Failed to update task state', 'error');
+      addNotification("Couldn't update the task. Please try again.", 'error');
     }
   };
 
@@ -576,10 +576,10 @@ export const TaskManagement: React.FC<{ fullView?: boolean }> = ({ fullView = fa
     try {
       await api.deleteTask(id, user.tenantId || 'tenant-1');
       setTasks(prev => prev.filter(t => t.id !== id));
-      addNotification('Objective removed', 'info');
+      addNotification('Task deleted.', 'info');
       if (selectedTask?.id === id) setSelectedTask(null);
     } catch (err) {
-      addNotification('Deletion failed', 'error');
+      addNotification("Couldn't delete the task. Please try again.", 'error');
     }
   };
 
