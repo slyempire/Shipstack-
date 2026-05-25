@@ -37,35 +37,56 @@ const InfrastructurePage: React.FC = () => {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <header className="px-6 pt-32 pb-48 max-w-7xl mx-auto text-center relative overflow-hidden">
-        <div className="absolute inset-0 -z-10 opacity-[0.08] pointer-events-none">
-          <img 
-            src="https://images.unsplash.com/photo-1549194388-f61be84a6e9e?q=80&w=2000&auto=format&fit=crop" 
-            alt="Global Logistics Network" 
-            className="w-full h-full object-cover scale-110"
+      {/* Hero Section (v2: dark + full-bleed network photo + bottom-left headline + stat bar) */}
+      <header className="relative bg-[#0B0E16] overflow-hidden flex flex-col">
+        <div className="relative h-[70vh] min-h-[560px]">
+          <img
+            src="https://images.unsplash.com/photo-1549194388-f61be84a6e9e?q=80&w=2600&auto=format&fit=crop"
+            alt="Global logistics network"
+            className="absolute inset-0 w-full h-full object-cover"
             referrerPolicy="no-referrer"
           />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0B0E16] via-[#0B0E16]/70 to-[#0B0E16]/20" />
+          <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#0B0E16]/80 to-transparent" />
+
+          <div className="relative h-full max-w-7xl mx-auto px-8 md:px-16 lg:px-24 flex flex-col justify-between pt-32 pb-16">
+            <div className="self-start inline-flex items-center gap-3 px-5 py-2.5 bg-white/5 border border-white/10 rounded-full backdrop-blur-md">
+              <Server size={14} className="text-[#FF5722]" />
+              <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/80">Built for scale</span>
+            </div>
+
+            <div className="max-w-3xl lg:ml-12 xl:ml-20">
+              <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-black text-white tracking-tight leading-[0.95] mb-8 uppercase">
+                Built for <br /> <span className="text-[#FF5722]">scale.</span>
+              </h1>
+              <p className="text-lg md:text-xl text-white/70 font-medium leading-relaxed max-w-2xl">
+                Shipstack isn't just a dashboard. It's a platform built to handle the complexities of African supply chains.
+              </p>
+            </div>
+          </div>
         </div>
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[1200px] bg-brand/5 rounded-full blur-[150px] -z-10"></div>
-        
-        <div className="inline-flex items-center gap-2 bg-white border border-slate-200 px-6 py-3 rounded-full mb-12 shadow-sm">
-          <Server size={14} className="text-brand" />
-          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Built for scale</span>
-        </div>
 
-        <h1 className="text-6xl md:text-[8rem] lg:text-[10rem] font-black text-slate-900 tracking-tighter leading-[0.8] mb-12 uppercase font-display">
-          Built for <br className="hidden md:block" /> <span className="text-brand">scale.</span>
-        </h1>
-
-        <p className="text-xl md:text-3xl text-slate-500 max-w-4xl mx-auto mb-20 font-bold uppercase tracking-tight leading-tight">
-          Shipstack isn't just a dashboard. It's a platform built to handle the complexities of African supply chains.
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
-          <StatCard label="Uptime SLA" value="99.99%" sub="Built for production" />
-          <StatCard label="Latency" value="<25 ms" sub="Regional edge servers" />
-          <StatCard label="Data encryption" value="AES-256" sub="Bank-grade security" />
+        {/* Stat bar */}
+        <div className="border-t border-white/5 bg-[#1A1F2E]">
+          <div className="max-w-7xl mx-auto px-8 md:px-16 lg:px-24">
+            <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-white/5">
+              <div className="py-10 px-6 md:px-10">
+                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/40 mb-3">Uptime SLA</p>
+                <p className="text-4xl md:text-5xl font-black text-white tracking-tight leading-none mb-2">99.99%</p>
+                <p className="text-xs font-medium text-[#FF5722]">Built for production</p>
+              </div>
+              <div className="py-10 px-6 md:px-10">
+                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/40 mb-3">Latency</p>
+                <p className="text-4xl md:text-5xl font-black text-white tracking-tight leading-none mb-2">&lt;25 ms</p>
+                <p className="text-xs font-medium text-[#FF5722]">Regional edge servers</p>
+              </div>
+              <div className="py-10 px-6 md:px-10">
+                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/40 mb-3">Data encryption</p>
+                <p className="text-4xl md:text-5xl font-black text-white tracking-tight leading-none mb-2">AES-256</p>
+                <p className="text-xs font-medium text-[#FF5722]">Bank-grade security</p>
+              </div>
+            </div>
+          </div>
         </div>
       </header>
 

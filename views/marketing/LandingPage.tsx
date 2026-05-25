@@ -274,87 +274,94 @@ const LandingPage: React.FC = () => {
 
   return (
     <MarketingLayout>
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center pt-32 pb-24 bg-[#0F172A] overflow-hidden">
-        {/* Background Image Overlay */}
-        <div className="absolute inset-0 z-0">
-          <img 
-            src="https://images.unsplash.com/photo-1573164713988-8665fc963095?q=80&w=2600&auto=format&fit=crop" 
-            alt="Logistics Operations Control" 
-            className="w-full h-full object-cover opacity-20 scale-105 mix-blend-luminosity"
+      {/* Hero Section (v2: Arrow-inspired full-bleed photo + lower-left headline + stat bar below) */}
+      <section className="relative bg-[#0B0E16] overflow-hidden">
+        {/* Full-bleed photo with dark gradient overlay for headline legibility */}
+        <div className="relative h-[85vh] min-h-[640px] md:min-h-[720px]">
+          <img
+            src="https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?q=80&w=2600&auto=format&fit=crop"
+            alt="Logistics truck on highway"
+            className="absolute inset-0 w-full h-full object-cover"
             referrerPolicy="no-referrer"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0F172A]/80 via-[#0F172A]/40 to-[#0F172A]" />
-        </div>
+          {/* Bottom-anchored gradient -- darker at the bottom so the headline reads cleanly */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0B0E16] via-[#0B0E16]/70 to-[#0B0E16]/20" />
+          {/* Subtle top gradient so the nav bar stays readable on lighter top of image */}
+          <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#0B0E16]/80 to-transparent" />
 
-        <div className="container-responsive relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="mb-12 flex justify-center"
-          >
-            <div className="inline-flex items-center gap-3 px-6 py-3 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-md">
-              <span className="flex h-2 w-2 rounded-full bg-brand animate-pulse" />
-              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">Now accepting early-access partners</span>
-            </div>
-          </motion.div>
-
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, ease: "circOut" }}
-            className="text-center"
-          >
-            <h1 className="text-5xl md:text-[8rem] font-black tracking-tight leading-[0.9] mb-12 text-white">
-              Logistics, <br />
-              built for <span className="text-brand">Africa.</span>
-            </h1>
-          </motion.div>
-
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-center max-w-4xl mx-auto mb-20"
-          >
-            <p className="text-xl md:text-2xl text-slate-400 font-medium leading-relaxed">
-              One place to manage your fleet, dispatch drivers, <br className="hidden md:block" />
-              and reconcile payments &mdash; built for African logistics teams.
-            </p>
-          </motion.div>
-
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.6 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-6 px-4 sm:px-0"
-          >
-            <button 
-              onClick={() => isAuthenticated ? handleDashboardRedirect() : navigate('/register')}
-              className="w-full sm:w-auto px-16 py-8 bg-brand hover:bg-orange-600 text-white text-base font-black uppercase tracking-widest shadow-[0_20px_50px_rgba(255,140,66,0.2)] transition-all hover:translate-y-[-4px] active:scale-95 rounded-2xl flex items-center justify-center gap-3"
+          {/* Hero content -- offset from left edge so it reads as part of a
+              centered composition rather than flush-left. Inner padding scales
+              with breakpoint: md:px-16, lg:px-32 pushes content inward toward
+              the centerline, matching the Arrow ref proportions. */}
+          <div className="relative h-full max-w-7xl mx-auto px-8 md:px-16 lg:px-24 flex flex-col justify-between pt-32 pb-16">
+            {/* Top: pilot badge */}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="self-start"
             >
-              Get started
-              <ArrowRight size={20} />
-            </button>
-            {!isAuthenticated && (
-              <button
-                onClick={() => navigate('/product')}
-                className="w-full sm:w-auto px-16 py-8 bg-white/5 border-2 border-white/10 text-white text-base font-black uppercase tracking-widest transition-all hover:bg-white/10 flex items-center justify-center gap-3 rounded-2xl"
-              >
-                See how it works
-              </button>
-            )}
-          </motion.div>
+              <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-white/5 border border-white/10 rounded-full backdrop-blur-md">
+                <span className="flex h-2 w-2 rounded-full bg-[#FF5722] animate-pulse" />
+                <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/80">Now onboarding pilot partners</span>
+              </div>
+            </motion.div>
+
+            {/* Bottom-left: headline + subhead + CTAs (inset further on lg+) */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: 'easeOut' }}
+              className="max-w-3xl lg:ml-12 xl:ml-20"
+            >
+              <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-black uppercase tracking-tight leading-[0.95] text-white mb-8">
+                Logistics, <br />
+                built for <span className="text-[#FF5722]">Africa.</span>
+              </h1>
+              <p className="text-lg md:text-xl text-white/70 font-medium leading-relaxed mb-10 max-w-2xl">
+                One place to manage your fleet, dispatch drivers, and reconcile payments &mdash; built for African logistics teams.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button
+                  onClick={() => isAuthenticated ? handleDashboardRedirect() : navigate('/register')}
+                  className="px-8 py-5 bg-[#FF5722] hover:bg-[#E64A19] text-white text-sm font-bold rounded-xl shadow-2xl shadow-[#FF5722]/20 hover:shadow-[#FF5722]/30 transition-all active:scale-95 flex items-center justify-center gap-3"
+                >
+                  Get started
+                  <ArrowRight size={18} />
+                </button>
+                {!isAuthenticated && (
+                  <button
+                    onClick={() => navigate('/product')}
+                    className="px-8 py-5 bg-white/5 hover:bg-white/10 border border-white/20 text-white text-sm font-bold rounded-xl backdrop-blur-md transition-all flex items-center justify-center gap-3"
+                  >
+                    See how it works
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </div>
         </div>
 
-        {/* Decorative Grid Overlay */}
-        <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03]" 
-          style={{ 
-            backgroundImage: `radial-gradient(circle, #000 1px, transparent 1px)`,
-            backgroundSize: '40px 40px'
-          }} 
-        />
+        {/* Stat bar -- honest pilot-stage numbers, no inflated traction claims.
+            Inner padding mirrors the hero so the stats line up under the
+            headline rather than running flush to the screen edge. */}
+        <div className="border-t border-white/5 bg-[#1A1F2E]">
+          <div className="max-w-7xl mx-auto px-8 md:px-16 lg:px-24">
+            <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-white/5">
+              {[
+                { value: 'Pilot', label: 'Live with first partners' },
+                { value: '<25ms', label: 'API response' },
+                { value: '99.99%', label: 'Uptime SLA' },
+                { value: '24/7', label: 'Support during pilot' },
+              ].map((stat) => (
+                <div key={stat.label} className="py-10 px-6 md:px-10">
+                  <p className="text-4xl md:text-5xl font-black text-white tracking-tight leading-none mb-2">{stat.value}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/40">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Social Proof */}

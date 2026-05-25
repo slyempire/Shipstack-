@@ -22,6 +22,14 @@
   --color-line: #EEEEEE;
   --color-surface: #FFFFFF;
   --color-muted: #666666;
+
+  /* v2 landing tokens (Arrow Logistics direction). Kept additive so the
+     existing brutalist tokens above stay in use elsewhere. Apply selectively
+     to marketing surfaces during the v2 migration. */
+  --color-night: #0B0E16;
+  --color-night-surface: #1A1F2E;
+  --color-orange-v2: #FF5722;
+  --color-orange-v2-hover: #E64A19;
 }
 
 @layer base {
