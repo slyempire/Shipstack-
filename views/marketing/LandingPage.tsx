@@ -450,7 +450,7 @@ const LandingPage: React.FC = () => {
       </SectionWrapper>
 
       {/* Comparison Section */}
-      <SectionWrapper className="py-48 bg-slate-900 border-y border-white/5 relative overflow-hidden">
+      <SectionWrapper className="py-48 bg-[#0B0E16] border-y border-white/5 relative overflow-hidden">
         {/* Background image */}
         <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
           <img 
@@ -523,9 +523,9 @@ const LandingPage: React.FC = () => {
       </SectionWrapper>
 
       {/* Features section with background */}
-      <SectionWrapper className="py-48 bg-[#0F172A] relative overflow-hidden">
+      <SectionWrapper className="py-48 bg-[#0B0E16] relative overflow-hidden">
         <div className="absolute inset-0 z-0 overflow-hidden">
-           <div className="absolute inset-0 bg-[#0F172A]/90 z-10" />
+           <div className="absolute inset-0 bg-[#0B0E16]/90 z-10" />
            <img 
              src="https://images.unsplash.com/photo-1512413316925-fd47934313f1?q=80&w=2600&auto=format&fit=crop" 
              alt="African Logistics Port" 
@@ -601,7 +601,7 @@ const LandingPage: React.FC = () => {
       </SectionWrapper>
 
       {/* Case Study Section */}
-      <SectionWrapper className="py-32 bg-[#1A2B4D]">
+      <SectionWrapper className="py-32 bg-[#0B0E16]">
         <div className="container-responsive">
           <div className="text-center mb-24">
             <h2 className="text-4xl md:text-6xl font-black tracking-tight text-white mb-6">Built with <span className="text-brand">operators.</span></h2>
@@ -712,44 +712,47 @@ const LandingPage: React.FC = () => {
         </div>
       </SectionWrapper>
 
-      {/* Testimonials section */}
-      <SectionWrapper className="py-32 bg-slate-50">
-        <div className="container-responsive">
-          <div className="text-center mb-24">
-            <h2 className="text-4xl md:text-6xl font-black tracking-tight text-[#1A2B4D] mb-6">Early pilot feedback.</h2>
-            <p className="text-slate-500 font-medium text-base">Early notes from operators piloting Shipstack with us.</p>
+      {/* Testimonials section (v2: image 9 dark grid -- 4 cards on #0B0E16) */}
+      <SectionWrapper className="py-32 bg-[#0B0E16]">
+        <div className="max-w-7xl mx-auto px-8 md:px-16 lg:px-24">
+          <div className="mb-20">
+            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#FF5722] mb-4">Pilot feedback</p>
+            <h2 className="text-4xl md:text-6xl font-black tracking-tight text-white mb-4 uppercase max-w-3xl leading-[0.95]">
+              Your trust, our journey &mdash; <span className="text-[#FF5722]">delivering excellence</span> together.
+            </h2>
+            <p className="text-white/50 font-medium text-base max-w-xl">Early notes from operators piloting Shipstack with us.</p>
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-            <TestimonialCard 
-              quote="Finally, a platform that doesn't ignore the complexities of the African 'last mile'. The visibility into driver settlements is exactly what we needed."
-              author="Amara Diallo"
-              role="Operations Director"
-              company="SwiftRoute Logistics"
-              city="Lagos"
-              delay={0}
-            />
-            <TestimonialCard 
-              quote="Shipstack's integration with our existing ERP was seamless. It's the first logistics OS that actually feels like it's built for scale, not just hype."
-              author="Moussa Keïta"
-              role="CTO"
-              company="Sahel Freight"
-              city="Bamako"
-              delay={0.1}
-            />
-            <TestimonialCard 
-              quote="The early-access support has been incredible. They aren't just selling software; they are helping us refine our entire operational flow."
-              author="Kwame Mensah"
-              role="Founder"
-              company="Nexus Courier"
-              city="Accra"
-              delay={0.2}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { quote: "Finally a platform that doesn't ignore the complexity of the African last mile. The visibility into driver settlements is exactly what we needed.", author: "Amara Diallo", role: "Operations Director, SwiftRoute Logistics", initial: "A" },
+              { quote: "Shipstack's integration with our existing ERP was seamless. It's the first logistics OS that feels built for scale, not just hype.", author: "Moussa Keïta", role: "CTO, Sahel Freight", initial: "M" },
+              { quote: "The early-access support has been incredible. They aren't just selling software — they're helping us refine our entire operational flow.", author: "Kwame Mensah", role: "Founder, Nexus Courier", initial: "K" },
+              { quote: "Live tracking changed how we run dispatch. We can see every trip and respond before customers even call to ask.", author: "Naledi Khumalo", role: "Fleet Manager, Cape Cargo Co", initial: "N" },
+            ].map((t, i) => (
+              <motion.div
+                key={t.author}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.08, duration: 0.5 }}
+                className="bg-[#1A1F2E] border border-white/5 rounded-3xl p-8 flex flex-col h-full hover:border-[#FF5722]/30 transition-all"
+              >
+                <div className="h-12 w-12 rounded-full bg-[#FF5722]/10 border border-[#FF5722]/20 text-[#FF5722] flex items-center justify-center font-black text-lg mb-6">
+                  {t.initial}
+                </div>
+                <p className="text-white/80 text-sm leading-relaxed font-medium flex-1 mb-6">&ldquo;{t.quote}&rdquo;</p>
+                <div className="pt-6 border-t border-white/5">
+                  <p className="text-white font-bold text-sm mb-1">{t.author}</p>
+                  <p className="text-white/40 text-xs font-medium">{t.role}</p>
+                </div>
+              </motion.div>
+            ))}
           </div>
         </div>
       </SectionWrapper>
 
       {/* Payment Methods Section */}
-      <SectionWrapper className="py-48 bg-[#0F172A] border-y border-white/5 overflow-hidden">
+      <SectionWrapper className="py-48 bg-[#0B0E16] border-y border-white/5 overflow-hidden">
         <div className="container-responsive">
           <div className="grid lg:grid-cols-2 gap-20 items-center">
             <div>
@@ -888,7 +891,7 @@ const LandingPage: React.FC = () => {
       </SectionWrapper>
 
       {/* Final CTA Section */}
-      <SectionWrapper className="py-48 relative overflow-hidden bg-slate-900 border-y border-white/5">
+      <SectionWrapper className="py-48 relative overflow-hidden bg-[#0B0E16] border-y border-white/5">
         <div className="absolute inset-0 z-0">
           <img 
             src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?q=80&w=2600&auto=format&fit=crop" 
@@ -896,7 +899,7 @@ const LandingPage: React.FC = () => {
             className="w-full h-full object-cover opacity-60 scale-105"
             referrerPolicy="no-referrer"
           />
-          <div className="absolute inset-0 bg-slate-900/50" />
+          <div className="absolute inset-0 bg-[#0B0E16]/50" />
         </div>
 
         <div className="container-responsive relative z-10 text-center">
@@ -929,15 +932,49 @@ const LandingPage: React.FC = () => {
         </div>
       </SectionWrapper>
 
-      {/* FAQ Section */}
-      <SectionWrapper className="py-48 bg-white border-t border-slate-100">
-        <div className="container-responsive">
-          <div className="grid lg:grid-cols-3 gap-24">
-            <div>
-              <h2 className="text-5xl font-black tracking-tight text-slate-900 mb-8">FAQ.</h2>
-              <p className="text-slate-400 font-medium text-base">Quick answers to common questions.</p>
+      {/* FAQ + Contact Section (v2: image 12 split layout -- form left, accordion right) */}
+      <SectionWrapper className="py-32 bg-white border-t border-slate-100">
+        <div className="max-w-7xl mx-auto px-8 md:px-16 lg:px-24">
+          <div className="mb-16 max-w-3xl">
+            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#FF5722] mb-4">Frequently asked questions</p>
+            <h2 className="text-4xl md:text-6xl font-black tracking-tight text-slate-900 leading-[0.95] uppercase">
+              Got more questions? <br />
+              <span className="text-[#FF5722]">We're here to help.</span>
+            </h2>
+          </div>
+
+          <div className="grid lg:grid-cols-5 gap-10 lg:gap-16">
+            {/* Left: contact form */}
+            <div className="lg:col-span-2 bg-slate-50 rounded-3xl p-8 md:p-10 border border-slate-100">
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Just send us a message &mdash;</h3>
+              <p className="text-sm text-slate-500 mb-8">We're here to help with your questions.</p>
+              <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); navigate('/contact'); }}>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-2">Name</label>
+                    <input type="text" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-[#FF5722] transition-colors" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-2">Phone</label>
+                    <input type="tel" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-[#FF5722] transition-colors" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-2">Email</label>
+                  <input type="email" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-[#FF5722] transition-colors" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-2">Message</label>
+                  <textarea rows={4} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-[#FF5722] transition-colors resize-none" />
+                </div>
+                <button type="submit" className="w-full bg-[#FF5722] hover:bg-[#E64A19] text-white text-sm font-bold py-4 rounded-xl shadow-lg shadow-[#FF5722]/20 transition-all active:scale-95">
+                  Send message
+                </button>
+              </form>
             </div>
-            <div className="lg:col-span-2 space-y-2">
+
+            {/* Right: FAQ accordion */}
+            <div className="lg:col-span-3 space-y-2">
               <FAQItem
                 question="Where is my data stored?"
                 answer="Your data lives in regional Supabase clusters with row-level security. We comply with GDPR, Kenya's DPA, and Nigeria's NDPR."
@@ -949,6 +986,22 @@ const LandingPage: React.FC = () => {
               <FAQItem
                 question="What kind of support do you offer?"
                 answer="Pilot partners get direct chat with our team while we shape the product together. Plan-tiered support kicks in as we scale beyond pilot."
+              />
+              <FAQItem
+                question="Do you handle customs clearance?"
+                answer="Cross-border customs is on the roadmap. For now, Shipstack tracks customs documents and timestamps but doesn't file them on your behalf."
+              />
+              <FAQItem
+                question="How can I track my shipment?"
+                answer="Every delivery note has a public tracking link your customer can open. Drivers also see status from the driver PWA."
+              />
+              <FAQItem
+                question="What if my shipment is lost or damaged?"
+                answer="Exceptions are first-class in Shipstack: report them in-app with a photo, and we flag the affected delivery + a follow-up task automatically."
+              />
+              <FAQItem
+                question="Do you offer eco-friendly shipping options?"
+                answer="We surface route efficiency metrics so you can pick the lowest-fuel option. A dedicated low-carbon mode is on the roadmap."
               />
             </div>
           </div>
