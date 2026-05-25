@@ -17,32 +17,41 @@ import MarketingLayout from '../../components/marketing/MarketingLayout';
 const ContactPage: React.FC = () => {
   return (
     <MarketingLayout>
-      {/* Hero */}
-      <header className="px-6 pt-32 pb-24 max-w-7xl mx-auto text-center">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="inline-flex items-center gap-2 bg-brand/5 border border-brand/10 px-4 py-2 rounded-full mb-8"
-        >
-          <MessageSquare size={14} className="text-brand" />
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-brand">Contact Us</span>
-        </motion.div>
-        <motion.h1 
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="text-5xl md:text-7xl font-black text-slate-900 tracking-tighter leading-none mb-8 uppercase font-display"
-        >
-          Let’s talk <span className="text-brand-accent">logistics.</span>
-        </motion.h1>
-        <motion.p 
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="text-lg md:text-xl text-slate-500 max-w-3xl mx-auto font-medium"
-        >
-          Whether you're an SME, a fleet operator, or an enterprise, we're here to help you scale.
-        </motion.p>
+      {/* Hero (v2: dark + full-bleed photo + bottom-left headline) */}
+      <header className="relative bg-[#0B0E16] overflow-hidden h-[55vh] min-h-[460px] flex flex-col">
+        <img
+          src="https://images.unsplash.com/photo-1494412519320-aa613dfb7738?q=80&w=2600&auto=format&fit=crop"
+          alt="Trade corridor"
+          className="absolute inset-0 w-full h-full object-cover"
+          referrerPolicy="no-referrer"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0B0E16] via-[#0B0E16]/70 to-[#0B0E16]/20" />
+        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#0B0E16]/80 to-transparent" />
+
+        <div className="relative flex-1 max-w-7xl mx-auto px-8 md:px-16 lg:px-24 w-full flex flex-col justify-between pt-32 pb-16">
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="self-start inline-flex items-center gap-3 px-5 py-2.5 bg-white/5 border border-white/10 rounded-full backdrop-blur-md"
+          >
+            <MessageSquare size={14} className="text-[#FF5722]" />
+            <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/80">Contact us</span>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: 'easeOut' }}
+            className="max-w-3xl lg:ml-12 xl:ml-20"
+          >
+            <h1 className="text-5xl md:text-7xl font-black text-white tracking-tight leading-[0.95] mb-8 uppercase">
+              Let&rsquo;s talk <span className="text-[#FF5722]">logistics.</span>
+            </h1>
+            <p className="text-lg md:text-xl text-white/70 font-medium leading-relaxed max-w-2xl">
+              Whether you're an SME, a fleet operator, or an enterprise, we're here to help you scale.
+            </p>
+          </motion.div>
+        </div>
       </header>
 
       {/* Contact Grid */}

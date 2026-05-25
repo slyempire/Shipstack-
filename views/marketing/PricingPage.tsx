@@ -34,23 +34,38 @@ const PricingPage: React.FC = () => {
 
   return (
     <MarketingLayout>
-      <section className="px-8 pt-32 pb-32 max-w-[90rem] mx-auto text-center relative overflow-hidden">
-        <div className="absolute inset-0 -z-10 opacity-20 pointer-events-none">
-          <img 
-            src="https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&q=80&w=2600" 
-            alt="Large Scale Port" 
-            className="w-full h-full object-cover"
-            referrerPolicy="no-referrer"
-          />
-          <div className="absolute inset-0 bg-white/70" />
+      {/* Hero (v2: dark + full-bleed port photo + bottom-left headline) */}
+      <header className="relative bg-[#0B0E16] overflow-hidden h-[60vh] min-h-[500px] flex flex-col">
+        <img
+          src="https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&q=80&w=2600"
+          alt="Cargo port"
+          className="absolute inset-0 w-full h-full object-cover"
+          referrerPolicy="no-referrer"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0B0E16] via-[#0B0E16]/70 to-[#0B0E16]/20" />
+        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#0B0E16]/80 to-transparent" />
+
+        <div className="relative flex-1 max-w-7xl mx-auto px-8 md:px-16 lg:px-24 w-full flex flex-col justify-between pt-32 pb-16">
+          <div className="self-start inline-flex items-center gap-3 px-5 py-2.5 bg-white/5 border border-white/10 rounded-full backdrop-blur-md">
+            <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/80">Pricing</span>
+          </div>
+
+          <div className="max-w-3xl lg:ml-12 xl:ml-20">
+            <h1 className="text-5xl md:text-7xl font-black text-white tracking-tight leading-[0.95] mb-8 uppercase">
+              Simple <br />
+              <span className="text-[#FF5722]">pricing.</span>
+            </h1>
+            <p className="text-lg md:text-xl text-white/70 font-medium leading-relaxed max-w-2xl mb-4">
+              Pick the plan that fits your team. All plans include a 14-day free trial.
+            </p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#FF5722]">
+              Pay via M-Pesa, card, or invoice &bull; No setup fees
+            </p>
+          </div>
         </div>
-        <h1 className="text-6xl md:text-8xl font-black tracking-tighter uppercase mb-6 leading-none text-slate-900">Simple <br/><span className="text-brand">pricing.</span></h1>
-        <p className="text-xl md:text-2xl text-slate-500 max-w-4xl mx-auto mb-8 font-bold uppercase tracking-tight leading-tight">
-          Pick the plan that fits your team. <br className="hidden md:block" /> All plans include a 14-day free trial.
-        </p>
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-brand mb-20">
-          Pay via M-Pesa, card, or invoice • No setup fees
-        </p>
+      </header>
+
+      <section className="px-8 pt-24 pb-32 max-w-[90rem] mx-auto">
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {plans.map((plan) => (
