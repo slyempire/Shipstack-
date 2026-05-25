@@ -50,9 +50,9 @@ const ProfileView: React.FC = () => {
     try {
       const updatedUser = await api.updateUser(user.id, formData);
       login(updatedUser, 'mock-token');
-      addNotification('Profile synchronized.', 'success');
+      addNotification('Profile saved.', 'success');
     } catch (err) {
-      addNotification('Synchronization failed.', 'error');
+      addNotification("Couldn't save your profile. Please try again.", 'error');
     } finally {
       setLoading(false);
     }

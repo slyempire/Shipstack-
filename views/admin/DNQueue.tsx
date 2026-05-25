@@ -421,8 +421,8 @@ const OperationsHub: React.FC = () => {
                               <Inbox size={48} />
                             </div>
                             <div>
-                              <p className="text-slate-800 font-semibold text-lg mb-2">No delivery notes found</p>
-                              <p className="text-slate-400 text-sm mb-6 font-medium">Create your first entry to get started with fleet tracking.</p>
+                              <p className="text-slate-800 font-semibold text-lg mb-2">No delivery notes yet</p>
+                              <p className="text-slate-400 text-sm mb-6 font-medium">Delivery notes are the unit of work you'll dispatch to drivers. Create one to get started.</p>
                               <button 
                                 onClick={() => {
                                   setEditingDn({ items: [{ id: 'item-1', name: '', qty: 1, unit: 'unit' }] });

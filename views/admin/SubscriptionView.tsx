@@ -90,7 +90,7 @@ const SubscriptionView: React.FC = () => {
       });
       
       updateTenant({ plan: planId });
-      addNotification(`Cluster upgraded to ${planId} successfully. Your infrastructure is being re-provisioned.`, "success");
+      addNotification(`Plan changed to ${planId}. The new features are available now.`, "success");
       setShowUpgradeModal(false);
     } catch (error) {
       console.error('Plan update failed:', error);

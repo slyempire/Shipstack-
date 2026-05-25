@@ -188,7 +188,7 @@ const DriverRecruitmentView: React.FC = () => {
           </h1>
           
           <p className="text-xl text-white/40 font-medium mb-16 max-w-md">
-            Join East Africa's most advanced logistics network. We offer consistent gigs, fair pay, and a platform built for professional drivers.
+            Join the pilot fleet shaping Shipstack with us. Consistent gigs, fair pay, and a platform built for professional drivers.
           </p>
 
           <div className="space-y-10">

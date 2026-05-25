@@ -69,7 +69,7 @@ const UserManagement: React.FC = () => {
       setUsers(data);
     } catch (error) {
       console.error('Failed to fetch users:', error);
-      addNotification('Failed to load personnel data', 'error');
+      addNotification("Couldn't load users. Please try again.", 'error');
     } finally {
       setIsLoading(false);
     }
@@ -117,17 +117,17 @@ const UserManagement: React.FC = () => {
       if (editingUser) {
         await api.updateUser(editingUser.id, formData, currentTenant || 'tenant-1');
         logAction('UPDATE_USER', 'user', editingUser.id, { email: formData.email });
-        addNotification('Personnel updated successfully', 'success');
+        addNotification('User updated.', 'success');
       } else {
         const newUser = await api.createUser(formData, currentTenant || 'tenant-1');
         logAction('CREATE_USER', 'user', newUser.id, { email: formData.email });
-        addNotification('New personnel provisioned', 'success');
+        addNotification('User added.', 'success');
       }
       setIsModalOpen(false);
       fetchUsers();
     } catch (error) {
-      console.error('Personnel update failed:', error);
-      addNotification('Operation failed', 'error');
+      console.error('User save failed:', error);
+      addNotification("Couldn't save the user. Please try again.", 'error');
     }
   };
 
@@ -138,19 +138,19 @@ const UserManagement: React.FC = () => {
       logAction('TOGGLE_USER_VERIFICATION', 'user', user.id, { status: newStatus });
       fetchUsers();
     } catch (error) {
-       addNotification('Status update failed', 'error');
+       addNotification("Couldn't update status. Please try again.", 'error');
     }
   };
 
   const deleteUser = async (userId: string) => {
-    if (confirm('Permanently decommission this operator? This will rescind all security clearances instantly.')) {
+    if (confirm('Permanently delete this user? Their access will be revoked immediately.')) {
       try {
         await api.deleteUser(userId, currentTenant || 'tenant-1');
         logAction('DELETE_USER', 'user', userId, {}, 'critical');
-        addNotification('Personnel decommissioned', 'warning');
+        addNotification('User removed.', 'warning');
         fetchUsers();
       } catch (error) {
-        addNotification('Decommission failed', 'error');
+        addNotification("Couldn't delete the user. Please try again.", 'error');
       }
     }
   };

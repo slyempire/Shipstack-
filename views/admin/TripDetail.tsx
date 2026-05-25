@@ -195,9 +195,9 @@ const TripDetail: React.FC = () => {
        // Auto-generate Loading Authority upon successful dispatch
        await api.generateDocument(dn!.id, LogisticsDocumentType.LOADING_AUTHORITY, user?.name || 'System');
        loadAll();
-       addNotification("Driver run manifested. Loading Authority synchronized.", "success");
+       addNotification("Driver dispatched. Loading Authority generated.", "success");
      } catch (e) {
-       setValidationError("Connectivity error during manifest uplink.");
+       setValidationError("Something went wrong while dispatching. Please try again.");
      } finally {
        setIsDispatching(false);
      }
