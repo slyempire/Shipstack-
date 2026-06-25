@@ -5,7 +5,7 @@ import cors from "cors";
 import helmet from "helmet";
 import compression from "compression";
 import { z } from "zod";
-import { createServer as createViteServer } from "vite";
+import { createServer as createViteServer, loadEnv } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
 import CryptoJS from 'crypto-js';
@@ -16,6 +16,11 @@ import fs from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const env = loadEnv(process.env.NODE_ENV || 'development', process.cwd(), '');
+for (const [key, value] of Object.entries(env)) {
+  if (process.env[key] === undefined) process.env[key] = value;
+}
 
 // Set up Document Storage
 const DOCUMENTS_DIR = path.join(process.cwd(), 'storage', 'documents');
@@ -418,6 +423,30 @@ async function startServer() {
     }
 
     const { entityType, entityId, documentType, tags, uploadedBy } = req.body;
+    const idempotencyKey = req.headers['idempotency-key'] || req.headers['x-idempotency-key'];
+
+    // Deduplication Key
+    const docKey = idempotencyKey 
+      ? `shipstack:idempotency:${idempotencyKey}` 
+      : `shipstack:doc_dedup:${entityType || 'unknown'}:${entityId || 'unknown'}:${documentType || 'unknown'}:${file.originalname}:${file.size}`;
+
+    if (redis) {
+      try {
+        const cachedDoc = await redis.get(docKey);
+        if (cachedDoc) {
+          console.log(`[DMS] Duplicate document upload detected. Returning cached metadata.`);
+          // Clean up the duplicate file to prevent disk leakage
+          try {
+            fs.unlinkSync(file.path);
+          } catch (unlinkErr) {
+            console.warn("[DMS] Failed to remove duplicate file from disk:", unlinkErr);
+          }
+          return res.status(200).json(typeof cachedDoc === 'string' ? JSON.parse(cachedDoc) : cachedDoc);
+        }
+      } catch (redisErr) {
+        console.warn("[DMS] Redis lookup failed, continuing upload without dedup", redisErr);
+      }
+    }
 
     const documentMetadata = {
       id: `doc-${Date.now()}`,
@@ -441,6 +470,8 @@ async function startServer() {
       if (entityType && entityId) {
         await redis.sadd(`shipstack:entity_documents:${entityType}:${entityId}`, documentMetadata.id);
       }
+      // Save to dedup/idempotency cache
+      await redis.set(docKey, JSON.stringify(documentMetadata), { ex: 3600 });
     }
 
     // Proxy metadata to Frappe for permanent record
@@ -556,10 +587,25 @@ async function startServer() {
    * Inbound Ingestion Endpoint
    * Purpose: Standardized entry point for Client ERPs to push shipment requests.
    */
-  app.post("/api/ingest", apiAuthMiddleware, (req, res) => {
+  app.post("/api/ingest", apiAuthMiddleware, async (req, res) => {
     try {
       const payload = IngestSchema.parse(req.body);
       
+      const idempotencyKey = req.headers['idempotency-key'] || req.headers['x-idempotency-key'] || `ingest:${payload.clientName}:${payload.externalId}`;
+      const cacheKey = `shipstack:idempotency:${idempotencyKey}`;
+
+      if (redis) {
+        try {
+          const cachedResponse = await redis.get(cacheKey);
+          if (cachedResponse) {
+            console.log(`[INGEST] Duplicate ingest request detected for key: ${idempotencyKey}. Returning cached response.`);
+            return res.status(200).json(typeof cachedResponse === 'string' ? JSON.parse(cachedResponse) : cachedResponse);
+          }
+        } catch (redisErr) {
+          console.warn("[INGEST] Redis lookup failed, proceeding without deduplication", redisErr);
+        }
+      }
+
       console.log(`[INGEST] Received shipment request: ${payload.externalId} from ${payload.clientName}`);
 
       // Emit to all connected clients (Admin Dashboard, etc.)
@@ -572,11 +618,17 @@ async function startServer() {
         logs: [{ id: Date.now().toString(), action: 'Ingested via API', notes: 'Automated ERP sync', user: 'System', timestamp: new Date().toISOString() }]
       });
 
-      res.status(201).json({ 
+      const responseData = { 
         success: true, 
         message: "Shipment request accepted and queued for processing.",
         internalId
-      });
+      };
+
+      if (redis) {
+        await redis.set(cacheKey, JSON.stringify(responseData), { ex: 3600 });
+      }
+
+      res.status(201).json(responseData);
     } catch (err) {
       if (err instanceof z.ZodError) {
         return res.status(400).json({ 
@@ -589,7 +641,7 @@ async function startServer() {
   });
 
   // Telemetry Endpoint (Proxy for Socket.io)
-  app.post("/api/telemetry", (req, res) => {
+  app.post("/api/telemetry", async (req, res) => {
     try {
       const data = TelemetrySchema.parse(req.body);
       
@@ -614,6 +666,25 @@ async function startServer() {
       }
 
       const { dnId, lat, lng, speed, heading, timestamp } = data;
+      
+      const incomingTime = timestamp ? new Date(timestamp).getTime() : Date.now();
+      const lastTimeKey = `shipstack:telemetry:last_time:${dnId}`;
+      if (redis) {
+        try {
+          const lastTimeStr = await redis.get(lastTimeKey);
+          if (lastTimeStr) {
+            const lastTime = parseInt(lastTimeStr as string, 10);
+            if (incomingTime <= lastTime) {
+              console.log(`[TELEMETRY] Out-of-order or duplicate timestamp detected for DN ${dnId}. Discarding update.`);
+              return res.json({ success: true, discarded: true });
+            }
+          }
+          await redis.set(lastTimeKey, incomingTime.toString(), { ex: 86400 });
+        } catch (redisErr) {
+          console.warn("[TELEMETRY] Redis sequence check failed, continuing update", redisErr);
+        }
+      }
+
       io.emit("telemetry:update", { dnId, lat, lng, speed, heading, timestamp: timestamp || new Date().toISOString() });
       res.json({ success: true });
     } catch (err) {
@@ -661,47 +732,114 @@ async function startServer() {
   });
 
   // AI Orchestration Routes
+  // Local fallback job store if Redis is unavailable
+  const localJobs = new Map<string, { status: string; result?: any; error?: string }>();
+
   app.post("/api/ai/prioritize", async (req, res) => {
     if (!genAI) return res.status(503).json({ error: "AI Service Unavailable", message: "Gemini API key not configured." });
     
     const { dns } = req.body;
     if (!dns || !Array.isArray(dns)) return res.status(400).json({ error: "Bad Request", message: "Missing 'dns' array in payload." });
 
-    try {
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      const prompt = `
-        Context: Shipstack Logistics Orchestrator.
-        Task: Prioritize the following shipment queue for maximum operational efficiency.
-        Criteria:
-        1. Medical/Perishable industry = Highest Priority.
-        2. Customer Priority (HIGH/MEDIUM/LOW).
-        3. Weight vs Capacity optimization.
-        4. Geographical proximity (addresses).
-        
-        Queue Data:
-        ${JSON.stringify(dns.map(d => ({ 
-          id: d.id, 
-          customer: d.clientName, 
-          priority: d.priority, 
-          industry: d.industry, 
-          address: d.address,
-          weight: d.weightKg,
-          perishable: d.isPerishable 
-        })))}
-        
-        Return exactly a JSON array of objects: [{"id": "dn-id", "aiPriority": "HIGH"|"MEDIUM"|"LOW", "reason": "concise explanation"}]
-      `;
+    const jobId = `job-prioritize-${Date.now()}-${Math.round(Math.random() * 1E6)}`;
+    const jobState = { status: 'PENDING', result: null };
 
-      const result = await model.generateContent(prompt);
-      const text = result.response.text();
-      const cleanJson = text.match(/\[.*\]/s)?.[0] || text;
-      const parsed = JSON.parse(cleanJson);
-      
-      res.json(parsed);
-    } catch (err) {
-      console.error("[AI] Prioritization Failed:", err);
-      res.status(500).json({ error: "AI Processing Failed" });
+    if (redis) {
+      try {
+        await redis.set(`shipstack:ai_job:${jobId}`, JSON.stringify(jobState), { ex: 3600 });
+      } catch (err) {
+        console.warn("[AI] Redis job registration failed, falling back to local memory", err);
+        localJobs.set(jobId, jobState);
+      }
+    } else {
+      localJobs.set(jobId, jobState);
     }
+
+    // Trigger background process
+    (async () => {
+      try {
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const prompt = `
+          Context: Shipstack Logistics Orchestrator.
+          Task: Prioritize the following shipment queue for maximum operational efficiency.
+          Criteria:
+          1. Medical/Perishable industry = Highest Priority.
+          2. Customer Priority (HIGH/MEDIUM/LOW).
+          3. Weight vs Capacity optimization.
+          4. Geographical proximity (addresses).
+          
+          Queue Data:
+          ${JSON.stringify(dns.map(d => ({ 
+            id: d.id, 
+            customer: d.clientName, 
+            priority: d.priority, 
+            industry: d.industry, 
+            address: d.address,
+            weight: d.weightKg,
+            perishable: d.isPerishable 
+          })))}
+          
+          Return exactly a JSON array of objects: [{"id": "dn-id", "aiPriority": "HIGH"|"MEDIUM"|"LOW", "reason": "concise explanation"}]
+        `;
+
+        const result = await model.generateContent(prompt);
+        const text = result.response.text();
+        const cleanJson = text.match(/\[.*\]/s)?.[0] || text;
+        const parsed = JSON.parse(cleanJson);
+
+        const successState = { status: 'COMPLETED', result: parsed };
+        if (redis) {
+          try {
+            await redis.set(`shipstack:ai_job:${jobId}`, JSON.stringify(successState), { ex: 3600 });
+          } catch (err) {
+            localJobs.set(jobId, successState);
+          }
+        } else {
+          localJobs.set(jobId, successState);
+        }
+
+        io.emit("ai:job_completed", { jobId, ...successState });
+        console.log(`[AI] Async job ${jobId} completed successfully.`);
+      } catch (bgErr: any) {
+        console.error(`[AI] Async job ${jobId} failed:`, bgErr);
+        const failedState = { status: 'FAILED', error: bgErr.message || "Unknown background processing error" };
+        if (redis) {
+          try {
+            await redis.set(`shipstack:ai_job:${jobId}`, JSON.stringify(failedState), { ex: 3600 });
+          } catch (err) {
+            localJobs.set(jobId, failedState);
+          }
+        } else {
+          localJobs.set(jobId, failedState);
+        }
+        io.emit("ai:job_failed", { jobId, ...failedState });
+      }
+    })();
+
+    // Return 202 Accepted immediately
+    res.status(202).json({ jobId, status: 'PENDING' });
+  });
+
+  app.get("/api/ai/prioritize/jobs/:jobId", async (req, res) => {
+    const jobId = req.params.jobId as string;
+
+    if (redis) {
+      try {
+        const jobData = await redis.get(`shipstack:ai_job:${jobId}`);
+        if (jobData) {
+          return res.json(typeof jobData === 'string' ? JSON.parse(jobData) : jobData);
+        }
+      } catch (err) {
+        console.warn("[AI] Redis job fetch failed, checking local memory", err);
+      }
+    }
+
+    const localJob = localJobs.get(jobId);
+    if (!localJob) {
+      return res.status(404).json({ error: "Job not found" });
+    }
+
+    res.json(localJob);
   });
 
   app.post("/api/ai/suggest-dispatch", async (req, res) => {
@@ -794,7 +932,7 @@ async function startServer() {
   io.on("connection", (socket) => {
     console.log(`[SOCKET] Client connected: ${socket.id} (Transport: ${socket.conn.transport.name})`);
 
-    socket.on("telemetry:report", (data) => {
+    socket.on("telemetry:report", async (data) => {
       // For socket reports, we also accept them if the socket itself is authenticated
       // but we still verify signature if present for extra integrity
       const hasValidSignature = verifyTelemetrySignature(data);
@@ -805,6 +943,27 @@ async function startServer() {
         console.log(`[SOCKET] Telemetry received without HMAC signature from ${socket.id}, relying on session token.`);
       }
       
+      const { dnId, timestamp } = data;
+      if (dnId) {
+        const incomingTime = timestamp ? new Date(timestamp).getTime() : Date.now();
+        const lastTimeKey = `shipstack:telemetry:last_time:${dnId}`;
+        if (redis) {
+          try {
+            const lastTimeStr = await redis.get(lastTimeKey);
+            if (lastTimeStr) {
+              const lastTime = parseInt(lastTimeStr as string, 10);
+              if (incomingTime <= lastTime) {
+                console.log(`[SOCKET TELEMETRY] Out-of-order or duplicate timestamp detected for DN ${dnId}. Discarding update.`);
+                return;
+              }
+            }
+            await redis.set(lastTimeKey, incomingTime.toString(), { ex: 86400 });
+          } catch (redisErr) {
+            console.warn("[SOCKET TELEMETRY] Redis sequence check failed, continuing update", redisErr);
+          }
+        }
+      }
+
       // Broadcast to all other clients
       socket.broadcast.emit("telemetry:update", {
         ...data,

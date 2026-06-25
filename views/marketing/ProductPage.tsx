@@ -12,7 +12,13 @@ import {
   ShieldCheck,
   Zap,
   Smartphone,
-  WifiOff
+  WifiOff,
+  MapPin,
+  Navigation,
+  CheckCircle,
+  Clock,
+  Camera,
+  RefreshCw
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import MarketingLayout from '../../components/marketing/MarketingLayout';
@@ -49,7 +55,7 @@ const ProductPage: React.FC = () => {
           >
             <h1 className="text-5xl md:text-7xl font-black text-white tracking-tight leading-[0.95] mb-8 uppercase">
               Everything you need <br />
-              <span className="text-[#FF5722]">to run logistics.</span>
+              <span className="font-serif italic font-medium text-[#FF5722]">to run logistics.</span>
             </h1>
             <p className="text-lg md:text-xl text-white/70 font-medium leading-relaxed max-w-2xl">
               Everything you need to run modern logistics in Africa &mdash; from first mile to last.
@@ -87,7 +93,7 @@ const ProductPage: React.FC = () => {
                  </div>
                  <div>
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Throughput</p>
-                    <p className="text-sm font-black text-slate-900">+124% efficiency</p>
+                    <p className="text-sm font-black text-slate-900">Live throughput</p>
                  </div>
               </div>
             </div>
@@ -178,27 +184,67 @@ const ProductPage: React.FC = () => {
               <div className="absolute top-0 left-0 w-full h-8 bg-slate-900 flex justify-center items-end pb-2">
                 <div className="w-20 h-1.5 bg-slate-800 rounded-full" />
               </div>
-              <div className="p-8 pt-16 space-y-8">
-                <div className="bg-slate-900/50 border border-white/5 rounded-3xl p-6 text-white">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 mb-3 text-brand">Current trip</p>
-                  <p className="text-lg font-black uppercase tracking-tight">Trip #772</p>
-                  <div className="mt-6 flex items-center gap-4">
-                    <div className="h-2 w-2 bg-emerald-500 rounded-full animate-pulse" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Live</span>
+              <div className="p-5 pt-12 space-y-4 normal-case text-white">
+                {/* Trip header */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] font-semibold text-white/40">Trip #772 · 8 stops</p>
+                    <p className="text-sm font-bold tracking-tight">Westlands route</p>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[9px] font-bold">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live
+                  </span>
+                </div>
+
+                {/* Next stop card */}
+                <div className="bg-[#FF5722] rounded-2xl p-4 text-white shadow-lg shadow-[#FF5722]/20">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/70">Next stop · 3 of 8</span>
+                    <Navigation size={14} className="text-white/80" />
+                  </div>
+                  <p className="text-base font-bold leading-tight">Java House — Westlands</p>
+                  <p className="text-[11px] text-white/75 mb-3">Woodvale Grove, Nairobi</p>
+                  <div className="flex items-center gap-3 text-[10px] font-semibold">
+                    <span className="inline-flex items-center gap-1 bg-white/20 rounded-md px-2 py-1"><Clock size={11} /> ETA 9 min</span>
+                    <span className="inline-flex items-center gap-1 bg-white/20 rounded-md px-2 py-1"><MapPin size={11} /> 2.4 km</span>
                   </div>
                 </div>
-                <div className="space-y-4">
-                  <div className="h-14 w-full bg-white/5 rounded-2xl border border-white/5 flex items-center px-6">
-                    <div className="h-2 w-24 bg-white/10 rounded-full" />
-                  </div>
-                  <div className="h-14 w-full bg-white/5 rounded-2xl border border-white/5 flex items-center px-6">
-                    <div className="h-2 w-16 bg-white/10 rounded-full" />
-                  </div>
-                  <div className="pt-4">
-                    <div className="h-16 w-full bg-brand text-white rounded-2xl flex items-center justify-center text-[10px] font-black uppercase tracking-[0.3em] shadow-xl shadow-brand/20">
-                      Confirm POD
+
+                {/* Stops progress */}
+                <div className="bg-white/5 border border-white/5 rounded-2xl p-3 space-y-2.5">
+                  {[
+                    { name: 'Sarit Centre', state: 'done' },
+                    { name: 'ABC Place', state: 'done' },
+                    { name: 'Java House', state: 'active' },
+                    { name: 'The Mall, Westlands', state: 'pending' },
+                  ].map((s) => (
+                    <div key={s.name} className="flex items-center gap-3">
+                      {s.state === 'done' ? (
+                        <CheckCircle size={15} className="text-emerald-400 shrink-0" />
+                      ) : s.state === 'active' ? (
+                        <span className="h-[15px] w-[15px] rounded-full border-2 border-[#FF5722] bg-[#FF5722]/20 shrink-0" />
+                      ) : (
+                        <span className="h-[15px] w-[15px] rounded-full border-2 border-white/15 shrink-0" />
+                      )}
+                      <span className={`text-[11px] font-medium ${s.state === 'pending' ? 'text-white/35' : s.state === 'active' ? 'text-white' : 'text-white/60'}`}>{s.name}</span>
+                      {s.state === 'active' && <span className="ml-auto text-[8px] font-bold uppercase tracking-widest text-[#FF5722]">Now</span>}
                     </div>
-                  </div>
+                  ))}
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2">
+                  <button className="flex-1 h-11 bg-[#FF5722] rounded-xl flex items-center justify-center gap-2 text-[11px] font-bold shadow-lg shadow-[#FF5722]/20">
+                    <CheckCircle size={15} /> Mark delivered
+                  </button>
+                  <button className="h-11 w-11 bg-white/10 rounded-xl flex items-center justify-center text-white/70">
+                    <Camera size={16} />
+                  </button>
+                </div>
+
+                {/* Offline sync */}
+                <div className="flex items-center justify-center gap-2 text-[9px] font-medium text-white/40">
+                  <RefreshCw size={10} className="text-emerald-400" /> 3 updates queued · syncing on reconnect
                 </div>
               </div>
             </div>

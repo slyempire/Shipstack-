@@ -73,8 +73,8 @@ const EcommerceSolution: React.FC = () => {
                 transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
                 className="absolute -bottom-6 -left-6 bg-white p-6 rounded-2xl shadow-xl border border-slate-100"
               >
-                <p className="text-2xl font-black text-brand-accent">98%</p>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">On-time Delivery</p>
+                <p className="text-2xl font-black text-brand-accent">Same-day</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Delivery Ready</p>
               </motion.div>
             </div>
           </div>
@@ -120,9 +120,9 @@ const EcommerceSolution: React.FC = () => {
                       <img src={`https://picsum.photos/seed/user${i}/100/100`} alt="User" referrerPolicy="no-referrer" />
                     </div>
                   ))}
-                  <div className="h-10 w-10 rounded-full border-2 border-slate-900 bg-brand flex items-center justify-center text-[10px] font-black">+500</div>
+                  <div className="h-10 w-10 rounded-full border-2 border-slate-900 bg-brand flex items-center justify-center text-[10px] font-black">+</div>
                 </div>
-                <p className="text-[10px] font-black uppercase tracking-widest mt-4 text-white/40">Trusted by 500+ local merchants</p>
+                <p className="text-[10px] font-black uppercase tracking-widest mt-4 text-white/40">Built for high-volume local merchants</p>
               </div>
             </motion.div>
 
@@ -138,8 +138,8 @@ const EcommerceSolution: React.FC = () => {
                   <ShieldCheck size={24} />
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-black text-slate-900">99.9%</p>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Payment Success</p>
+                  <p className="text-2xl font-black text-slate-900">M-Pesa</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">+ Card Ready</p>
                 </div>
               </div>
               <div>

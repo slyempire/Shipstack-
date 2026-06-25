@@ -18,7 +18,31 @@ export const aiService = {
       });
       
       if (!response.ok) throw new Error('AI prioritization request failed');
-      return await response.json();
+      const data = await response.json();
+      
+      if (data && data.jobId) {
+        const { jobId } = data;
+        let attempts = 0;
+        const maxAttempts = 45; // Wait up to 45 seconds
+        
+        while (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          attempts++;
+          
+          const jobResponse = await fetch(`/api/ai/prioritize/jobs/${jobId}`);
+          if (!jobResponse.ok) throw new Error(`Failed to fetch AI job state for ${jobId}`);
+          
+          const jobState = await jobResponse.json();
+          if (jobState.status === 'COMPLETED') {
+            return jobState.result;
+          } else if (jobState.status === 'FAILED') {
+            throw new Error(jobState.error || 'AI prioritization job failed');
+          }
+        }
+        throw new Error('AI prioritization job timed out');
+      }
+      
+      return data;
     } catch (err) {
       console.error("AI prioritization failed:", err);
       // Fallback to basic logic

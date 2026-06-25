@@ -314,8 +314,8 @@ const DriverPortal: React.FC = () => {
       <main className="flex-1 px-8 py-20 space-y-20 overflow-y-auto no-scrollbar pb-32">
         <div className="flex justify-between items-end">
           <div className="space-y-4">
-             <h1 className="text-4xl md:text-6xl font-black text-black uppercase tracking-tighter leading-none">Manifest.</h1>
-             <p className="text-slate-400 font-bold uppercase tracking-tight text-sm">Directives active in your corridor.</p>
+             <h1 className="text-4xl md:text-6xl font-black text-black uppercase tracking-tighter leading-none">My trips.</h1>
+             <p className="text-slate-400 font-bold uppercase tracking-tight text-sm">Your deliveries for today.</p>
           </div>
           <div className="text-right">
              <p className="text-5xl md:text-7xl font-black tracking-tighter leading-none">{dns.length}</p>
@@ -327,7 +327,7 @@ const DriverPortal: React.FC = () => {
         <div className="space-y-2">
           {dns.length === 0 ? (
             <div className="py-48 text-center border-t border-slate-100">
-              <p className="text-xs font-black text-slate-300 uppercase tracking-widest">No active deployments found.</p>
+              <p className="text-xs font-black text-slate-300 uppercase tracking-widest">No trips assigned yet.</p>
             </div>
           ) : (
             <DriverPortalTripList

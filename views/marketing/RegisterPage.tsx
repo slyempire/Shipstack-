@@ -118,7 +118,7 @@ const RegisterPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col font-sans text-slate-900 overflow-hidden">
+    <div className="marketing-surface min-h-screen bg-white flex flex-col font-sans text-slate-900 overflow-hidden">
       <motion.nav 
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}

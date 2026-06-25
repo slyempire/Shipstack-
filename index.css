@@ -1,15 +1,19 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400;1,500;1,600&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Space Grotesk", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-  
+  --font-serif: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+
+  /* ── App (brutalist) palette ──────────────────────────────────────────────
+     The product console uses black/white + orange accent. Marketing surface
+     re-maps brand/navy to orange/night via .marketing-surface. */
   --color-brand: #000000;
-  --color-brand-accent: #000000;
-  --color-brand-orange: #000000;
-  --color-brand-orange-dark: #1A1A1A;
+  --color-brand-accent: #FF5722;
+  --color-brand-orange: #FF5722;
+  --color-brand-orange-dark: #E64A19;
   --color-navy: #000000;
   --color-navy-dark: #000000;
   --color-charcoal: #1A1A1A;
@@ -23,61 +27,132 @@
   --color-surface: #FFFFFF;
   --color-muted: #666666;
 
-  /* v2 landing tokens (Arrow Logistics direction). Kept additive so the
-     existing brutalist tokens above stay in use elsewhere. Apply selectively
-     to marketing surfaces during the v2 migration. */
+  /* ── Marketing v2 palette ("night + ember") ──────────────────────────────*/
   --color-night: #0B0E16;
   --color-night-surface: #1A1F2E;
+  --color-night-raised: #121826;
   --color-orange-v2: #FF5722;
   --color-orange-v2-hover: #E64A19;
+  --color-ember: #FF7A50;
+
+  /* ── Animation durations (overridable for reduced-motion) ────────────────*/
+  --motion-duration-float: 6s;
+  --motion-duration-orbit: 12s;
+  --motion-duration-gradient: 8s;
+  --motion-duration-shimmer: 2.5s;
+  --motion-duration-glow: 3s;
+
+  --animate-float: float var(--motion-duration-float) ease-in-out infinite;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   KEYFRAMES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-10px); }
+}
+
+@keyframes orbit {
+  from { transform: rotate(0deg) translateX(var(--orbit-radius, 80px)) rotate(0deg); }
+  to   { transform: rotate(360deg) translateX(var(--orbit-radius, 80px)) rotate(-360deg); }
+}
+
+@keyframes gradient-shift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50%       { opacity: 0.8; transform: scale(1.08); }
+}
+
+@keyframes mesh-drift {
+  0%   { background-position: 0% 0%, 100% 100%; }
+  33%  { background-position: 100% 50%, 0% 50%; }
+  66%  { background-position: 50% 100%, 50% 0%; }
+  100% { background-position: 0% 0%, 100% 100%; }
+}
+
+@keyframes fade-up-in {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes stagger-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BASE LAYER
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 @layer base {
   :root {
-    /* Pure Minimal Palette */
-    --bg-page: #FFFFFF;
-    --bg-sidebar: #000000;
-    --bg-card: #FFFFFF;
-    --bg-header: #FFFFFF;
-    --bg-input: #F6F6F6;
-    
-    --text-primary: #000000;
-    --text-secondary: #555555;
-    --text-muted: #A0A0A0;
-    
-    --border-sidebar: #1A1A1A;
-    --border-header: #EEEEEE;
-    --border-input: #E2E2E2;
-    --border-card: #EEEEEE;
-    
-    --sidebar-active-bg: #1A1A1A;
-    --sidebar-active-text: #FFFFFF;
-    --sidebar-text: #A0A0A0;
-    
-    --brand-primary: #000000;
-    --brand-accent: #000000;
-    --brand-hover: #1A1A1A;
-    
-    --status-delivered-bg: #E7F6F2;
+    /* ── Backgrounds ────────────────────────────────────────────────────── */
+    --bg-page:    #F8FAFC;
+    --bg-sidebar: #FFFFFF;
+    --bg-card:    #FFFFFF;
+    --bg-header:  #FFFFFF;
+    --bg-input:   #F6F7FA;
+
+    /* ── Text ───────────────────────────────────────────────────────────── */
+    --text-primary:   #0F172A;
+    --text-secondary: #475569;
+    --text-muted:     #94A3B8;
+
+    /* ── Borders ────────────────────────────────────────────────────────── */
+    --border-sidebar: #F1F5F9;
+    --border-header:  #F1F5F9;
+    --border-input:   #E2E8F0;
+    --border-card:    #F1F5F9;
+
+    /* ── Sidebar states ─────────────────────────────────────────────────── */
+    --sidebar-active-bg:   rgba(255, 87, 34, 0.08);
+    --sidebar-active-text: #FF5722;
+    --sidebar-active-border: #FF5722;
+    --sidebar-text:        #94A3B8;
+
+    /* ── Brand ──────────────────────────────────────────────────────────── */
+    --brand-primary:   #FF5722;
+    --brand-accent:    #FF7A50;
+    --brand-hover:     #E64A19;
+    --brand-subtle:    rgba(255, 87, 34, 0.08);
+    --brand-glow:      0 0 24px rgba(255, 87, 34, 0.35);
+    --brand-glow-sm:   0 0 12px rgba(255, 87, 34, 0.25);
+
+    /* ── Status colors ──────────────────────────────────────────────────── */
+    --status-delivered-bg:   #ECFDF5;
     --status-delivered-text: #10B981;
-    --status-transit-bg: #FFFEEB;
-    --status-transit-text: #F59E0B;
-    --status-dispatched-bg: #EFF6FF;
-    --status-dispatched-text: #3B82F6;
-    --status-exception-bg: #FEF2F2;
+    --status-transit-bg:     #FFFBEB;
+    --status-transit-text:   #F59E0B;
+    --status-dispatched-bg:  #EFF6FF;
+    --status-dispatched-text:#3B82F6;
+    --status-exception-bg:   #FEF2F2;
     --status-exception-text: #EF4444;
 
-    --shadow-card: none;
-    --shadow-brand: 0 4px 12px rgba(0,0,0,0.1);
+    /* ── Shadows ────────────────────────────────────────────────────────── */
+    --shadow-card:   0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+    --shadow-card-hover: 0 10px 40px -12px rgba(15, 23, 42, 0.15);
+    --shadow-brand:  0 4px 20px rgba(255, 87, 34, 0.3);
 
-    /* Typography Variables */
-    --font-size-label: 10px;
+    /* ── Typography ─────────────────────────────────────────────────────── */
+    --font-size-label:   12px;   /* was 10px — improved accessibility */
     --font-size-heading: 20px;
-    --font-size-body: 14px;
-    --font-size-mono: 12px;
-    --font-size-badge: 9px;
-    --font-size-nav: 11px;
-    --font-size-metric: 32px;
+    --font-size-body:    15px;   /* was 14px */
+    --font-size-mono:    12px;
+    --font-size-badge:   11px;   /* was 9px */
+    --font-size-nav:     12px;   /* was 11px */
+    --font-size-metric:  32px;
 
     --app-height: 100%;
   }
@@ -105,43 +180,423 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-display font-bold tracking-tight uppercase break-words;
     overflow-wrap: break-word;
+    text-wrap: balance;
   }
-  
+
   p, span, div {
     @apply break-words;
     overflow-wrap: break-word;
   }
 
   :focus-visible {
-    @apply outline-2 outline-black outline-offset-2;
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 3px;
+    border-radius: 4px;
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPONENT LAYER
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 @layer components {
+
+  /* ── Buttons ─────────────────────────────────────────────────────────── */
+
   .btn-primary {
-    @apply h-14 px-10 bg-black text-white rounded-none font-bold uppercase tracking-[0.2em] text-[10px] transition-all active:scale-[0.98] flex items-center justify-center gap-3 cursor-pointer disabled:opacity-50;
+    @apply h-13 px-8 bg-black text-white rounded-lg font-bold uppercase tracking-[0.15em] text-[12px]
+           transition-all duration-200 active:scale-[0.97] flex items-center justify-center gap-3
+           cursor-pointer disabled:opacity-40 hover:bg-[#1A1A1A];
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .btn-primary:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  }
+
+  .btn-primary-brand {
+    @apply h-13 px-8 text-white rounded-lg font-bold uppercase tracking-[0.15em] text-[12px]
+           transition-all duration-200 active:scale-[0.97] flex items-center justify-center gap-3
+           cursor-pointer disabled:opacity-40;
+    background-color: #FF5722;
+    box-shadow: 0 4px 20px rgba(255, 87, 34, 0.35);
+  }
+  .btn-primary-brand:hover {
+    background-color: #E64A19;
+    box-shadow: 0 6px 28px rgba(255, 87, 34, 0.45);
+    transform: translateY(-1px);
+  }
+  .btn-primary-brand:active {
+    transform: scale(0.97);
   }
 
   .btn-outline {
-    @apply h-14 px-10 border border-black text-black bg-transparent rounded-none font-bold uppercase tracking-[0.2em] text-[10px] transition-all hover:bg-black hover:text-white active:scale-[0.98] flex items-center justify-center gap-3 cursor-pointer disabled:opacity-50;
+    @apply h-13 px-8 border border-black text-black bg-transparent rounded-lg font-bold
+           uppercase tracking-[0.15em] text-[12px] transition-all duration-200
+           hover:bg-black hover:text-white active:scale-[0.97] flex items-center
+           justify-center gap-3 cursor-pointer disabled:opacity-40;
   }
+
+  .btn-ghost {
+    @apply h-13 px-8 text-white/80 bg-white/8 border border-white/15 rounded-lg font-bold
+           uppercase tracking-[0.15em] text-[12px] transition-all duration-200
+           hover:bg-white/15 hover:text-white active:scale-[0.97] flex items-center
+           justify-center gap-3 cursor-pointer;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* Marketing tactical button */
+  .btn-tactical {
+    @apply inline-flex items-center justify-center gap-2 h-12 px-7 rounded-xl
+           text-[12px] font-bold uppercase tracking-[0.18em] transition-all duration-200
+           active:scale-[0.97] disabled:opacity-50 cursor-pointer;
+  }
+
+  /* ── Input fields ────────────────────────────────────────────────────── */
+
+  .input-field {
+    @apply w-full bg-[var(--bg-input)] border border-[var(--border-input)] rounded-xl
+           px-5 py-4 text-[15px] font-medium text-[var(--text-primary)]
+           placeholder:text-[var(--text-muted)] outline-none
+           transition-all duration-200;
+  }
+  .input-field:focus {
+    border-color: #FF5722;
+    box-shadow: 0 0 0 3px rgba(255, 87, 34, 0.12), 0 0 16px rgba(255, 87, 34, 0.08);
+    background-color: #FFFFFF;
+  }
+  .input-field:focus-visible {
+    outline: none; /* custom glow handles visibility */
+  }
+
+  .input-underline {
+    @apply w-full bg-transparent border-b-2 border-slate-200 py-4 text-xl font-semibold
+           outline-none transition-all duration-300 placeholder:text-slate-300;
+  }
+  .input-underline:focus {
+    border-color: #FF5722;
+    box-shadow: 0 2px 0 0 rgba(255, 87, 34, 0.15);
+  }
+
+  /* ── Cards ───────────────────────────────────────────────────────────── */
 
   .card-minimal {
-    @apply bg-white border border-[#EEEEEE] p-8 transition-all hover:border-black;
+    @apply bg-white border border-[var(--border-card)] p-8 rounded-xl transition-all duration-300;
+    box-shadow: var(--shadow-card);
+  }
+  .card-minimal:hover {
+    border-color: rgba(255, 87, 34, 0.3);
+    box-shadow: var(--shadow-card-hover);
   }
 
+  .card-glass {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    @apply rounded-2xl p-8 transition-all duration-300;
+  }
+  .card-glass:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.18);
+  }
+
+  .card-night {
+    @apply rounded-2xl p-8 transition-all duration-300 border;
+    background: rgba(26, 31, 46, 0.8);
+    border-color: rgba(255, 255, 255, 0.06);
+  }
+  .card-night:hover {
+    border-color: rgba(255, 87, 34, 0.25);
+  }
+
+  .card-tactical {
+    @apply bg-white border border-[color:var(--color-line)] rounded-2xl p-8
+           transition-all duration-300 hover:-translate-y-1;
+  }
+  .card-tactical:hover {
+    box-shadow: 0 24px 48px -20px rgba(15, 23, 42, 0.2);
+  }
+
+  /* ── Labels ──────────────────────────────────────────────────────────── */
+
   .label-minimal {
-    @apply text-[9px] font-black uppercase tracking-[0.25em] text-[#AAAAAA] mb-2 block;
+    @apply text-[11px] font-black uppercase tracking-[0.25em] text-[#94A3B8] mb-2 block;
+  }
+
+  .label-mono {
+    @apply font-mono text-[11px] font-semibold uppercase tracking-[0.28em] text-[color:var(--color-muted)];
+  }
+
+  .label-brand {
+    @apply font-mono text-[11px] font-bold uppercase tracking-[0.28em];
+    color: #FF5722;
   }
 
   .data-value-minimal {
-    @apply text-sm font-bold text-black tracking-tight leading-none;
+    @apply text-sm font-bold text-[var(--text-primary)] tracking-tight leading-none;
+  }
+
+  /* ── Layout containers ───────────────────────────────────────────────── */
+
+  .container-responsive {
+    @apply w-full mx-auto max-w-7xl px-6 md:px-10 lg:px-12;
+  }
+
+  /* ── Gradient mesh hero background ──────────────────────────────────── */
+
+  .hero-mesh {
+    position: relative;
+    background-color: #0B0E16;
+  }
+  .hero-mesh::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 20% 40%, rgba(255, 87, 34, 0.18) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 60% at 80% 20%, rgba(255, 122, 80, 0.10) 0%, transparent 55%),
+      radial-gradient(ellipse 50% 40% at 60% 80%, rgba(11, 14, 22, 0.95) 0%, transparent 70%);
+    background-size: 200% 200%, 200% 200%, 200% 200%;
+    animation: mesh-drift var(--motion-duration-gradient) ease-in-out infinite;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .hero-mesh::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    background-size: 256px 256px;
+    opacity: 0.4;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* ── Sidebar nav item states (app console) ───────────────────────────── */
+
+  .nav-item-active {
+    background-color: var(--sidebar-active-bg);
+    color: var(--sidebar-active-text);
+    position: relative;
+  }
+  .nav-item-active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 20%;
+    bottom: 20%;
+    width: 3px;
+    background-color: var(--sidebar-active-border);
+    border-radius: 0 3px 3px 0;
+  }
+
+  /* ── Frosted glass header ────────────────────────────────────────────── */
+  .header-glass {
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid rgba(241, 245, 249, 0.8);
+    box-shadow: 0 1px 16px rgba(15, 23, 42, 0.06);
+  }
+
+  /* ── KPI float card (hero overlay) ──────────────────────────────────── */
+  .kpi-float-card {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    @apply rounded-2xl px-5 py-4 transition-all duration-300;
+  }
+  .kpi-float-card:hover {
+    background: rgba(255, 255, 255, 0.13);
+    border-color: rgba(255, 87, 34, 0.3);
+    transform: translateY(-2px);
+  }
+
+  /* ── Dashboard & Console UI elements ─────────────────────────────────── */
+  .card-logistics {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-left: 4px solid var(--brand-primary);
+    box-shadow: var(--shadow-card);
+    @apply rounded-2xl p-6 transition-all duration-300;
+  }
+  .card-logistics:hover {
+    box-shadow: var(--shadow-card-hover);
+    border-color: rgba(255, 87, 34, 0.2);
+    border-left-color: var(--brand-accent);
+    transform: translateY(-2px);
+  }
+
+  .card-logistics-success { border-left-color: var(--status-delivered-text); }
+  .card-logistics-warning { border-left-color: var(--status-transit-text); }
+  .card-logistics-critical { border-left-color: var(--status-exception-text); }
+
+  .label-logistics {
+    font-size: var(--font-size-label);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    @apply block mb-2 uppercase;
+  }
+
+  .body-value {
+    font-size: var(--font-size-body);
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .badge-pill {
+    font-size: var(--font-size-badge);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    @apply px-3 py-1 rounded-full uppercase flex items-center gap-1.5;
+  }
+
+  .nav-item-text {
+    font-size: var(--font-size-nav);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+  }
+
+  .metric-value {
+    font-size: var(--font-size-metric);
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+  }
+
+  .mono-id {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-mono);
+    letter-spacing: 0.05em;
+    color: var(--brand-primary);
+  }
+
+  .truncate-name {
+    @apply truncate max-w-[250px] inline-block align-bottom;
   }
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: #FFFFFF; }
-::-webkit-scrollbar-thumb { background: #E2E2E2; }
-::-webkit-scrollbar-thumb:hover { background: #CCCCCC; }
+/* ═══════════════════════════════════════════════════════════════════════════
+   UTILITIES LAYER
+   ═══════════════════════════════════════════════════════════════════════════ */
 
+@layer utilities {
+  .animate-float          { animation: var(--animate-float); }
+  .animate-orbit          { animation: orbit var(--motion-duration-orbit) linear infinite; }
+  .animate-gradient-shift { animation: gradient-shift var(--motion-duration-gradient) ease infinite; }
+  .animate-shimmer        { animation: shimmer var(--motion-duration-shimmer) ease-in-out infinite; }
+  .animate-pulse-glow     { animation: pulse-glow var(--motion-duration-glow) ease-in-out infinite; }
+  .animate-mesh-drift     { animation: mesh-drift var(--motion-duration-gradient) ease-in-out infinite; }
+  .animate-fade-up-in     { animation: fade-up-in 0.5s ease-out forwards; }
+
+  .font-serif {
+    font-family: var(--font-serif);
+  }
+
+  .glow-brand {
+    box-shadow: var(--brand-glow);
+  }
+  .glow-brand-sm {
+    box-shadow: var(--brand-glow-sm);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Stagger entrance utility — apply to container; children animate in sequence */
+  .stagger-entrance > * {
+    animation: stagger-in 0.5s ease-out both;
+  }
+  .stagger-entrance > *:nth-child(1)  { animation-delay: 0.05s; }
+  .stagger-entrance > *:nth-child(2)  { animation-delay: 0.12s; }
+  .stagger-entrance > *:nth-child(3)  { animation-delay: 0.19s; }
+  .stagger-entrance > *:nth-child(4)  { animation-delay: 0.26s; }
+  .stagger-entrance > *:nth-child(5)  { animation-delay: 0.33s; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MARKETING SURFACE SCOPE
+   Re-maps shared tokens so marketing pages use "night + ember" system while
+   the product console keeps its own palette.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.marketing-surface {
+  --color-brand:            #FF5722;
+  --color-brand-accent:     #FF7A50;
+  --color-brand-orange:     #FF5722;
+  --color-brand-orange-dark:#E64A19;
+  --color-navy:             #0B0E16;
+  --color-navy-dark:        #070A12;
+  --bg-page:                #0B0E16;
+}
+
+/* Marketing headings read as set type, not shouting blocks */
+.marketing-surface h1,
+.marketing-surface h2,
+.marketing-surface h3,
+.marketing-surface h4,
+.marketing-surface h5,
+.marketing-surface h6 {
+  text-transform: none;
+  letter-spacing: -0.025em;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   REDUCED MOTION GUARD
+   Decorative animations stop; functional hover/focus transitions remain (fast).
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  /* Decorative keyframe animations — kill entirely */
+  .animate-orbit,
+  .animate-gradient-shift,
+  .animate-shimmer,
+  .animate-pulse-glow,
+  .animate-mesh-drift,
+  .animate-fade-up-in,
+  .animate-float {
+    animation: none !important;
+  }
+
+  /* Stagger entrance — show immediately, no motion */
+  .stagger-entrance > * {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  /* Hero mesh background — freeze */
+  .hero-mesh::before {
+    animation: none !important;
+    background-position: 50% 50% !important;
+  }
+
+  /* Framer Motion transitions — let the library handle it (it reads
+     prefers-reduced-motion natively in v6+), but cap CSS transitions */
+  * {
+    transition-duration: 120ms !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SCROLLBAR
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+::-webkit-scrollbar          { width: 4px; height: 4px; }
+::-webkit-scrollbar-track    { background: transparent; }
+::-webkit-scrollbar-thumb    { background: #CBD5E1; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+/* Firefox */
+* { scrollbar-width: thin; scrollbar-color: #CBD5E1 transparent; }
+
+/* No-scrollbar utility (driver portal, overflow carousels) */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar { display: none; }

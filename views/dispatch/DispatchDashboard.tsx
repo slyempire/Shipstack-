@@ -31,36 +31,9 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTenant } from '../../hooks/useTenant';
 import { useAuthStore } from '../../store';
+import { KPICard } from '../../components/shared/KPICard';
 
-const StatCard = ({ title, value, icon: Icon, color, subValue, status, index }: any) => (
-  <motion.div 
-    initial={{ opacity: 0, scale: 0.9, y: 20 }}
-    whileInView={{ opacity: 1, scale: 1, y: 0 }}
-    viewport={{ once: true }}
-    transition={{ delay: 0.05 * index, duration: 0.5, type: "spring", stiffness: 100 }}
-    whileHover={{ y: -8, boxShadow: "0 25px 50px -12px rgb(0 0 0 / 0.5)" }}
-    className={`bg-charcoal rounded-2xl border-l-4 p-6 shadow-2xl transition-all group cursor-default ${
-    status === 'success' ? 'border-l-emerald shadow-emerald/5' : 
-    status === 'warning' ? 'border-l-amber shadow-amber/5' : 
-    status === 'critical' ? 'border-l-red shadow-red/5' : 
-    'border-l-brand shadow-brand/5'
-  }`}>
-    <div className="flex items-start justify-between mb-4">
-      <div className={`p-3 rounded-xl transition-transform group-hover:scale-110 bg-navy text-white/80`}>
-        <Icon size={20} />
-      </div>
-      <div className="text-right">
-        <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-1">{title}</p>
-        <h3 className="text-3xl font-black text-white tracking-tight">{value}</h3>
-      </div>
-    </div>
-    {subValue && (
-      <div className="pt-4 border-t border-white/5 flex items-center gap-2">
-        <span className="text-[10px] font-bold text-white/20 uppercase tracking-wider">{subValue}</span>
-      </div>
-    )}
-  </motion.div>
-);
+
 
 const SetupChecklist = ({ tenant, user, dns }: { tenant: any, user: any, dns: any[] }) => {
   const steps = [
@@ -320,10 +293,10 @@ const DispatchDashboard: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard index={0} title="Incoming Orders" value={dns.filter(d => d.status === DNStatus.RECEIVED).length} icon={Inbox} subValue="Awaiting Validation" />
-          <StatCard index={1} title="Ready for Dispatch" value={dns.filter(d => d.status === DNStatus.READY_FOR_DISPATCH).length} icon={Zap} status="warning" subValue="Fulfilled & Packed" />
-          <StatCard index={2} title="Active In-Transit" value={dns.filter(d => d.status === DNStatus.IN_TRANSIT).length} icon={Navigation} status="success" subValue="Live Tracking Active" />
-          <StatCard index={3} title="Critical Exceptions" value={dns.filter(d => d.status === DNStatus.EXCEPTION).length} icon={AlertTriangle} status="critical" subValue="Immediate Action" />
+          <KPICard variant="console-dark" index={0} label="Incoming Orders" value={dns.filter(d => d.status === DNStatus.RECEIVED).length} icon={Inbox} subValue="Awaiting Validation" />
+          <KPICard variant="console-dark" index={1} label="Ready for Dispatch" value={dns.filter(d => d.status === DNStatus.READY_FOR_DISPATCH).length} icon={Zap} status="warning" subValue="Fulfilled & Packed" />
+          <KPICard variant="console-dark" index={2} label="Active In-Transit" value={dns.filter(d => d.status === DNStatus.IN_TRANSIT).length} icon={Navigation} status="success" subValue="Live Tracking Active" />
+          <KPICard variant="console-dark" index={3} label="Critical Exceptions" value={dns.filter(d => d.status === DNStatus.EXCEPTION).length} icon={AlertTriangle} status="critical" subValue="Immediate Action" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

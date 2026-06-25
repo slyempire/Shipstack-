@@ -120,9 +120,9 @@ const AgricultureSolution: React.FC = () => {
                       <img src={`https://picsum.photos/seed/farmer${i}/100/100`} alt="Farmer" referrerPolicy="no-referrer" />
                     </div>
                   ))}
-                  <div className="h-10 w-10 rounded-full border-2 border-slate-900 bg-emerald-600 flex items-center justify-center text-[10px] font-black">+50k</div>
+                  <div className="h-10 w-10 rounded-full border-2 border-slate-900 bg-emerald-600 flex items-center justify-center text-[10px] font-black">+</div>
                 </div>
-                <p className="text-[10px] font-black uppercase tracking-widest mt-4 text-white/40">Powering 50,000+ smallholder farmers</p>
+                <p className="text-[10px] font-black uppercase tracking-widest mt-4 text-white/40">Built to manage thousands of smallholder farmers</p>
               </div>
             </motion.div>
 
@@ -234,7 +234,7 @@ const AgricultureSolution: React.FC = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="h-32 bg-emerald-50/50 rounded-2xl border border-emerald-100 flex flex-col items-center justify-center gap-2">
                       <Leaf size={32} className="text-emerald-600" />
-                      <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Freshness: 100%</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Freshness: tracked</p>
                     </div>
                     <div className="h-32 bg-emerald-50/50 rounded-2xl border border-emerald-100 flex flex-col items-center justify-center gap-2">
                       <Clock size={32} className="text-orange-500" />
@@ -256,16 +256,16 @@ const AgricultureSolution: React.FC = () => {
           
           <div className="grid md:grid-cols-3 gap-8">
             <div className="p-10 bg-white/5 rounded-3xl border border-white/10">
-              <p className="text-4xl font-black text-emerald-600 mb-2">50,000+</p>
-              <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Farmers Connected</p>
+              <p className="text-4xl font-black text-emerald-600 mb-2">Farm-gate</p>
+              <p className="text-[10px] font-black uppercase tracking-widest opacity-60">To Market</p>
             </div>
             <div className="p-10 bg-white/5 rounded-3xl border border-white/10">
-              <p className="text-4xl font-black text-emerald-600 mb-2">1M+ Tons</p>
-              <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Produce Moved</p>
+              <p className="text-4xl font-black text-emerald-600 mb-2">Cold-chain</p>
+              <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Monitored End to End</p>
             </div>
             <div className="p-10 bg-white/5 rounded-3xl border border-white/10">
-              <p className="text-4xl font-black text-emerald-600 mb-2">20%</p>
-              <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Income Increase for Farmers</p>
+              <p className="text-4xl font-black text-emerald-600 mb-2">Real-time</p>
+              <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Post-harvest Visibility</p>
             </div>
           </div>
         </div>

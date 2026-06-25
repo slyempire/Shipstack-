@@ -41,6 +41,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTenant } from '../../hooks/useTenant';
 import { TaskManagement } from '../../components/TaskManagement';
 import { VerticalIntelligence } from '../../components/verticals';
+import { KPICard } from '../../components/shared/KPICard';
 
 import { aiService } from '../../services/aiService';
 import { 
@@ -97,51 +98,7 @@ const ChecklistItem = ({ icon: Icon, title, desc, done, onClick, index }: {
   </motion.button>
 );
 
-const StatCard = ({ title, value, icon: Icon, color, subValue, trend, index }: any) => {
-  const sparkData = [
-    { value: 10 + Math.random() * 20 },
-    { value: 15 + Math.random() * 20 },
-    { value: 12 + Math.random() * 20 },
-    { value: 18 + Math.random() * 20 },
-    { value: 25 + Math.random() * 20 },
-    { value: 20 + Math.random() * 20 },
-    { value: 30 + Math.random() * 20 },
-  ];
 
-  return (
-    <motion.div 
-      initial={{ opacity: 0, scale: 0.9, y: 20 }}
-      whileInView={{ opacity: 1, scale: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ delay: 0.05 * index, duration: 0.5, type: "spring", stiffness: 100 }}
-      whileHover={{ y: -8, boxShadow: "0 25px 50px -12px rgb(0 0 0 / 0.5)" }}
-      className="card-logistics flex flex-col justify-between group cursor-default"
-    >
-      <div className="flex items-start justify-between mb-6">
-        <div className={`p-4 rounded-xl transition-all group-hover:scale-110 shadow-sm ${color}`}>
-          <Icon size={24} />
-        </div>
-        <div className="text-right flex flex-col items-end">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{title}</p>
-          <div className="flex items-baseline gap-3">
-             <h3 className="text-3xl font-bold text-gray-900 tracking-tight leading-none">{value}</h3>
-          </div>
-        </div>
-      </div>
-      <div className="pt-6 border-t border-slate-50 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <MiniSparkline data={sparkData} color={trend > 0 ? '#10B981' : '#EF4444'} />
-          <span className="text-[10px] font-medium text-gray-400">{subValue}</span>
-        </div>
-        {trend && (
-          <div className={`flex items-center gap-1 text-[10px] font-bold ${trend > 0 ? 'text-emerald' : 'text-red'}`}>
-            {trend > 0 ? '↑' : '↓'} {Math.abs(trend)}%
-          </div>
-        )}
-      </div>
-    </motion.div>
-  );
-};
 
 const AdminDashboard: React.FC = () => {
   const { user, currentUserRole } = useAuthStore();
@@ -333,7 +290,7 @@ const AdminDashboard: React.FC = () => {
                 className="inline-flex items-center gap-3 px-4 py-2 bg-brand/20 border border-brand/30 rounded-full mb-8 backdrop-blur-md"
               >
                  <ShieldCheck size={14} className="text-brand-accent animate-pulse" />
-                 <span className="text-[10px] font-black uppercase tracking-widest text-white">Advanced Telemetry Node Active</span>
+                 <span className="text-[10px] font-black uppercase tracking-widest text-white">Live operations</span>
               </motion.div>
               
               <motion.h1 
@@ -379,7 +336,7 @@ const AdminDashboard: React.FC = () => {
           <div className="flex justify-between items-end">
              <div>
                 <h2 className="text-4xl font-black tracking-tighter text-gray-900 mb-1 uppercase">Command Hub</h2>
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Tactical Oversight Layer v2.4</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Real-time operations overview</p>
              </div>
              <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-2xl border border-slate-200 mr-4">
@@ -463,27 +420,33 @@ const AdminDashboard: React.FC = () => {
                 )}
 
                 <div id="dashboard-kpis" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard 
+                <KPICard 
+                  variant="console-light"
+                  key={labels.stat1.label}
                   index={0}
-                  title={labels.stat1.label} 
+                  label={labels.stat1.label} 
                   value={labels.stat1.value} 
                   icon={Navigation} 
                   color="bg-brand/10 text-brand" 
                   subValue={labels.stat1.sub} 
                   trend={labels.stat1.trend}
                 />
-                <StatCard 
+                <KPICard 
+                  variant="console-light"
+                  key={labels.stat2.label}
                   index={1}
-                  title={labels.stat2.label} 
+                  label={labels.stat2.label} 
                   value={labels.stat2.value} 
                   icon={CheckCircle} 
                   color="bg-emerald/10 text-emerald" 
                   subValue={labels.stat2.sub} 
                   trend={labels.stat2.trend}
                 />
-                <StatCard 
+                <KPICard 
+                  variant="console-light"
+                  key={labels.stat3.label}
                   index={2}
-                  title={labels.stat3.label} 
+                  label={labels.stat3.label} 
                   value={labels.stat3.value} 
                   icon={DatabaseZap} 
                   color="bg-amber/10 text-amber" 
@@ -491,9 +454,11 @@ const AdminDashboard: React.FC = () => {
                   trend={labels.stat3.trend}
                 />
                 {isModuleEnabled('finance') && (
-                  <StatCard 
+                  <KPICard 
+                    variant="console-light"
+                    key="Revenue (MTD)"
                     index={3}
-                    title="Revenue (MTD)" 
+                    label="Revenue (MTD)" 
                     value={revenueDisplay} 
                     icon={DollarSign} 
                     color="bg-emerald/10 text-emerald" 
@@ -726,65 +691,10 @@ const AdminDashboard: React.FC = () => {
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="space-y-8"
+                  className="space-y-6"
                 >
-                  {/* Weekly Volume Trends */}
-                  <div className="card-logistics !p-8">
-                    <div className="flex items-center justify-between mb-8">
-                      <div>
-                        <h3 className="heading-primary mb-1">Network Volume Matrix</h3>
-                        <p className="label-logistics text-gray-400">Tactical shipment distribution</p>
-                      </div>
-                      <div className="flex items-center gap-6">
-                        <div className="flex items-center gap-2">
-                          <div className="h-3 w-3 rounded-full bg-brand shadow-[0_0_8px_#0066FF]"></div>
-                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Live Volume</span>
-                        </div>
-                        <select className="bg-slate-50 border-none text-[10px] font-black uppercase tracking-widest text-slate-400 rounded-lg focus:ring-0 cursor-pointer">
-                          <option>Last 7 Days</option>
-                          <option>Last 30 Days</option>
-                        </select>
-                      </div>
-                    </div>
-                    
-                    <ShipmentTrendChart data={weeklyData} />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="card-logistics !p-8">
-                      <div className="mb-6">
-                        <h4 className="label-logistics text-slate-400 mb-1">Status Distribution</h4>
-                        <h3 className="body-value">Node Lifecycle</h3>
-                      </div>
-                      <StatusDistributionChart data={statusData} />
-                      <div className="grid grid-cols-2 gap-4 mt-4">
-                        {statusData.map((s, i) => (
-                          <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{s.name}</span>
-                            <span className="text-xs font-black text-slate-900">{s.value}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="card-logistics !p-8">
-                      <div className="mb-6">
-                        <h4 className="label-logistics text-slate-400 mb-1">Efficiency Mesh</h4>
-                        <h3 className="body-value">SLA Performance Radar</h3>
-                      </div>
-                      <EfficiencyRadarChart data={efficiencyData} />
-                      <div className="mt-4 p-4 bg-brand/5 border border-brand/10 rounded-xl">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Sparkles size={14} className="text-brand" />
-                          <span className="text-[9px] font-black text-brand uppercase tracking-widest">Cortex AI Insight</span>
-                        </div>
-                        <p className="text-[10px] font-medium text-slate-500 leading-relaxed uppercase">
-                          Reliability is currently your strongest vector. Suggest focusing on "Sustainability" node optimization for next fiscal quarter.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="card-logistics !p-0 overflow-hidden relative flex flex-col h-[500px]">
+                  {/* Map - Hero Bento Item */}
+                  <div className="card-logistics !p-0 overflow-hidden relative flex flex-col h-[400px]">
                     <div className="absolute top-8 left-8 right-8 z-[1000] flex justify-between items-start pointer-events-none">
                       <div className="bg-white/90 backdrop-blur-md px-6 py-3 rounded-xl border border-slate-200 text-gray-900 font-black text-[10px] uppercase tracking-widest flex items-center gap-3 pointer-events-auto shadow-xl">
                         <div className="h-2 w-2 rounded-full bg-emerald animate-pulse"></div>
@@ -796,6 +706,65 @@ const AdminDashboard: React.FC = () => {
                       dns={dns.filter(d => d.status === DNStatus.IN_TRANSIT)} 
                       facilities={facilities} 
                     />
+                  </div>
+
+                  {/* 3-Column Bento Below Map */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="md:col-span-2 card-logistics !p-8">
+                      <div className="flex items-center justify-between mb-8">
+                        <div>
+                          <h3 className="heading-primary mb-1">Network Volume Matrix</h3>
+                          <p className="label-logistics text-gray-400">Tactical shipment distribution</p>
+                        </div>
+                        <div className="flex items-center gap-6">
+                          <div className="flex items-center gap-2">
+                            <div className="h-3 w-3 rounded-full bg-brand shadow-[0_0_8px_#0066FF]"></div>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Live Volume</span>
+                          </div>
+                          <select className="bg-slate-50 border-none text-[10px] font-black uppercase tracking-widest text-slate-400 rounded-lg focus:ring-0 cursor-pointer">
+                            <option>Last 7 Days</option>
+                            <option>Last 30 Days</option>
+                          </select>
+                        </div>
+                      </div>
+                      <ShipmentTrendChart data={weeklyData} />
+                    </div>
+
+                    <div className="card-logistics !p-8 flex flex-col justify-between">
+                      <div>
+                        <div className="mb-6">
+                          <h4 className="label-logistics text-slate-400 mb-1">Status Distribution</h4>
+                          <h3 className="body-value">Node Lifecycle</h3>
+                        </div>
+                        <StatusDistributionChart data={statusData} />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 mt-4">
+                        {statusData.map((s, i) => (
+                          <div key={i} className="flex flex-col p-2 bg-slate-50 rounded-xl">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{s.name}</span>
+                            <span className="text-xs font-black text-slate-900">{s.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="card-logistics !p-8 flex flex-col justify-between">
+                      <div>
+                        <div className="mb-6">
+                          <h4 className="label-logistics text-slate-400 mb-1">Efficiency Mesh</h4>
+                          <h3 className="body-value">SLA Performance Radar</h3>
+                        </div>
+                        <EfficiencyRadarChart data={efficiencyData} />
+                      </div>
+                      <div className="mt-4 p-4 bg-brand/5 border border-brand/10 rounded-xl">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Sparkles size={14} className="text-brand" />
+                          <span className="text-[9px] font-black text-brand uppercase tracking-widest">Cortex AI Insight</span>
+                        </div>
+                        <p className="text-[10px] font-medium text-slate-500 leading-relaxed uppercase">
+                          Reliability is currently your strongest vector. Suggest focusing on "Sustainability" node optimization for next fiscal quarter.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </motion.div>
               )}

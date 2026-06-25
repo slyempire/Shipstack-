@@ -19,7 +19,7 @@ import ScrollToTop from '../../components/ScrollToTop';
 
 const InfrastructurePage: React.FC = () => {
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 selection:bg-brand-accent selection:text-white">
+    <div className="marketing-surface min-h-screen bg-slate-50 font-sans text-slate-900 selection:bg-brand-accent selection:text-white">
       {/* Navigation */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-100">
         <div className="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">

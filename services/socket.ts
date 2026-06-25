@@ -86,12 +86,12 @@ export const telemetryService = {
     }
   },
 
-  async syncOfflineQueue() {
+  async syncOfflineQueue(): Promise<number> {
     const queue = JSON.parse(localStorage.getItem('shipstack_telemetry_queue') || '[]');
-    if (queue.length === 0) return;
+    if (queue.length === 0) return 0;
 
     console.log(`[OFFLINE] Syncing ${queue.length} telemetry points...`);
-    
+
     const remaining = [];
     for (const point of queue) {
       try {
@@ -107,6 +107,7 @@ export const telemetryService = {
     }
 
     localStorage.setItem('shipstack_telemetry_queue', JSON.stringify(remaining));
+    return queue.length - remaining.length;
   },
 
   onTelemetryUpdate(callback: (data: any) => void) {

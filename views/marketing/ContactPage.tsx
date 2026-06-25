@@ -45,7 +45,7 @@ const ContactPage: React.FC = () => {
             className="max-w-3xl lg:ml-12 xl:ml-20"
           >
             <h1 className="text-5xl md:text-7xl font-black text-white tracking-tight leading-[0.95] mb-8 uppercase">
-              Let&rsquo;s talk <span className="text-[#FF5722]">logistics.</span>
+              Let&rsquo;s talk <span className="font-serif italic font-medium text-[#FF5722]">logistics.</span>
             </h1>
             <p className="text-lg md:text-xl text-white/70 font-medium leading-relaxed max-w-2xl">
               Whether you're an SME, a fleet operator, or an enterprise, we're here to help you scale.

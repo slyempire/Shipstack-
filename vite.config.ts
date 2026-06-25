@@ -25,7 +25,8 @@ export default defineConfig(({ mode }) => {
             name: 'Shipstack Logistics',
             short_name: 'Shipstack',
             description: 'Next-gen Logistics Management System',
-            theme_color: '#1F6AE1',
+            theme_color: '#0B0E16',
+            background_color: '#0B0E16',
             icons: [
               {
                 src: 'pwa-192x192.png',

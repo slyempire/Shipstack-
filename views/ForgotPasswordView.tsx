@@ -36,38 +36,39 @@ const ForgotPasswordView: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-white overflow-hidden items-center justify-center p-8">
-      <Link to="/login" className="absolute top-8 left-8 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-brand transition-colors">
+    <div className="flex min-h-screen flex-col bg-[var(--bg-page)] overflow-hidden items-center justify-center p-8">
+      <Link to="/login" className="absolute top-8 left-8 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400 hover:text-[#FF5722] transition-colors">
         <ArrowLeft size={14} /> Back to Login
       </Link>
 
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-md w-full"
+        className="max-w-md w-full card-minimal !p-8 md:!p-10"
       >
-        <div className="flex items-center gap-4 mb-12 justify-center">
-          <div className="h-16 w-16 rounded-[24px] bg-brand text-white flex items-center justify-center shadow-2xl">
-              <Layers size={32} fill="currentColor" />
+        <div className="flex flex-col items-center mb-10 text-center">
+          <div 
+            className="h-14 w-14 rounded-2xl flex items-center justify-center text-white mb-4 shadow-lg" 
+            style={{ background: 'linear-gradient(135deg, #FF5722 0%, #FF7A50 100%)', boxShadow: '0 4px 16px rgba(255,87,34,0.35)' }}
+          >
+            <Layers size={28} />
           </div>
-          <div className="text-left">
-            <h2 className="text-3xl font-black tracking-tighter text-slate-900 uppercase font-display">Shipstack</h2>
-            <p className="text-[10px] font-black text-brand-accent uppercase tracking-widest">Africa's Digital Logistics Platform</p>
-          </div>
+          <h2 className="text-3xl font-black tracking-[-0.03em] text-slate-900 uppercase font-display leading-none mb-1.5">Shipstack</h2>
+          <p className="text-[10px] font-black text-[#FF5722] uppercase tracking-[0.25em] leading-none">Digital Logistics Platform</p>
         </div>
 
         {isSent ? (
           <div className="text-center space-y-6">
-            <div className="h-20 w-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle2 size={40} />
+            <div className="h-16 w-16 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <CheckCircle2 size={32} />
             </div>
-            <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Check your email</h3>
-            <p className="text-slate-500 font-medium leading-relaxed">
+            <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight leading-none">Check your email</h3>
+            <p className="text-sm text-slate-500 font-medium leading-relaxed">
               We sent reset instructions to <span className="font-bold text-slate-900">{email}</span>. The link expires in an hour.
             </p>
             <button
               onClick={() => navigate('/login')}
-              className="w-full bg-slate-900 text-white py-6 rounded-2xl font-black uppercase text-sm tracking-[0.2em] shadow-xl transition-all hover:scale-105 active:scale-95"
+              className="w-full btn-primary !h-14 !rounded-xl text-[12px] tracking-[0.18em]"
             >
               Back to sign in
             </button>
@@ -75,20 +76,20 @@ const ForgotPasswordView: React.FC = () => {
         ) : (
           <form className="space-y-6" onSubmit={handleReset}>
             <div className="text-center mb-8">
-              <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight mb-2">Forgot your password?</h3>
-              <p className="text-slate-500 font-medium text-xs uppercase tracking-widest">Enter your email and we'll send you a reset link.</p>
+              <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight leading-none mb-2.5">Forgot your password?</h3>
+              <p className="text-slate-400 font-medium text-[11px] uppercase tracking-wider leading-relaxed">Enter your email and we'll send you a reset link.</p>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email</label>
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.18em] ml-1">Email</label>
               <div className="relative">
-                <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 z-10" size={17} />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full rounded-2xl border-2 border-slate-100 bg-slate-50 pl-16 pr-6 py-5 text-slate-900 font-bold focus:border-brand-accent outline-none transition-all placeholder:text-slate-300"
+                  className="input-field pl-14"
                   placeholder="name@shipstack.com"
                 />
               </div>
@@ -97,15 +98,13 @@ const ForgotPasswordView: React.FC = () => {
             <motion.button
               type="submit"
               disabled={isLoading || !isOnline}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="w-full bg-brand text-white py-6 rounded-2xl font-black uppercase text-sm tracking-[0.2em] shadow-xl shadow-brand/20 active:scale-[0.98] disabled:opacity-50 transition-all flex items-center justify-center gap-3"
+              className="w-full btn-primary-brand !h-14 !rounded-xl text-[12px] tracking-[0.18em] justify-center"
             >
-              {isLoading ? <RefreshCw className="animate-spin" size={20} /> : 'Send reset link'}
+              {isLoading ? <RefreshCw className="animate-spin" size={18} /> : 'Send reset link'}
             </motion.button>
 
-            <p className="text-center text-[10px] font-black text-slate-400 uppercase tracking-widest pt-4">
-              Need help? <Link to="/contact" className="text-brand hover:underline">Contact us</Link>
+            <p className="text-center text-[11px] font-bold text-slate-400 uppercase tracking-[0.18em] pt-4 leading-none">
+              Need help? <Link to="/contact" className="text-[#FF5722] hover:text-[#E64A19] transition-colors">Contact us</Link>
             </p>
           </form>
         )}

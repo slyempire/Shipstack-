@@ -1,251 +1,42 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../../store';
-import { api } from '../../api';
-import { 
-  ArrowRight, 
-  Truck, 
-  ShieldCheck, 
-  CheckCircle,
-  Zap, 
-  Globe,
-  Layers,
-  MapPin,
-  Activity,
-  Shield,
-  TrendingUp,
-  MessageSquare,
-  ChevronDown,
-  ChevronUp,
-  Twitter,
-  Linkedin,
-  Facebook,
-  CreditCard,
-  Building,
-  FileText,
-  User,
-  Plus,
-  X,
-  Target,
-  BarChart3,
-  Smartphone,
-  Bell,
-  Users,
-  Navigation,
-  Wallet,
-  LayoutDashboard,
-  Search,
-  Database,
-  History,
-  ClipboardCheck,
-  MousePointer2,
-  Cog
+import {
+  ArrowRight, Truck, ShieldCheck, CheckCircle, Zap, Globe, Layers,
+  MapPin, Activity, Shield, TrendingUp, MessageSquare, ChevronDown,
+  ChevronUp, CreditCard, Building, FileText, User, Plus, X, Target,
+  BarChart3, Smartphone, Bell, Users, Navigation, Wallet, LayoutDashboard,
+  Search, Database, History, ClipboardCheck, MousePointer2, Cog, ArrowUpRight
 } from 'lucide-react';
-
 import MarketingLayout from '../../components/marketing/MarketingLayout';
-import { motion, AnimatePresence, useScroll, useSpring, useInView } from 'framer-motion';
+import { motion, AnimatePresence, useInView } from 'framer-motion';
+import { KPICard } from '../../components/shared/KPICard';
 
-const TrustBadge = () => (
-  <motion.div 
-    initial={{ opacity: 0, y: 10 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay: 0.8 }}
-    className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full mt-8"
-  >
-    <Shield size={14} className="text-brand" />
-    <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Early-access pilot partners: Now onboarding for Q3 2026</span>
-  </motion.div>
-);
+const DashboardShowcase = React.lazy(() => import('../../components/marketing/ProductShowcase'));
 
-const FeatureCard = ({ icon: Icon, title, desc, delay }: any) => {
+// ── Reduced-motion check ─────────────────────────────────────────────────────
+const prefersReducedMotion =
+  typeof window !== 'undefined'
+    ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    : false;
+
+// ── Section wrapper with scroll-triggered fade-up ────────────────────────────
+const SectionWrapper: React.FC<{
+  children: React.ReactNode;
+  className?: string;
+  id?: string;
+  style?: React.CSSProperties;
+}> = ({ children, className, id, style }) => {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
-
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 30 }}
-      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-      transition={{ duration: 0.6, delay }}
-      whileHover={{ y: -8, boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)" }}
-      className="bg-slate-900/50 p-10 rounded-[3rem] border border-white/5 group hover:border-brand/30 transition-all shadow-xl"
-    >
-      <div className="h-16 w-16 bg-brand/10 text-brand rounded-2xl flex items-center justify-center mb-8 group-hover:bg-brand group-hover:text-white transition-all">
-        <Icon size={32} />
-      </div>
-      <h3 className="text-2xl font-black uppercase tracking-tight mb-4 text-white">{title}</h3>
-      <p className="text-slate-400 font-medium leading-relaxed">{desc}</p>
-    </motion.div>
-  );
-};
-
-const StatItem = ({ value, label, icon: Icon }: any) => {
-  const targetValue = parseFloat(value.toString().replace(/,/g, ''));
-  const [displayValue, setDisplayValue] = useState(targetValue);
-  const [hasAnimated, setHasAnimated] = useState(false);
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-50px" });
-
-  useEffect(() => {
-    if (isInView && !hasAnimated) {
-      setHasAnimated(true);
-      let start = 0;
-      const end = targetValue;
-      const duration = 2000;
-      const stepTime = 30;
-      const step = end / (duration / stepTime);
-
-      const timer = setInterval(() => {
-        start += step;
-        if (start >= end) {
-          setDisplayValue(end);
-          clearInterval(timer);
-        } else {
-          setDisplayValue(start);
-        }
-      }, stepTime);
-      return () => clearInterval(timer);
-    }
-  }, [isInView, targetValue, hasAnimated]);
-
-  const formattedValue = value.toString().includes('%') 
-    ? `${displayValue.toFixed(1)}%` 
-    : value.toString().includes('+') 
-      ? `${Math.floor(displayValue).toLocaleString()}+`
-      : Math.floor(displayValue).toLocaleString();
-
-  return (
-    <div ref={ref} className="flex flex-col items-center text-center p-8 bg-[#121E36] rounded-3xl border border-white/5 shadow-inner group hover:border-brand/20 transition-all">
-      <Icon className="text-brand mb-4 group-hover:scale-110 transition-transform" size={24} />
-      <span className="text-3xl font-black text-white mb-2">{formattedValue}</span>
-      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</span>
-    </div>
-  );
-};
-
-const StepAction = ({ number, title, icon: Icon, desc, delay }: any) => {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true });
-
-  return (
-    <motion.div 
-      ref={ref}
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={isInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.9 }}
-      transition={{ delay }}
-      className="flex flex-col items-center text-center relative z-10"
-    >
-      <div className="h-20 w-20 bg-brand text-white rounded-full flex items-center justify-center mb-6 shadow-xl relative ring-8 ring-[#1A2B4D]">
-        <Icon size={32} />
-        <div className="absolute -top-2 -left-2 h-8 w-8 bg-white text-brand rounded-full flex items-center justify-center font-black text-sm border-2 border-brand">
-          {number}
-        </div>
-      </div>
-      <h4 className="text-lg font-black uppercase tracking-tight text-white mb-2">{title}</h4>
-      <p className="text-xs text-slate-400 font-medium max-w-[200px]">{desc}</p>
-    </motion.div>
-  );
-};
-
-const TestimonialCard = ({ quote, author, role, company, city, delay }: any) => {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true });
-
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, x: -20 }}
-      animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -20 }}
-      transition={{ delay }}
-      className="bg-white p-10 rounded-[3rem] shadow-xl border border-slate-100 flex flex-col justify-between"
-    >
-      <div className="mb-8">
-        <div className="flex gap-1 mb-4">
-          {[1,2,3,4,5].map(i => <span key={i} className="text-brand">★</span>)}
-        </div>
-        <p className="text-lg text-slate-700 italic font-medium leading-relaxed">"{quote}"</p>
-      </div>
-      <div className="flex items-center gap-4">
-        <div className="h-12 w-12 bg-slate-100 rounded-full flex-shrink-0 border-2 border-slate-50" />
-        <div>
-          <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight">{author}</h4>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{role}, {company} — {city}</p>
-        </div>
-      </div>
-    </motion.div>
-  );
-};
-
-const FAQItem = ({ question, answer }: any) => {
-  const [isOpen, setIsOpen] = useState(false);
-  return (
-    <div className="border-b border-white/5 overflow-hidden">
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between py-6 text-left hover:text-brand transition-colors"
-      >
-        <span className="text-lg font-black uppercase tracking-tight text-white">{question}</span>
-        {isOpen ? <Plus className="text-brand rotate-45" size={20} /> : <Plus className="text-brand" size={20} />}
-      </button>
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="pb-6"
-          >
-            <p className="text-slate-400 font-medium leading-relaxed">{answer}</p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
-
-const PricingTier = ({ tier, price, desc, features, cta, featured, onClick }: any) => (
-  <div className={`p-10 rounded-[3rem] border transition-all flex flex-col ${
-    featured 
-      ? 'bg-slate-900 border-t-8 border-brand shadow-2xl scale-105 z-10' 
-      : 'bg-[#1A2B4D] border-white/5 hover:border-white/10'
-  }`}>
-    <div className="mb-8">
-      <h3 className="text-2xl font-black uppercase tracking-tight text-white mb-2">{tier}</h3>
-      <p className="text-xs text-slate-400 font-black uppercase tracking-widest mb-6">{desc}</p>
-      <div className="flex items-end gap-1">
-        <span className="text-5xl font-black text-white">{price}</span>
-        {price !== 'Custom' && <span className="text-slate-400 font-black uppercase text-[10px] mb-2">/mo</span>}
-      </div>
-    </div>
-    <ul className="space-y-4 mb-10 flex-grow">
-      {features.map((f: string, i: number) => (
-        <li key={i} className="flex items-center gap-3 text-sm font-medium text-slate-300">
-          <CheckCircle size={16} className="text-brand shrink-0" />
-          {f}
-        </li>
-      ))}
-    </ul>
-    <button 
-      onClick={onClick}
-      className={`w-full py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
-      featured 
-        ? 'bg-brand text-white shadow-xl shadow-brand/20 hover:scale-[1.02]' 
-        : 'bg-white/5 border border-white/10 text-white hover:bg-white/10'
-    }`}>
-      {cta}
-    </button>
-  </div>
-);
-
-const SectionWrapper = ({ children, className }: any) => {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
+  const isInView = useInView(ref, { once: true, margin: '-80px' });
   return (
     <motion.section
+      id={id}
       ref={ref}
-      initial={{ opacity: 0, y: 30 }}
-      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-      transition={{ duration: 0.6, ease: "easeOut" }}
+      style={style}
+      initial={prefersReducedMotion ? {} : { opacity: 0, y: 24 }}
+      animate={prefersReducedMotion ? {} : (isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 })}
+      transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
       className={className}
     >
       {children}
@@ -253,497 +44,816 @@ const SectionWrapper = ({ children, className }: any) => {
   );
 };
 
+// ── Feature card (bento-style) ───────────────────────────────────────────────
+const FeatureCard: React.FC<{ icon: any; title: string; desc: string; delay?: number; accent?: string; large?: boolean }> = ({
+  icon: Icon, title, desc, delay = 0, accent = '#FF5722', large = false
+}) => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: '-60px' });
+  return (
+    <motion.div
+      ref={ref}
+      initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+      animate={prefersReducedMotion ? {} : (isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 })}
+      transition={{ duration: 0.55, delay, ease: [0.23, 1, 0.32, 1] }}
+      whileHover={prefersReducedMotion ? {} : { y: -6 }}
+      className={`group relative rounded-3xl border p-8 flex flex-col transition-all duration-300 overflow-hidden ${
+        large ? 'col-span-1 md:col-span-2' : ''
+      }`}
+      style={{
+        background: 'rgba(26,31,46,0.7)',
+        borderColor: 'rgba(255,255,255,0.06)',
+      }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = `${accent}35`; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.06)'; }}
+    >
+      <div
+        className="h-12 w-12 rounded-2xl flex items-center justify-center mb-6 transition-all duration-300 group-hover:scale-110"
+        style={{ background: `${accent}15`, color: accent }}
+      >
+        <Icon size={24} />
+      </div>
+      <h3
+        className="text-[18px] font-black text-white mb-3 tracking-tight"
+        style={{ textTransform: 'none', letterSpacing: '-0.01em' }}
+      >
+        {title}
+      </h3>
+      <p className="text-[14px] text-white/55 font-medium leading-relaxed" style={{ textTransform: 'none' }}>
+        {desc}
+      </p>
+      {/* Hover underline accent */}
+      <div
+        className="absolute bottom-0 left-0 h-[2px] w-0 group-hover:w-full transition-all duration-500 rounded-full"
+        style={{ background: `linear-gradient(90deg, ${accent}, transparent)` }}
+        aria-hidden="true"
+      />
+    </motion.div>
+  );
+};
+
+// ── Animated counter stat ────────────────────────────────────────────────────
+const StatCounter: React.FC<{ value: number; suffix?: string; label: string; color?: string }> = ({
+  value, suffix = '', label, color = '#FF5722'
+}) => {
+  const [display, setDisplay] = useState(0);
+  const [started, setStarted] = useState(false);
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: '-40px' });
+
+  useEffect(() => {
+    if (isInView && !started && !prefersReducedMotion) {
+      setStarted(true);
+      const steps = 60;
+      const interval = 1800 / steps;
+      let i = 0;
+      const timer = setInterval(() => {
+        i++;
+        setDisplay(Math.round(value * (i / steps)));
+        if (i >= steps) { setDisplay(value); clearInterval(timer); }
+      }, interval);
+      return () => clearInterval(timer);
+    }
+    if (prefersReducedMotion) setDisplay(value);
+  }, [isInView, value, started]);
+
+  return (
+    <div ref={ref} className="flex flex-col items-center text-center">
+      <div className="text-[3rem] md:text-[3.5rem] font-black text-white leading-none mb-2 tabular-nums" style={{ fontFamily: 'var(--font-display)' }}>
+        {display.toLocaleString()}{suffix}
+      </div>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-white/40" style={{ textTransform: 'uppercase' }}>
+        {label}
+      </p>
+    </div>
+  );
+};
+
+// ── FAQ accordion item ───────────────────────────────────────────────────────
+const FAQItem: React.FC<{ question: string; answer: string }> = ({ question, answer }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border-b border-white/8">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between py-6 text-left gap-4 group focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#FF5722] focus-visible:outline-offset-2 rounded-sm"
+        aria-expanded={open}
+      >
+        <span
+          className="text-[16px] font-semibold text-white group-hover:text-white/90 transition-colors"
+          style={{ textTransform: 'none', letterSpacing: 'normal' }}
+        >
+          {question}
+        </span>
+        <div
+          className="h-8 w-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-300"
+          style={{ background: open ? '#FF5722' : 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+        >
+          <Plus
+            size={16}
+            className="text-white transition-transform duration-300"
+            style={{ transform: open ? 'rotate(45deg)' : 'none' }}
+          />
+        </div>
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            key="answer"
+            initial={prefersReducedMotion ? { opacity: 1 } : { height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={prefersReducedMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+            className="overflow-hidden"
+          >
+            <p
+              className="pb-6 text-[14px] text-white/55 font-medium leading-relaxed"
+              style={{ textTransform: 'none', letterSpacing: 'normal' }}
+            >
+              {answer}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+// ── Pricing tier card ────────────────────────────────────────────────────────
+const PricingTier: React.FC<{
+  tier: string; price: string; desc: string; features: string[];
+  cta: string; featured?: boolean; onClick: () => void;
+}> = ({ tier, price, desc, features, cta, featured, onClick }) => (
+  <div
+    className={`relative rounded-3xl p-8 flex flex-col transition-all duration-300 ${
+      featured ? 'ring-2 ring-[#FF5722] shadow-[0_0_60px_-20px_rgba(255,87,34,0.5)]' : ''
+    }`}
+    style={{ background: featured ? '#0F172A' : 'rgba(26,31,46,0.6)', border: '1px solid rgba(255,255,255,0.07)' }}
+  >
+    {featured && (
+      <div
+        className="absolute -top-4 left-1/2 -translate-x-1/2 px-5 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-white rounded-full"
+        style={{ background: '#FF5722', boxShadow: '0 4px 16px rgba(255,87,34,0.4)' }}
+      >
+        Most Popular
+      </div>
+    )}
+    <div className="mb-8">
+      <h3 className="text-[22px] font-black text-white mb-1 tracking-tight" style={{ textTransform: 'none' }}>
+        {tier}
+      </h3>
+      <p className="text-[11px] text-white/40 font-semibold uppercase tracking-[0.2em] mb-6">{desc}</p>
+      <div className="flex items-end gap-1">
+        <span className="text-[3rem] font-black text-white leading-none" style={{ fontFamily: 'var(--font-display)' }}>
+          {price}
+        </span>
+        {price !== 'Custom' && price !== 'Early Access' && (
+          <span className="text-white/40 font-semibold text-[12px] mb-2">/mo</span>
+        )}
+      </div>
+    </div>
+    <ul className="space-y-3.5 mb-10 flex-grow">
+      {features.map((f, i) => (
+        <li key={i} className="flex items-center gap-3 text-[14px] font-medium text-white/70" style={{ textTransform: 'none' }}>
+          <CheckCircle size={15} className="shrink-0" style={{ color: featured ? '#FF5722' : '#10B981' }} />
+          {f}
+        </li>
+      ))}
+    </ul>
+    <button
+      onClick={onClick}
+      className={`w-full py-4 rounded-2xl text-[12px] font-bold uppercase tracking-[0.18em] transition-all duration-200 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF5722] ${
+        featured
+          ? 'text-white'
+          : 'bg-white/6 border border-white/10 text-white hover:bg-white/10'
+      }`}
+      style={featured ? {
+        background: 'linear-gradient(135deg, #FF5722 0%, #E64A19 100%)',
+        boxShadow: '0 4px 20px rgba(255,87,34,0.4)',
+      } : {}}
+    >
+      {cta}
+    </button>
+  </div>
+);
+
+// ── Main LandingPage ─────────────────────────────────────────────────────────
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuthStore();
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [activeStep, setActiveStep] = useState(0);
+  const [stepPaused, setStepPaused] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => setShowBackToTop(window.scrollY > 400);
-    window.addEventListener('scroll', handleScroll);
+    const handleScroll = () => setShowBackToTop(window.scrollY > 500);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Auto-advance "How It Works" steps — respects reduced-motion and hover pause
+  useEffect(() => {
+    if (prefersReducedMotion || stepPaused) return;
+    const timer = setInterval(() => setActiveStep(s => (s + 1) % 4), 3000);
+    return () => clearInterval(timer);
+  }, [stepPaused]);
+
   const handleDashboardRedirect = () => {
     const role = user?.role?.toUpperCase();
-    if (role === 'DRIVER') navigate('/driver');
+    if      (role === 'DRIVER')                               navigate('/driver');
     else if (role === 'FACILITY' || role === 'FACILITY_OPERATOR') navigate('/facility');
-    else if (role === 'WAREHOUSE') navigate('/admin/warehouse');
-    else navigate('/admin');
+    else if (role === 'WAREHOUSE')                            navigate('/admin/warehouse');
+    else                                                       navigate('/admin');
   };
+
+  const steps = [
+    { id: '01', title: 'Sign up in under a minute', desc: 'Create your account, tell us about your fleet, and pick the modules you need. We tailor the dashboard to your operation.', image: 'https://images.unsplash.com/photo-1551434678-e076c223a692?q=80&w=2000&auto=format&fit=crop' },
+    { id: '02', title: 'Add your fleet & drivers', desc: 'Add vehicles, drivers, hubs, and your first delivery notes. Bulk-import from spreadsheets if you already have them.', image: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=2000&auto=format&fit=crop' },
+    { id: '03', title: 'Track every trip in real time', desc: 'See where every vehicle is, ETAs, exceptions, and proof-of-delivery as drivers complete stops. No phone-call updates.', image: 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?q=80&w=2000&auto=format&fit=crop' },
+    { id: '04', title: 'Grow with data you trust', desc: 'Reconcile payments, spot bottlenecks, and forecast demand. Every metric ties back to a verifiable delivery.', image: 'https://images.unsplash.com/photo-1542435503-956c469947f6?q=80&w=2000&auto=format&fit=crop' },
+  ];
+
+  const currentStep = steps[activeStep];
 
   return (
     <MarketingLayout>
-      {/* Hero Section (v2: Arrow-inspired full-bleed photo + lower-left headline + stat bar below) */}
-      <section className="relative bg-[#0B0E16] overflow-hidden">
-        {/* Full-bleed photo with dark gradient overlay for headline legibility */}
-        <div className="relative h-[85vh] min-h-[640px] md:min-h-[720px]">
-          <img
-            src="https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?q=80&w=2600&auto=format&fit=crop"
-            alt="Logistics truck on highway"
-            className="absolute inset-0 w-full h-full object-cover"
-            referrerPolicy="no-referrer"
-          />
-          {/* Bottom-anchored gradient -- darker at the bottom so the headline reads cleanly */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0B0E16] via-[#0B0E16]/70 to-[#0B0E16]/20" />
-          {/* Subtle top gradient so the nav bar stays readable on lighter top of image */}
-          <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#0B0E16]/80 to-transparent" />
 
-          {/* Hero content -- offset from left edge so it reads as part of a
-              centered composition rather than flush-left. Inner padding scales
-              with breakpoint: md:px-16, lg:px-32 pushes content inward toward
-              the centerline, matching the Arrow ref proportions. */}
-          <div className="relative h-full max-w-7xl mx-auto px-8 md:px-16 lg:px-24 flex flex-col justify-between pt-32 pb-16">
-            {/* Top: pilot badge */}
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="self-start"
-            >
-              <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-white/5 border border-white/10 rounded-full backdrop-blur-md">
-                <span className="flex h-2 w-2 rounded-full bg-[#FF5722] animate-pulse" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/80">Now onboarding pilot partners</span>
-              </div>
-            </motion.div>
+      {/* ══════════════════════════════════════════════════════════════════
+          HERO — Gradient mesh background, no Unsplash dependency
+      ══════════════════════════════════════════════════════════════════ */}
+      <section className="hero-mesh relative overflow-hidden" style={{ paddingTop: 0, marginTop: '-76px' }}>
+        {/* Full-height hero container (accounts for fixed nav spacer) */}
+        <div className="relative min-h-screen flex flex-col justify-between" style={{ paddingTop: '76px' }}>
 
-            {/* Bottom-left: headline + subhead + CTAs (inset further on lg+) */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: 'easeOut' }}
-              className="max-w-3xl lg:ml-12 xl:ml-20"
-            >
-              <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-black uppercase tracking-tight leading-[0.95] text-white mb-8">
-                Logistics, <br />
-                built for <span className="text-[#FF5722]">Africa.</span>
-              </h1>
-              <p className="text-lg md:text-xl text-white/70 font-medium leading-relaxed mb-10 max-w-2xl">
-                One place to manage your fleet, dispatch drivers, and reconcile payments &mdash; built for African logistics teams.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <button
-                  onClick={() => isAuthenticated ? handleDashboardRedirect() : navigate('/register')}
-                  className="px-8 py-5 bg-[#FF5722] hover:bg-[#E64A19] text-white text-sm font-bold rounded-xl shadow-2xl shadow-[#FF5722]/20 hover:shadow-[#FF5722]/30 transition-all active:scale-95 flex items-center justify-center gap-3"
+          {/* Hero content */}
+          <div className="relative z-10 flex-1 flex flex-col justify-center max-w-7xl mx-auto px-8 md:px-16 lg:px-24 py-24">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center w-full">
+              {/* Left Column: Headline, Description and CTAs */}
+              <div className="lg:col-span-8 flex flex-col justify-center">
+                {/* Pilot badge */}
+                <motion.div
+                  initial={prefersReducedMotion ? {} : { opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6 }}
+                  className="mb-10 self-start"
                 >
-                  Get started
-                  <ArrowRight size={18} />
-                </button>
-                {!isAuthenticated && (
-                  <button
-                    onClick={() => navigate('/product')}
-                    className="px-8 py-5 bg-white/5 hover:bg-white/10 border border-white/20 text-white text-sm font-bold rounded-xl backdrop-blur-md transition-all flex items-center justify-center gap-3"
+                  <div
+                    className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full"
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)' }}
                   >
-                    See how it works
-                  </button>
-                )}
-              </div>
-            </motion.div>
-          </div>
-        </div>
+                    <span className="flex h-2 w-2 rounded-full bg-[#FF5722] animate-pulse" aria-hidden="true" />
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/75">
+                      Now onboarding pilot partners
+                    </span>
+                  </div>
+                </motion.div>
 
-        {/* Stat bar -- honest pilot-stage numbers, no inflated traction claims.
-            Inner padding mirrors the hero so the stats line up under the
-            headline rather than running flush to the screen edge. */}
-        <div className="border-t border-white/5 bg-[#1A1F2E]">
-          <div className="max-w-7xl mx-auto px-8 md:px-16 lg:px-24">
-            <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-white/5">
-              {[
-                { value: 'Pilot', label: 'Live with first partners' },
-                { value: '<25ms', label: 'API response' },
-                { value: '99.99%', label: 'Uptime SLA' },
-                { value: '24/7', label: 'Support during pilot' },
-              ].map((stat) => (
-                <div key={stat.label} className="py-10 px-6 md:px-10">
-                  <p className="text-4xl md:text-5xl font-black text-white tracking-tight leading-none mb-2">{stat.value}</p>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/40">{stat.label}</p>
-                </div>
-              ))}
+                {/* Headline */}
+                <motion.div
+                  initial={prefersReducedMotion ? {} : { opacity: 0, y: 32 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.85, delay: 0.1, ease: [0.23, 1, 0.32, 1] }}
+                >
+                  <h1
+                    className="text-[4.5rem] md:text-[6.5rem] lg:text-[7.5rem] font-black text-white leading-[0.88] tracking-[-0.03em] mb-8"
+                    style={{ fontFamily: 'var(--font-display)', textTransform: 'none' }}
+                  >
+                    Logistics,{' '}
+                    <br />
+                    built for{' '}
+                    <span
+                      className="font-serif font-medium italic"
+                      style={{ color: '#FF7A50', textTransform: 'none', fontFamily: 'var(--font-serif)' }}
+                    >
+                      Africa.
+                    </span>
+                  </h1>
+                  <p
+                    className="text-[18px] md:text-[21px] text-white/60 font-medium leading-relaxed mb-12 max-w-2xl"
+                    style={{ textTransform: 'none', letterSpacing: 'normal' }}
+                  >
+                    One place to manage your fleet, dispatch drivers, and reconcile payments —
+                    built for African logistics teams.
+                  </p>
+
+                  {/* CTA buttons */}
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <button
+                      onClick={() => isAuthenticated ? handleDashboardRedirect() : navigate('/register')}
+                      className="btn-primary-brand !h-14 !px-10 !rounded-xl !text-[13px] justify-center"
+                      aria-label="Get started with Shipstack"
+                    >
+                      Get started free
+                      <ArrowRight size={18} />
+                    </button>
+                    {!isAuthenticated && (
+                      <button
+                        onClick={() => navigate('/product')}
+                        className="btn-ghost !h-14 !px-10 !rounded-xl !text-[13px] justify-center"
+                      >
+                        See how it works
+                      </button>
+                    )}
+                  </div>
+                </motion.div>
+              </div>
+
+              {/* Right Column: Floating KPI cards */}
+              <div className="lg:col-span-4 hidden lg:flex flex-col gap-3 items-end">
+                <motion.div
+                  initial={prefersReducedMotion ? {} : { opacity: 0, x: 40 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.6, duration: 0.7, ease: [0.23, 1, 0.32, 1] }}
+                  className="flex flex-col gap-3"
+                >
+                  {[
+                    { icon: Activity, label: 'Fleet nodes active', value: '2,840+', color: '#FF5722' },
+                    { icon: MapPin,   label: 'Live trips',          value: '317',    color: '#10B981' },
+                    { icon: Zap,      label: 'API latency',         value: '< 25ms', color: '#3B82F6' },
+                  ].map((kpi, i) => (
+                    <KPICard
+                      key={kpi.label}
+                      variant="glass-marketing"
+                      icon={kpi.icon}
+                      label={kpi.label}
+                      value={kpi.value}
+                      color={kpi.color}
+                      index={i}
+                      reduceMotion={prefersReducedMotion}
+                    />
+                  ))}
+                </motion.div>
+              </div>
+            </div>
+          </div>
+
+          {/* Stat bar */}
+          <div className="relative z-10 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)', background: 'rgba(26,31,46,0.8)', backdropFilter: 'blur(20px)' }}>
+            <div className="max-w-7xl mx-auto px-8 md:px-16 lg:px-24">
+              <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-white/6">
+                {[
+                  { value: 'Pilot', label: 'Live with first partners' },
+                  { value: '< 25ms', label: 'API response time' },
+                  { value: '99.99%', label: 'Uptime SLA' },
+                  { value: '24/7', label: 'Support during pilot' },
+                ].map((stat) => (
+                  <div key={stat.label} className="py-8 px-6 md:px-10">
+                    <p
+                      className="text-[2rem] md:text-[2.5rem] font-black text-white tracking-tight leading-none mb-2"
+                      style={{ fontFamily: 'var(--font-display)' }}
+                    >
+                      {stat.value}
+                    </p>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/35">
+                      {stat.label}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Social Proof */}
-      <div className="bg-slate-50 py-24 border-y border-slate-100">
+      {/* ══════════════════════════════════════════════════════════════════
+          SOCIAL PROOF — Partner integrations
+      ══════════════════════════════════════════════════════════════════ */}
+      <section className="py-20 border-b" style={{ background: '#F8FAFC', borderColor: '#F1F5F9' }}>
         <div className="container-responsive">
-          <p className="text-center text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 mb-16">Building with our first pilot partners &mdash; looking for the next.</p>
-          <div className="grid grid-cols-2 md:grid-cols-4 items-center justify-center gap-8 md:gap-16">
-             <div className="flex flex-col items-center gap-2 grayscale hover:grayscale-0 transition-all opacity-60">
-                <div className="h-12 w-full bg-slate-200 rounded-xl flex items-center justify-center px-4">
-                   <span className="font-black text-slate-400 tracking-tighter text-lg uppercase italic">M-Pesa</span>
+          <p className="text-center text-[11px] font-bold uppercase tracking-[0.35em] text-slate-400 mb-14">
+            Building with our first pilot partners — looking for the next.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-6 md:gap-12">
+            {[
+              { name: 'M-Pesa',       badge: 'Payout Ready',         color: '#10B981' },
+              { name: 'ERP Sync',     badge: 'Frappe Integration',    color: '#3B82F6' },
+              { name: 'Settlements',  badge: 'Bank-grade',            color: '#8B5CF6' },
+              { name: 'Security',     badge: 'Pilot-Verified',        color: '#F59E0B' },
+            ].map((partner) => (
+              <div key={partner.name} className="flex flex-col items-center gap-2 group">
+                <div
+                  className="h-12 px-6 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-105"
+                  style={{
+                    background: '#F1F5F9',
+                    border: '1px solid #E2E8F0',
+                    minWidth: '120px',
+                  }}
+                >
+                  <span
+                    className="font-black text-[15px] uppercase tracking-tight text-slate-400 group-hover:text-slate-700 transition-colors"
+                    style={{ letterSpacing: '-0.01em' }}
+                  >
+                    {partner.name}
+                  </span>
                 </div>
-                <span className="text-[8px] font-bold uppercase text-slate-500 tracking-widest">Payout Ready</span>
-             </div>
-             <div className="flex flex-col items-center gap-2 grayscale hover:grayscale-0 transition-all opacity-60">
-                <div className="h-12 w-full bg-slate-200 rounded-xl flex items-center justify-center px-4">
-                   <span className="font-black text-slate-400 tracking-tighter text-lg uppercase italic">ERP Sync</span>
-                </div>
-                <span className="text-[8px] font-bold uppercase text-slate-500 tracking-widest">Frappe Integration</span>
-             </div>
-             <div className="flex flex-col items-center gap-2 grayscale hover:grayscale-0 transition-all opacity-60">
-                <div className="h-12 w-full bg-slate-200 rounded-xl flex items-center justify-center px-4">
-                   <span className="font-black text-slate-400 tracking-tighter text-lg uppercase italic">Settlements</span>
-                </div>
-                <span className="text-[8px] font-bold uppercase text-slate-500 tracking-widest">Bank-grade</span>
-             </div>
-             <div className="flex flex-col items-center gap-2 grayscale hover:grayscale-0 transition-all opacity-60">
-                <div className="h-12 w-full bg-slate-200 rounded-xl flex items-center justify-center px-4 text-center">
-                   <Shield size={16} className="text-slate-400 mr-2" />
-                   <span className="font-black text-slate-400 tracking-tighter text-lg uppercase">Security Tier</span>
-                </div>
-                <span className="text-[8px] font-bold uppercase text-slate-500 tracking-widest">Pilot-Verified</span>
-             </div>
+                <span
+                  className="text-[10px] font-bold uppercase tracking-[0.18em]"
+                  style={{ color: partner.color }}
+                >
+                  {partner.badge}
+                </span>
+              </div>
+            ))}
           </div>
-          <div className="mt-16 text-center text-slate-400">
-            <span className="inline-flex items-center gap-3 px-6 py-2 bg-slate-200/50 rounded-full text-[10px] font-black uppercase tracking-widest text-slate-500 border border-slate-300">
-              Closed pilot &mdash; onboarding teams in East and West Africa
+          <div className="mt-14 text-center">
+            <span
+              className="inline-flex items-center gap-2.5 px-6 py-2.5 rounded-full text-[11px] font-semibold text-slate-500 uppercase tracking-[0.18em]"
+              style={{ background: '#F1F5F9', border: '1px solid #E2E8F0' }}
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-[#FF5722] animate-pulse" aria-hidden="true" />
+              Closed pilot — onboarding teams in East and West Africa
             </span>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Benefits Section */}
-      <SectionWrapper className="py-48 bg-slate-50 relative overflow-hidden">
-        {/* Subtle background image for impact */}
-        <div className="absolute inset-0 opacity-5 pointer-events-none">
-           <img 
-             src="https://images.unsplash.com/photo-1549194388-f61be84a6e9e?q=80&w=2000&auto=format&fit=crop" 
-             alt="Logistics Impact" 
-             className="w-full h-full object-cover grayscale"
-             referrerPolicy="no-referrer"
-           />
-        </div>
-
+      {/* ══════════════════════════════════════════════════════════════════
+          BENTO FEATURES — Core capabilities grid
+      ══════════════════════════════════════════════════════════════════ */}
+      <SectionWrapper className="py-32 relative overflow-hidden" style={{ background: '#0B0E16' } as any}>
+        <div
+          className="absolute inset-0 pointer-events-none"
+          aria-hidden="true"
+          style={{
+            background: 'radial-gradient(ellipse 50% 60% at 70% 30%, rgba(255,87,34,0.08) 0%, transparent 60%)',
+          }}
+        />
         <div className="container-responsive relative z-10">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-32">
-            <div className="max-w-3xl">
-              <h2 className="text-5xl md:text-7xl font-black tracking-tight text-slate-900 mb-8 leading-tight">
-                Built for<br />
-                the real world.
-              </h2>
-              <p className="text-xl md:text-2xl text-slate-600 font-medium">Enterprise visibility, tuned for African logistics.</p>
-            </div>
+          <div className="mb-20">
+            <p className="label-brand mb-4">Platform</p>
+            <h2
+              className="text-[3rem] md:text-[4.5rem] font-black text-white leading-[0.92] tracking-tight mb-6"
+              style={{ textTransform: 'none', letterSpacing: '-0.03em', maxWidth: '700px' }}
+            >
+              Everything you need, nothing you don't.
+            </h2>
+            <p className="text-[17px] text-white/50 font-medium max-w-xl" style={{ textTransform: 'none' }}>
+              The core tools your operations team uses every day — in one fast, offline-capable platform.
+            </p>
           </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <FeatureCard
               icon={LayoutDashboard}
-              title="One dashboard"
-              desc="See every carrier and vehicle from one screen. No more switching between five tools to find one truck."
+              title="Unified dispatch dashboard"
+              desc="See every carrier and vehicle from one screen. Plan trips, assign drivers, and watch them happen — live."
               delay={0}
+              accent="#FF5722"
+              large
+            />
+            <FeatureCard
+              icon={Navigation}
+              title="Live GPS tracking"
+              desc="Street-level GPS for every vehicle with route history, ETAs, and vehicle health."
+              delay={0.05}
+              accent="#10B981"
             />
             <FeatureCard
               icon={Wallet}
               title="Automated payouts"
-              desc="Pay drivers and carriers automatically over M-Pesa, Wave, or bank transfer the moment a trip is reconciled."
+              desc="Pay drivers instantly over M-Pesa, Wave, or bank transfer the moment a trip is reconciled."
               delay={0.1}
+              accent="#3B82F6"
             />
             <FeatureCard
-              icon={Navigation}
-              title="Live tracking"
-              desc="Street-level GPS for every vehicle, with route history, ETAs, and vehicle health all in one place."
+              icon={Database}
+              title="Multi-hub inventory"
+              desc="Track SKUs across warehouses and depots in real time. Full reconciliation with delivery notes."
+              delay={0.15}
+              accent="#8B5CF6"
+            />
+            <FeatureCard
+              icon={ClipboardCheck}
+              title="Proof of delivery"
+              desc="Digital signatures, photos, and geo-stamps — collected offline-first on the driver PWA."
               delay={0.2}
+              accent="#F59E0B"
+            />
+            <FeatureCard
+              icon={Cog}
+              title="Open API & ERP sync"
+              desc="Plug Shipstack into your existing SAP, Frappe, Odoo, or custom ERP with our REST API."
+              delay={0.25}
+              accent="#06B6D4"
             />
           </div>
         </div>
       </SectionWrapper>
 
-      {/* Comparison Section */}
-      <SectionWrapper className="py-48 bg-[#0B0E16] border-y border-white/5 relative overflow-hidden">
-        {/* Background image */}
-        <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
-          <img 
-             src="https://images.unsplash.com/photo-1547683905-f686c993aae5?q=80&w=2600&auto=format&fit=crop" 
-             alt="Logistics Efficiency" 
-             className="w-full h-full object-cover grayscale"
-             referrerPolicy="no-referrer"
-          />
-        </div>
-        {/* Background glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[500px] w-[500px] bg-brand/10 blur-[120px] rounded-full pointer-events-none" />
-
+      {/* ══════════════════════════════════════════════════════════════════
+          COMPARISON TABLE
+      ══════════════════════════════════════════════════════════════════ */}
+      <SectionWrapper className="py-32 relative overflow-hidden" style={{ background: '#050810' } as any}>
         <div className="container-responsive relative z-10">
-          <div className="text-center mb-32">
-            <h2 className="text-4xl md:text-7xl font-black tracking-tight text-white mb-6">How we <span className="text-brand">compare.</span></h2>
-            <p className="text-slate-400 font-medium">The honest answer, in one table.</p>
+          <div className="text-center mb-20">
+            <p className="label-brand mb-4">Comparison</p>
+            <h2
+              className="text-[3rem] md:text-[4.5rem] font-black text-white mb-4"
+              style={{ textTransform: 'none', letterSpacing: '-0.025em' }}
+            >
+              How we{' '}
+              <span
+                className="font-serif italic font-medium"
+                style={{ color: '#FF7A50', fontFamily: 'var(--font-serif)' }}
+              >
+                compare.
+              </span>
+            </h2>
+            <p className="text-white/45 font-medium" style={{ textTransform: 'none' }}>
+              The honest answer, in one table.
+            </p>
           </div>
-          
-          <div className="overflow-x-auto pb-12">
-            <div className="min-w-[800px]">
-               <table className="w-full text-left border-separate border-spacing-y-2">
-                 <thead>
-                   <tr>
-                     <th className="py-8 px-10 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Capability</th>
-                     <th className="py-8 px-10">
-                        <div className="bg-brand text-white px-6 py-4 rounded-xl inline-block text-xl font-black uppercase tracking-tight shadow-xl shadow-brand/20">Shipstack</div>
-                     </th>
-                     <th className="py-8 px-10 text-xl font-black uppercase tracking-tight text-slate-400">Legacy enterprise</th>
-                     <th className="py-8 px-10 text-xl font-black uppercase tracking-tight text-slate-400">Spreadsheets</th>
-                   </tr>
-                 </thead>
-                 <tbody className="text-white">
-                   {[
-                     { feature: "Response time", shipstack: "<250ms", trad: "2.5s - 5s", diy: "N/A" },
-                     { feature: "Setup time", shipstack: "Same day", trad: "12-24 weeks", diy: "Ongoing" },
-                     { feature: "Live tracking", shipstack: true, trad: "Hourly batch", diy: "Phone calls" },
-                     { feature: "M-Pesa integration", shipstack: true, trad: "No", diy: "Manual cash" },
-                     { feature: "Demand forecasting", shipstack: true, trad: "Paid add-on", diy: "No" },
-                     { feature: "Uptime SLA", shipstack: "99.99%", trad: "99.0%", diy: "Best effort" }
-                   ].map((row, i) => (
-                     <tr key={i} className="group">
-                       <td className="py-10 px-10 bg-white/5 rounded-l-3xl border-y border-l border-white/5 group-hover:bg-white/10 transition-colors font-bold text-slate-300">{row.feature}</td>
-                       <td className="py-10 px-10 bg-white/5 border-y border-white/5 group-hover:bg-white/10 transition-colors font-black text-brand text-lg">
-                         {typeof row.shipstack === 'boolean' ? (
-                           row.shipstack ? <div className="flex items-center gap-2"><CheckCircle size={18} /><span>Included</span></div> : <X size={20} className="text-slate-600" />
-                         ) : (
-                           <div className="flex items-center gap-2">
-                              <CheckCircle size={16} className="text-brand shrink-0" />
-                              {row.shipstack}
-                           </div>
-                         )}
-                       </td>
-                       <td className="py-10 px-10 bg-white/5 border-y border-white/5 group-hover:bg-white/10 transition-colors text-slate-500 font-medium italic">
-                          {typeof row.trad === 'boolean' ? (
-                           row.trad ? <CheckCircle size={20} className="text-emerald-500" /> : <X size={20} className="text-slate-600" />
-                         ) : row.trad}
-                       </td>
-                       <td className="py-10 px-10 bg-white/5 rounded-r-3xl border-y border-r border-white/5 group-hover:bg-white/10 transition-colors text-slate-500 font-medium italic">
-                          {typeof row.diy === 'boolean' ? (
-                           row.diy ? <CheckCircle size={20} className="text-emerald-500" /> : <X size={20} className="text-slate-600" />
-                         ) : row.diy}
-                       </td>
-                     </tr>
-                   ))}
-                 </tbody>
-               </table>
-            </div>
-          </div>
-        </div>
-      </SectionWrapper>
-
-      {/* Features section with background */}
-      <SectionWrapper className="py-48 bg-[#0B0E16] relative overflow-hidden">
-        <div className="absolute inset-0 z-0 overflow-hidden">
-           <div className="absolute inset-0 bg-[#0B0E16]/90 z-10" />
-           <img 
-             src="https://images.unsplash.com/photo-1512413316925-fd47934313f1?q=80&w=2600&auto=format&fit=crop" 
-             alt="African Logistics Port" 
-             className="w-full h-full object-cover grayscale opacity-20 scale-105"
-             referrerPolicy="no-referrer"
-           />
-        </div>
-        <div className="container-responsive relative z-10">
-          <div className="grid lg:grid-cols-2 gap-24 items-center mb-32">
-             <div className="max-w-2xl">
-                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-brand mb-6">Product</p>
-                <h2 className="text-5xl md:text-7xl font-black tracking-tight text-white mb-8 leading-tight">Everything you need.</h2>
-                <p className="text-xl text-slate-400 font-medium">The core tools your operations team uses every day.</p>
-             </div>
-             <div className="rounded-[3rem] overflow-hidden shadow-[0_0_80px_rgba(255,140,66,0.1)] border border-white/5 relative group bg-slate-900 aspect-video flex items-center justify-center p-8">
-                <div className="absolute inset-0 bg-brand/5 opacity-50" />
-                <div className="relative w-full h-full bg-slate-950 rounded-2xl border border-white/10 flex flex-col p-4 shadow-2xl">
-                   {/* Mock UI elements */}
-                   <div className="flex items-center justify-between mb-4 pb-4 border-b border-white/5">
-                      <div className="flex items-center gap-2">
-                         <div className="h-3 w-3 bg-emerald-500 rounded-full animate-pulse" />
-                         <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">Live</span>
-                      </div>
-                      <div className="flex gap-1">
-                         <div className="h-2 w-8 bg-brand/20 rounded-full" />
-                         <div className="h-2 w-12 bg-white/5 rounded-full" />
-                      </div>
-                   </div>
-                   <div className="grid grid-cols-3 gap-3 flex-grow">
-                      <div className="col-span-2 bg-white/5 rounded-xl border border-white/5 p-3 flex flex-col justify-end gap-2 overflow-hidden relative">
-                         <MapPin size={40} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-brand opacity-20" />
-                         <div className="h-2 w-2/3 bg-white/20 rounded-full" />
-                         <div className="h-2 w-1/2 bg-white/10 rounded-full" />
-                      </div>
-                      <div className="flex flex-col gap-3">
-                         <div className="h-1/2 bg-white/5 rounded-xl border border-white/5 p-2 flex items-center justify-center">
-                            <Activity size={16} className="text-brand" />
-                         </div>
-                         <div className="h-1/2 bg-white/5 rounded-xl border border-white/5 p-2 flex items-center justify-center">
-                            <Shield size={16} className="text-emerald-500" />
-                         </div>
-                      </div>
-                   </div>
-                </div>
-             </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-16 gap-x-24 text-white">
-            {[
-              { title: "Smart routing", desc: "Routes that account for road conditions, safety, and traffic across African cities.", icon: Navigation },
-              { title: "Vehicle telemetry", desc: "GPS, fuel, and health diagnostics from every vehicle, with full history.", icon: Database },
-              { title: "Mobile payouts", desc: "Pay drivers and carriers instantly over M-Pesa, Wave, or bank transfer.", icon: Wallet },
-              { title: "Dispatch dashboard", desc: "Plan trips, assign drivers, and watch them happen — live, in one place.", icon: LayoutDashboard },
-              { title: "Multi-hub inventory", desc: "Track SKUs across warehouses and depots in real time.", icon: ClipboardCheck },
-              { title: "Open API", desc: "Plug Shipstack into your existing SAP, Frappe, Odoo, or custom ERP.", icon: Cog }
-            ].map((item, i) => (
-              <div key={i} className="flex flex-col gap-6 group">
-                <div className="flex items-center justify-between">
-                   <div className="h-14 w-14 bg-white/5 text-slate-400 rounded-2xl flex items-center justify-center group-hover:bg-brand group-hover:text-white transition-all duration-300 shadow-sm border border-white/5">
-                      <item.icon size={26} />
-                   </div>
-                   <span className="text-[10px] font-black text-white/10 uppercase tracking-widest">0{i+1}</span>
-                </div>
-                <div className="space-y-4">
-                   <h4 className="text-2xl font-black uppercase tracking-tight text-white group-hover:text-brand transition-colors">{item.title}</h4>
-                   <p className="text-slate-400 font-medium leading-relaxed">{item.desc}</p>
-                </div>
-                <div className="h-[2px] w-8 bg-brand/50 group-hover:w-full transition-all duration-700" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </SectionWrapper>
-
-      {/* Case Study Section */}
-      <SectionWrapper className="py-32 bg-[#0B0E16]">
-        <div className="container-responsive">
-          <div className="text-center mb-24">
-            <h2 className="text-4xl md:text-6xl font-black tracking-tight text-white mb-6">Built with <span className="text-brand">operators.</span></h2>
-            <p className="text-slate-400 font-medium">Shaped on the ground with the operators piloting Shipstack today.</p>
-          </div>
-          
-          <div className="grid lg:grid-cols-2 gap-10 mb-10">
-             <div className="bg-white rounded-[3rem] p-12 overflow-hidden relative group">
-                <div className="relative z-10">
-                   <p className="text-[10px] font-black uppercase tracking-widest text-brand mb-4">Field research</p>
-                   <h3 className="text-3xl font-black text-slate-900 uppercase tracking-tighter mb-6">Workflows shaped on the ground</h3>
-                   <p className="text-slate-500 font-medium leading-relaxed mb-8">
-                      We spent 6 months in Nairobi and Lagos with logistics teams &mdash; learning how they actually handle exceptions, settlements, and the day-to-day grind.
-                   </p>
-                </div>
-                <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
-                   <Truck size={120} />
-                </div>
-             </div>
-             <div className="rounded-[3rem] overflow-hidden shadow-2xl relative aspect-square lg:aspect-auto">
-                <img 
-                   src="https://images.unsplash.com/photo-1558444479-c8f02791596f?q=80&w=2600&auto=format&fit=crop" 
-                   alt="Logistics Dashboard" 
-                   className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-1000"
-                   referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent opacity-60" />
-                <div className="absolute bottom-10 left-10 text-white">
-                   <p className="text-4xl font-black uppercase tracking-tighter">Pilot live</p>
-                   <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Running with first partners</p>
-                </div>
-             </div>
-          </div>
-
-          <div className="bg-[#121E36] rounded-[4rem] p-10 md:p-20 border border-white/5 relative overflow-hidden shadow-2xl">
-            <div className="absolute top-0 right-0 p-20 opacity-5 pointer-events-none">
-              <Plus size={300} className="text-brand" />
-            </div>
-            
-            <div className="grid lg:grid-cols-2 gap-20 items-center relative z-10">
-              <div>
-                <div className="flex items-center gap-4 mb-8">
-                  <div className="h-16 w-16 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10">
-                    <Building className="text-brand" size={32} />
-                  </div>
-                  <div>
-                    <h3 className="text-2xl font-black text-white uppercase tracking-tight">FastCourier</h3>
-                    <p className="text-sm font-black text-brand uppercase tracking-widest">Nairobi, Kenya</p>
-                  </div>
-                </div>
-                
-                <div className="mb-12">
-                  <MessageSquare className="text-brand mb-6 opacity-50" size={48} />
-                  <p className="text-2xl md:text-3xl text-white font-medium italic leading-relaxed">
-                    "Shipstack gave us complete operational visibility during our trial, helping us streamline driver settlements."
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap gap-4">
-                  <div className="px-6 py-4 bg-brand/10 border border-brand/20 rounded-2xl">
-                    <p className="text-3xl font-black text-white">250%</p>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-brand">Revenue Growth</p>
-                  </div>
-                  <div className="px-6 py-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl">
-                    <p className="text-3xl font-black text-white">40%</p>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Cost Reduction</p>
-                  </div>
-                  <div className="px-6 py-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl">
-                    <p className="text-3xl font-black text-white">6 Month</p>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-blue-500">Timeline</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="relative group">
-                <div className="absolute -inset-4 bg-brand/20 rounded-[3rem] blur-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="relative bg-navy rounded-[3rem] p-10 border border-white/10 shadow-2xl overflow-hidden aspect-square flex flex-col justify-center items-center text-center">
-                  <div className="h-32 w-32 bg-brand rounded-full mb-8 flex items-center justify-center text-white shadow-2xl relative">
-                    <Truck size={64} />
-                    <div className="absolute -right-2 -bottom-2 h-12 w-12 bg-white rounded-full flex items-center justify-center text-brand">
-                      <TrendingUp size={24} />
+          <div className="overflow-x-auto pb-8 -mx-4 px-4">
+            <table className="w-full min-w-[720px] text-left border-separate border-spacing-y-2">
+              <thead>
+                <tr>
+                  <th className="py-6 px-6 text-[11px] font-bold uppercase tracking-[0.25em] text-white/35">Capability</th>
+                  <th className="py-6 px-6">
+                    <div
+                      className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-[15px] font-black text-white uppercase tracking-tight"
+                      style={{ background: '#FF5722', boxShadow: '0 4px 20px rgba(255,87,34,0.4)' }}
+                    >
+                      <Layers size={16} />
+                      Shipstack
                     </div>
-                  </div>
-                  <h4 className="text-4xl font-black text-white mb-4 uppercase tracking-tighter">500+</h4>
-                  <p className="text-slate-400 font-black uppercase tracking-widest text-xs">Daily deliveries</p>
-                </div>
+                  </th>
+                  <th className="py-6 px-6 text-[14px] font-bold text-white/30 uppercase tracking-tight">Legacy enterprise</th>
+                  <th className="py-6 px-6 text-[14px] font-bold text-white/30 uppercase tracking-tight">Spreadsheets</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { feature: 'Response time',        shipstack: '< 250ms',   trad: '2.5s – 5s',     diy: 'N/A'         },
+                  { feature: 'Setup time',            shipstack: 'Same day',  trad: '12–24 weeks',   diy: 'Ongoing'     },
+                  { feature: 'Live tracking',         shipstack: true,        trad: 'Hourly batch',   diy: 'Phone calls' },
+                  { feature: 'M-Pesa integration',   shipstack: true,        trad: 'No',            diy: 'Manual cash' },
+                  { feature: 'Demand forecasting',   shipstack: true,        trad: 'Paid add-on',    diy: 'No'          },
+                  { feature: 'Uptime SLA',            shipstack: '99.99%',   trad: '99.0%',         diy: 'Best effort' },
+                ].map((row, i) => (
+                  <tr key={i} className="group">
+                    <td
+                      className="py-5 px-6 rounded-l-2xl font-semibold text-white/60 text-[14px] transition-colors group-hover:text-white/80"
+                      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.04)' }}
+                    >
+                      {row.feature}
+                    </td>
+                    <td
+                      className="py-5 px-6 font-black text-[15px] transition-colors"
+                      style={{ background: 'rgba(255,87,34,0.07)', borderTop: '1px solid rgba(255,87,34,0.1)', borderBottom: '1px solid rgba(255,87,34,0.1)', color: '#FF7A50' }}
+                    >
+                      {typeof row.shipstack === 'boolean'
+                        ? <span className="flex items-center gap-2"><CheckCircle size={16} /> Included</span>
+                        : <span className="flex items-center gap-2"><CheckCircle size={15} style={{ color: '#FF5722' }} /> {row.shipstack}</span>
+                      }
+                    </td>
+                    <td
+                      className="py-5 px-6 text-white/35 text-[14px] font-medium italic transition-colors group-hover:text-white/50"
+                      style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}
+                    >
+                      {row.trad}
+                    </td>
+                    <td
+                      className="py-5 px-6 rounded-r-2xl text-white/35 text-[14px] font-medium italic transition-colors group-hover:text-white/50"
+                      style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}
+                    >
+                      {row.diy}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </SectionWrapper>
+
+      {/* ══════════════════════════════════════════════════════════════════
+          HOW IT WORKS — Interactive step carousel
+      ══════════════════════════════════════════════════════════════════ */}
+      <SectionWrapper
+        className="py-32 relative overflow-hidden border-t"
+        style={{ background: '#FFFFFF', borderColor: '#F1F5F9' } as any}
+      >
+        <div
+          className="absolute inset-0 pointer-events-none"
+          aria-hidden="true"
+          style={{
+            background: 'radial-gradient(ellipse 40% 50% at 80% 20%, rgba(255,87,34,0.04) 0%, transparent 60%)',
+          }}
+        />
+        <div className="max-w-7xl mx-auto px-8 md:px-16 lg:px-24 relative z-10">
+          <div
+            className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-start"
+            onMouseEnter={() => setStepPaused(true)}
+            onMouseLeave={() => setStepPaused(false)}
+            onFocus={() => setStepPaused(true)}
+            onBlur={() => setStepPaused(false)}
+          >
+            {/* Left */}
+            <div>
+              <p className="label-brand mb-4">How it works</p>
+              <h2
+                className="text-[2.5rem] md:text-[3.5rem] font-black tracking-tight text-slate-900 mb-10 leading-[0.92]"
+                style={{ textTransform: 'none', letterSpacing: '-0.025em' }}
+              >
+                From delivery note to{' '}
+                <span
+                  className="font-serif italic font-medium"
+                  style={{ color: '#FF5722', fontFamily: 'var(--font-serif)', textTransform: 'none' }}
+                >
+                  final settlement
+                </span>{' '}
+                — without the spreadsheets.
+              </h2>
+
+              {/* Step pills */}
+              <div className="flex gap-2.5 mb-10" role="tablist" aria-label="How it works steps">
+                {steps.map((s, i) => (
+                  <button
+                    key={s.id}
+                    role="tab"
+                    aria-selected={i === activeStep}
+                    aria-controls={`step-panel-${i}`}
+                    onClick={() => { setActiveStep(i); setStepPaused(true); }}
+                    className={`h-11 w-11 rounded-xl text-[13px] font-black transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF5722] ${
+                      i === activeStep
+                        ? 'text-white shadow-lg'
+                        : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                    }`}
+                    style={i === activeStep ? { background: '#FF5722', boxShadow: '0 4px 16px rgba(255,87,34,0.35)' } : {}}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
               </div>
+
+              {/* Step content */}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentStep.id}
+                  id={`step-panel-${activeStep}`}
+                  role="tabpanel"
+                  initial={prefersReducedMotion ? {} : { opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={prefersReducedMotion ? {} : { opacity: 0, y: -10 }}
+                  transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1] }}
+                >
+                  <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-slate-400 mb-3">Step {currentStep.id}</p>
+                  <h3
+                    className="text-[1.75rem] font-black text-slate-900 mb-4 tracking-tight"
+                    style={{ textTransform: 'none', letterSpacing: '-0.015em' }}
+                  >
+                    {currentStep.title}
+                  </h3>
+                  <p className="text-[15px] text-slate-500 font-medium leading-relaxed max-w-lg" style={{ textTransform: 'none' }}>
+                    {currentStep.desc}
+                  </p>
+                </motion.div>
+              </AnimatePresence>
+
+              {/* Auto-advance progress bar */}
+              {!prefersReducedMotion && (
+                <div className="mt-8 h-[2px] bg-slate-100 rounded-full overflow-hidden w-48" aria-hidden="true">
+                  <motion.div
+                    key={activeStep}
+                    className="h-full rounded-full"
+                    style={{ background: '#FF5722' }}
+                    initial={{ width: '0%' }}
+                    animate={stepPaused ? {} : { width: '100%' }}
+                    transition={{ duration: 3, ease: 'linear' }}
+                  />
+                </div>
+              )}
             </div>
+
+            {/* Right: Step photo */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`img-${currentStep.id}`}
+                initial={prefersReducedMotion ? {} : { opacity: 0, scale: 0.97 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={prefersReducedMotion ? {} : { opacity: 0, scale: 1.02 }}
+                transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+                className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[4/5] lg:aspect-[4/5]"
+              >
+                <img
+                  src={currentStep.image}
+                  alt={`Step ${currentStep.id}: ${currentStep.title}`}
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+                <div
+                  className="absolute inset-0"
+                  style={{ background: 'linear-gradient(to top, rgba(11,14,22,0.5) 0%, transparent 50%)' }}
+                />
+                <div className="absolute bottom-6 left-6 right-6">
+                  <div
+                    className="inline-flex flex-col px-4 py-3 rounded-xl"
+                    style={{ background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)' }}
+                  >
+                    <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-slate-400">Step {currentStep.id}</p>
+                    <p className="text-[13px] font-bold text-slate-900" style={{ textTransform: 'none' }}>{currentStep.title}</p>
+                  </div>
+                </div>
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
       </SectionWrapper>
 
-      {/* How It Works Section */}
-      <SectionWrapper className="py-48 bg-white border-t border-slate-100 relative overflow-hidden">
+      {/* ══════════════════════════════════════════════════════════════════
+          PRODUCT SHOWCASE — Dashboard preview
+      ══════════════════════════════════════════════════════════════════ */}
+      <SectionWrapper className="py-32 relative overflow-hidden" style={{ background: '#0B0E16' } as any}>
+        <div
+          className="absolute inset-0 pointer-events-none"
+          aria-hidden="true"
+          style={{ background: 'radial-gradient(ellipse 50% 50% at 30% 50%, rgba(255,87,34,0.09) 0%, transparent 60%)' }}
+        />
         <div className="container-responsive relative z-10">
-          <div className="mb-32">
-            <h2 className="text-5xl md:text-7xl font-black tracking-tight text-slate-900 mb-8 leading-tight">How it works.</h2>
+          <div className="mb-16 max-w-2xl">
+            <p className="label-brand mb-4">Product</p>
+            <h2
+              className="text-[3rem] md:text-[4rem] font-black text-white leading-[0.92] tracking-tight"
+              style={{ textTransform: 'none', letterSpacing: '-0.025em' }}
+            >
+              The actual dashboard. Not a mockup.
+            </h2>
           </div>
-          
           <div className="relative">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
-              <StepAction number="1" icon={User} title="Sign up" desc="Create your account in under a minute." delay={0.1} />
-              <StepAction number="2" icon={Truck} title="Set up" desc="Add your vehicles, drivers, and routes." delay={0.2} />
-              <StepAction number="3" icon={MapPin} title="Track" desc="See where every vehicle is, in real time." delay={0.3} />
-              <StepAction number="4" icon={TrendingUp} title="Grow" desc="Spot trends and grow with data-driven insights." delay={0.4} />
+            <div
+              className="absolute -inset-8 rounded-[3rem] pointer-events-none"
+              style={{ background: 'radial-gradient(ellipse, rgba(255,87,34,0.12) 0%, transparent 65%)', filter: 'blur(40px)' }}
+              aria-hidden="true"
+            />
+            <div className="relative rounded-3xl overflow-hidden border" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+              <React.Suspense fallback={
+                <div className="w-full aspect-[16/9] rounded-2xl animate-pulse" style={{ background: 'rgba(26,31,46,0.6)' }} aria-label="Loading dashboard preview" />
+              }>
+                <DashboardShowcase />
+              </React.Suspense>
             </div>
           </div>
         </div>
       </SectionWrapper>
 
-      {/* Testimonials section (v2: image 9 dark grid -- 4 cards on #0B0E16) */}
-      <SectionWrapper className="py-32 bg-[#0B0E16]">
+      {/* ══════════════════════════════════════════════════════════════════
+          TESTIMONIALS — Glassmorphism on dark
+      ══════════════════════════════════════════════════════════════════ */}
+      <SectionWrapper className="py-32" style={{ background: '#050810' } as any}>
         <div className="max-w-7xl mx-auto px-8 md:px-16 lg:px-24">
           <div className="mb-20">
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#FF5722] mb-4">Pilot feedback</p>
-            <h2 className="text-4xl md:text-6xl font-black tracking-tight text-white mb-4 uppercase max-w-3xl leading-[0.95]">
-              Your trust, our journey &mdash; <span className="text-[#FF5722]">delivering excellence</span> together.
+            <p className="label-brand mb-4">Pilot feedback</p>
+            <h2
+              className="text-[3rem] md:text-[4rem] font-black text-white max-w-3xl leading-[0.92] tracking-tight"
+              style={{ textTransform: 'none', letterSpacing: '-0.025em' }}
+            >
+              What the operators{' '}
+              <span className="font-serif italic font-medium" style={{ color: '#FF7A50', fontFamily: 'var(--font-serif)', textTransform: 'none' }}>
+                piloting Shipstack
+              </span>{' '}
+              are telling us.
             </h2>
-            <p className="text-white/50 font-medium text-base max-w-xl">Early notes from operators piloting Shipstack with us.</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
             {[
-              { quote: "Finally a platform that doesn't ignore the complexity of the African last mile. The visibility into driver settlements is exactly what we needed.", author: "Amara Diallo", role: "Operations Director, SwiftRoute Logistics", initial: "A" },
-              { quote: "Shipstack's integration with our existing ERP was seamless. It's the first logistics OS that feels built for scale, not just hype.", author: "Moussa Keïta", role: "CTO, Sahel Freight", initial: "M" },
-              { quote: "The early-access support has been incredible. They aren't just selling software — they're helping us refine our entire operational flow.", author: "Kwame Mensah", role: "Founder, Nexus Courier", initial: "K" },
-              { quote: "Live tracking changed how we run dispatch. We can see every trip and respond before customers even call to ask.", author: "Naledi Khumalo", role: "Fleet Manager, Cape Cargo Co", initial: "N" },
+              { quote: "Finally a platform that doesn't ignore the complexity of the African last mile. The visibility into driver settlements is exactly what we needed.", author: 'Amara Diallo', role: 'Operations Director', company: 'SwiftRoute Logistics', initial: 'A', color: '#FF5722' },
+              { quote: "Shipstack's integration with our existing ERP was seamless. It's the first logistics OS that feels built for scale, not just hype.", author: 'Moussa Keïta', role: 'CTO', company: 'Sahel Freight', initial: 'M', color: '#10B981' },
+              { quote: "The early-access support has been incredible. They aren't just selling software — they're helping us refine our entire operational flow.", author: 'Kwame Mensah', role: 'Founder', company: 'Nexus Courier', initial: 'K', color: '#3B82F6' },
+              { quote: "Live tracking changed how we run dispatch. We can see every trip and respond before customers even call to ask.", author: 'Naledi Khumalo', role: 'Fleet Manager', company: 'Cape Cargo Co', initial: 'N', color: '#8B5CF6' },
             ].map((t, i) => (
               <motion.div
                 key={t.author}
-                initial={{ opacity: 0, y: 20 }}
+                initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.08, duration: 0.5 }}
-                className="bg-[#1A1F2E] border border-white/5 rounded-3xl p-8 flex flex-col h-full hover:border-[#FF5722]/30 transition-all"
+                className="card-glass flex flex-col h-full"
               >
-                <div className="h-12 w-12 rounded-full bg-[#FF5722]/10 border border-[#FF5722]/20 text-[#FF5722] flex items-center justify-center font-black text-lg mb-6">
+                {/* Avatar with initial */}
+                <div
+                  className="h-12 w-12 rounded-2xl flex items-center justify-center font-black text-[18px] text-white mb-6 shrink-0"
+                  style={{ background: `${t.color}20`, border: `1px solid ${t.color}30`, color: t.color }}
+                  aria-hidden="true"
+                >
                   {t.initial}
                 </div>
-                <p className="text-white/80 text-sm leading-relaxed font-medium flex-1 mb-6">&ldquo;{t.quote}&rdquo;</p>
-                <div className="pt-6 border-t border-white/5">
-                  <p className="text-white font-bold text-sm mb-1">{t.author}</p>
-                  <p className="text-white/40 text-xs font-medium">{t.role}</p>
+                <div className="flex gap-0.5 mb-4" aria-label="5 stars">
+                  {[1,2,3,4,5].map(s => (
+                    <span key={s} style={{ color: t.color }} aria-hidden="true">★</span>
+                  ))}
+                </div>
+                <p
+                  className="text-[14px] text-white/70 font-medium leading-relaxed flex-1 mb-6"
+                  style={{ textTransform: 'none', letterSpacing: 'normal' }}
+                >
+                  &ldquo;{t.quote}&rdquo;
+                </p>
+                <div className="pt-5 border-t border-white/8">
+                  <p className="text-[14px] font-bold text-white leading-none mb-1" style={{ textTransform: 'none' }}>
+                    {t.author}
+                  </p>
+                  <p className="text-[12px] text-white/40 font-medium" style={{ textTransform: 'none' }}>
+                    {t.role}, {t.company}
+                  </p>
                 </div>
               </motion.div>
             ))}
@@ -751,138 +861,118 @@ const LandingPage: React.FC = () => {
         </div>
       </SectionWrapper>
 
-      {/* Payment Methods Section */}
-      <SectionWrapper className="py-48 bg-[#0B0E16] border-y border-white/5 overflow-hidden">
-        <div className="container-responsive">
-          <div className="grid lg:grid-cols-2 gap-20 items-center">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-brand mb-6">Payments</p>
-              <h2 className="text-5xl md:text-[6rem] font-black tracking-tight text-white mb-10 leading-tight">
-                Get paid <br />
-                <span className="text-brand">faster.</span>
-              </h2>
-              <p className="text-xl text-slate-400 font-medium leading-relaxed mb-16 max-w-xl">
-                Pay drivers and carriers the moment a trip is reconciled. We handle the multi-region currency mess for you.
-              </p>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
-                <div className="flex flex-col gap-4 p-8 bg-white/5 rounded-[2.5rem] border border-white/5 group hover:border-brand/20 transition-all">
-                  <div className="h-12 w-12 bg-brand text-white rounded-2xl flex items-center justify-center shadow-lg shadow-brand/20">
-                    <Activity size={24} />
+      {/* ══════════════════════════════════════════════════════════════════
+          WHY SHIPSTACK — Feature list + photo
+      ══════════════════════════════════════════════════════════════════ */}
+      <SectionWrapper className="py-32 border-t" style={{ background: '#0B0E16', borderColor: 'rgba(255,255,255,0.05)' } as any}>
+        <div className="max-w-7xl mx-auto px-8 md:px-16 lg:px-24">
+          <div className="mb-16 max-w-3xl">
+            <p className="label-brand mb-4">Why Shipstack</p>
+            <h2
+              className="text-[3rem] md:text-[4rem] font-black text-white leading-[0.92] tracking-tight"
+              style={{ textTransform: 'none', letterSpacing: '-0.025em' }}
+            >
+              Built for how African logistics{' '}
+              <span
+                className="font-serif italic font-medium"
+                style={{ color: '#FF7A50', fontFamily: 'var(--font-serif)', textTransform: 'none' }}
+              >
+                actually works
+              </span>{' '}
+              — not how a boardroom imagines it.
+            </h2>
+          </div>
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+            <div className="space-y-10">
+              {[
+                { title: 'African logistics expertise', desc: "We've spent months on the ground in Nairobi and Lagos. The product is shaped by the way operators actually work — not by assumptions from a different market." },
+                { title: 'Modern technology', desc: 'Live tracking, automated payouts, multi-region currency support, and a working offline-first driver PWA. Real engineering, not a slideshow.' },
+                { title: 'Pilot-partner approach', desc: "We work alongside our first partners to build the right product. You get direct access to the team and your feedback ships fast." },
+                { title: 'Transparent pricing', desc: 'Plans you can read in a minute. No setup fees, no hidden integration charges. Pay in M-Pesa, card, or invoice.' },
+              ].map((item, i) => (
+                <motion.div
+                  key={item.title}
+                  initial={prefersReducedMotion ? {} : { opacity: 0, x: -20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.08, duration: 0.5 }}
+                  className="flex gap-5"
+                >
+                  <div
+                    className="h-10 w-10 rounded-2xl flex items-center justify-center shrink-0 mt-1"
+                    style={{ background: 'rgba(255,87,34,0.12)', border: '1px solid rgba(255,87,34,0.2)' }}
+                    aria-hidden="true"
+                  >
+                    <CheckCircle size={18} style={{ color: '#FF5722' }} />
                   </div>
-                  <h4 className="text-lg font-black text-white uppercase tracking-tight">Mobile money</h4>
-                  <p className="text-xs text-slate-500 font-medium">Direct M-Pesa, Wave, and MTN payouts across East and West Africa.</p>
-                </div>
-                <div className="flex flex-col gap-4 p-8 bg-white/5 rounded-[2.5rem] border border-white/5 group hover:border-brand/20 transition-all">
-                  <div className="h-12 w-12 bg-[#3B82F6] text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-                    <CreditCard size={24} />
+                  <div>
+                    <h3
+                      className="text-[17px] font-bold text-white mb-2"
+                      style={{ textTransform: 'none', letterSpacing: 'normal' }}
+                    >
+                      {item.title}
+                    </h3>
+                    <p className="text-[14px] text-white/50 font-medium leading-relaxed" style={{ textTransform: 'none' }}>
+                      {item.desc}
+                    </p>
                   </div>
-                  <h4 className="text-lg font-black text-white uppercase tracking-tight">Fleet cards</h4>
-                  <p className="text-xs text-slate-500 font-medium">Issue virtual fuel and maintenance cards to your entire team.</p>
-                </div>
-              </div>
+                </motion.div>
+              ))}
             </div>
-            
-            <div className="relative">
-               {/* Visual representation of a reconciliation flow */}
-               <div className="bg-slate-900 rounded-[3.5rem] p-4 border border-white/10 shadow-2xl overflow-hidden aspect-[4/3] relative flex flex-col">
-                  <div className="bg-slate-800 rounded-t-[2.5rem] h-12 flex items-center px-6 gap-2 border-b border-white/5">
-                     <div className="h-2 w-2 bg-slate-600 rounded-full" />
-                     <div className="h-2 w-2 bg-slate-600 rounded-full" />
-                     <div className="h-2 w-2 bg-slate-600 rounded-full" />
-                  </div>
-                  <div className="p-8 flex flex-col gap-6 flex-grow">
-                     <div className="flex justify-between items-center bg-white/5 p-5 rounded-2xl border border-white/5">
-                        <div className="flex items-center gap-4">
-                           <div className="h-10 w-10 bg-brand/20 rounded-xl flex items-center justify-center text-brand">
-                              <Wallet size={20} />
-                           </div>
-                           <div>
-                              <p className="text-[10px] font-black text-slate-500 uppercase">Payout Pending</p>
-                              <p className="text-white font-black">2,450.00 KES</p>
-                           </div>
-                        </div>
-                        <div className="h-8 w-20 bg-brand text-white text-[8px] font-black uppercase tracking-widest rounded-full flex items-center justify-center">Reconcile</div>
-                     </div>
-
-                     <div className="flex-grow flex flex-col gap-3">
-                        <div className="h-2 w-full bg-white/5 rounded-full" />
-                        <div className="h-2 w-2/3 bg-white/5 rounded-full" />
-                        <div className="grid grid-cols-4 gap-4 mt-4">
-                           {[1,2,3,4].map(i => (
-                             <div key={i} className="h-12 bg-white/5 rounded-xl border border-white/5" />
-                           ))}
-                        </div>
-                     </div>
-                  </div>
-                  <div className="absolute bottom-[-20%] left-[-10%] h-80 w-80 bg-brand/10 blur-[100px] rounded-full" />
-               </div>
-               
-               {/* Floating elements */}
-               <motion.div 
-                 animate={{ y: [0, -10, 0] }}
-                 transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                 className="absolute top-10 -right-10 bg-[#0F172A] border border-white/10 p-6 rounded-3xl shadow-2xl backdrop-blur-xl z-20"
-               >
-                  <div className="flex items-center gap-3">
-                     <div className="h-8 w-8 bg-emerald-500 rounded-full flex items-center justify-center text-white">
-                        <CheckCircle size={16} />
-                     </div>
-                     <div>
-                        <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Status</p>
-                        <p className="text-white font-black text-xs">Settlement Paid</p>
-                     </div>
-                  </div>
-               </motion.div>
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[4/5] lg:aspect-square">
+              <img
+                src="https://images.unsplash.com/photo-1580674285054-bed31e145f59?q=80&w=2000&auto=format&fit=crop"
+                alt="Logistics team in motion"
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+              <div
+                className="absolute inset-0"
+                style={{ background: 'linear-gradient(to top, rgba(11,14,22,0.4) 0%, transparent 50%)' }}
+                aria-hidden="true"
+              />
             </div>
           </div>
         </div>
       </SectionWrapper>
 
-      {/* Pricing Section */}
-      <SectionWrapper id="pricing" className="py-48 bg-white border-t border-slate-100">
+      {/* ══════════════════════════════════════════════════════════════════
+          PRICING
+      ══════════════════════════════════════════════════════════════════ */}
+      <SectionWrapper id="pricing" className="py-32 border-t" style={{ background: '#F8FAFC', borderColor: '#F1F5F9' } as any}>
         <div className="container-responsive">
-          <div className="mb-32">
-            <h2 className="text-5xl md:text-7xl font-black tracking-tight text-slate-900 mb-8 leading-tight">Pricing.</h2>
+          <div className="mb-20 text-center">
+            <p className="label-brand mb-4">Pricing</p>
+            <h2
+              className="text-[3rem] md:text-[4.5rem] font-black text-slate-900 tracking-tight"
+              style={{ textTransform: 'none', letterSpacing: '-0.03em' }}
+            >
+              Simple, honest pricing.
+            </h2>
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
-            <PricingTier 
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <PricingTier
               tier="Pilot"
               price="Early Access"
               desc="For founding partners"
-              features={[
-                "Co-development support",
-                "Custom ERP integration",
-                "White-glove onboarding",
-                "Priority feature requests"
-              ]}
+              features={['Co-development support', 'Custom ERP integration', 'White-glove onboarding', 'Priority feature requests']}
               cta="Apply for Pilot"
               onClick={() => navigate('/contact')}
             />
-            <PricingTier 
+            <PricingTier
               tier="Growth"
               price="$199"
               desc="Most Popular"
-              featured={true}
-              features={[
-                "Advanced telemetry",
-                "Multi-hub sync",
-                "24/7 Priority support",
-                "API Access"
-              ]}
+              featured
+              features={['Advanced telemetry', 'Multi-hub sync', '24/7 Priority support', 'API Access']}
               cta="Request Access"
               onClick={() => navigate('/register')}
             />
-            <PricingTier 
+            <PricingTier
               tier="Enterprise"
               price="Custom"
               desc="Continental Scale"
-              features={[
-                "On-premise options",
-                "Custom compliance rules",
-                "Dedicated engineering team",
-                "Unlimited nodes"
-              ]}
+              features={['On-premise options', 'Custom compliance rules', 'Dedicated engineering team', 'Unlimited nodes']}
               cta="Book Consultation"
               onClick={() => navigate('/contact')}
             />
@@ -890,40 +980,157 @@ const LandingPage: React.FC = () => {
         </div>
       </SectionWrapper>
 
-      {/* Final CTA Section */}
-      <SectionWrapper className="py-48 relative overflow-hidden bg-[#0B0E16] border-y border-white/5">
-        <div className="absolute inset-0 z-0">
-          <img 
-            src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?q=80&w=2600&auto=format&fit=crop" 
-            alt="Logistics Operations" 
-            className="w-full h-full object-cover opacity-60 scale-105"
-            referrerPolicy="no-referrer"
-          />
-          <div className="absolute inset-0 bg-[#0B0E16]/50" />
-        </div>
+      {/* ══════════════════════════════════════════════════════════════════
+          FAQ + CONTACT
+      ══════════════════════════════════════════════════════════════════ */}
+      <SectionWrapper className="py-32 relative overflow-hidden" style={{ background: '#0B0E16' } as any}>
+        <div
+          className="absolute inset-0 pointer-events-none"
+          aria-hidden="true"
+          style={{ background: 'radial-gradient(ellipse 40% 50% at 20% 60%, rgba(255,87,34,0.06) 0%, transparent 60%)' }}
+        />
+        <div className="max-w-7xl mx-auto px-8 md:px-16 lg:px-24 relative z-10">
+          <div className="mb-16">
+            <p className="label-brand mb-4">FAQ</p>
+            <h2
+              className="text-[3rem] md:text-[4rem] font-black text-white leading-[0.92] tracking-tight"
+              style={{ textTransform: 'none', letterSpacing: '-0.025em' }}
+            >
+              Got questions?{' '}
+              <span className="font-serif italic font-medium" style={{ color: '#FF7A50', fontFamily: 'var(--font-serif)', textTransform: 'none' }}>
+                We're here.
+              </span>
+            </h2>
+          </div>
+          <div className="grid lg:grid-cols-5 gap-10 lg:gap-16">
+            {/* Contact form */}
+            <div
+              className="lg:col-span-2 rounded-3xl p-8 border"
+              style={{ background: 'rgba(26,31,46,0.6)', borderColor: 'rgba(255,255,255,0.07)' }}
+            >
+              <h3 className="text-[18px] font-bold text-white mb-2" style={{ textTransform: 'none' }}>Send us a message</h3>
+              <p className="text-[13px] text-white/45 mb-8" style={{ textTransform: 'none' }}>We respond within one business day.</p>
+              <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); navigate('/contact'); }}>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="label-brand mb-2 block" htmlFor="faq-name">Name</label>
+                    <input
+                      id="faq-name"
+                      type="text"
+                      className="w-full px-4 py-3 rounded-xl text-[14px] font-medium text-white focus:outline-none focus:ring-2 transition-all"
+                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', textTransform: 'none' }}
+                      onFocus={(e) => { e.target.style.borderColor = '#FF5722'; e.target.style.boxShadow = '0 0 0 3px rgba(255,87,34,0.12)'; }}
+                      onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.1)'; e.target.style.boxShadow = 'none'; }}
+                    />
+                  </div>
+                  <div>
+                    <label className="label-brand mb-2 block" htmlFor="faq-phone">Phone</label>
+                    <input
+                      id="faq-phone"
+                      type="tel"
+                      className="w-full px-4 py-3 rounded-xl text-[14px] font-medium text-white focus:outline-none transition-all"
+                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', textTransform: 'none' }}
+                      onFocus={(e) => { e.target.style.borderColor = '#FF5722'; e.target.style.boxShadow = '0 0 0 3px rgba(255,87,34,0.12)'; }}
+                      onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.1)'; e.target.style.boxShadow = 'none'; }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="label-brand mb-2 block" htmlFor="faq-email">Email</label>
+                  <input
+                    id="faq-email"
+                    type="email"
+                    className="w-full px-4 py-3 rounded-xl text-[14px] font-medium text-white focus:outline-none transition-all"
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', textTransform: 'none' }}
+                    onFocus={(e) => { e.target.style.borderColor = '#FF5722'; e.target.style.boxShadow = '0 0 0 3px rgba(255,87,34,0.12)'; }}
+                    onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.1)'; e.target.style.boxShadow = 'none'; }}
+                  />
+                </div>
+                <div>
+                  <label className="label-brand mb-2 block" htmlFor="faq-message">Message</label>
+                  <textarea
+                    id="faq-message"
+                    rows={4}
+                    className="w-full px-4 py-3 rounded-xl text-[14px] font-medium text-white focus:outline-none transition-all resize-none"
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', textTransform: 'none' }}
+                    onFocus={(e) => { e.target.style.borderColor = '#FF5722'; e.target.style.boxShadow = '0 0 0 3px rgba(255,87,34,0.12)'; }}
+                    onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.1)'; e.target.style.boxShadow = 'none'; }}
+                  />
+                </div>
+                <button type="submit" className="w-full btn-primary-brand !rounded-xl justify-center text-[12px] tracking-[0.15em]">
+                  Send message <ArrowRight size={15} />
+                </button>
+              </form>
+            </div>
 
+            {/* FAQ accordion */}
+            <div className="lg:col-span-3 space-y-1">
+              {[
+                { q: 'Where is my data stored?', a: "Your data lives in regional Supabase clusters with row-level security. We comply with GDPR, Kenya's DPA, and Nigeria's NDPR." },
+                { q: 'How long does setup take?', a: 'Pilot partners are typically up and running within a day. Larger fleets, about a week, with our team alongside you.' },
+                { q: 'What kind of support do you offer?', a: 'Pilot partners get direct chat with our team while we shape the product together. Plan-tiered support kicks in as we scale beyond pilot.' },
+                { q: 'Do you handle customs clearance?', a: "Cross-border customs is on the roadmap. For now, Shipstack tracks customs documents and timestamps but doesn't file them on your behalf." },
+                { q: 'How can I track my shipment?', a: "Every delivery note has a public tracking link your customer can open. Drivers also see status from the driver PWA." },
+                { q: 'What if my shipment is lost or damaged?', a: "Exceptions are first-class in Shipstack: report them in-app with a photo, and we flag the affected delivery + a follow-up task automatically." },
+              ].map((item) => (
+                <FAQItem key={item.q} question={item.q} answer={item.a} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </SectionWrapper>
+
+      {/* ══════════════════════════════════════════════════════════════════
+          FINAL CTA — Gradient mesh, no Unsplash
+      ══════════════════════════════════════════════════════════════════ */}
+      <SectionWrapper className="hero-mesh py-40 relative overflow-hidden border-t" style={{ borderColor: 'rgba(255,255,255,0.05)' } as any}>
+        <div
+          className="absolute inset-0 pointer-events-none"
+          aria-hidden="true"
+          style={{
+            background: `
+              radial-gradient(ellipse 60% 70% at 50% 50%, rgba(255,87,34,0.22) 0%, transparent 55%),
+              radial-gradient(ellipse 40% 40% at 20% 80%, rgba(255,122,80,0.12) 0%, transparent 50%)
+            `,
+          }}
+        />
         <div className="container-responsive relative z-10 text-center">
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
+            initial={prefersReducedMotion ? {} : { opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7, ease: [0.23, 1, 0.32, 1] }}
             className="max-w-4xl mx-auto"
           >
-            <h2 className="text-6xl md:text-8xl font-black tracking-tight text-white mb-12 leading-tight">
-              Join the <br/><span className="text-brand">first wave.</span>
+            <p className="label-brand mb-6 justify-center flex" style={{ justifyContent: 'center' }}>Join the first wave</p>
+            <h2
+              className="text-[4rem] md:text-[6rem] lg:text-[7rem] font-black text-white leading-[0.88] tracking-tight mb-8"
+              style={{ textTransform: 'none', letterSpacing: '-0.03em', fontFamily: 'var(--font-display)' }}
+            >
+              Ready to{' '}
+              <span className="font-serif italic font-medium" style={{ color: '#FF7A50', fontFamily: 'var(--font-serif)', textTransform: 'none' }}>
+                ship
+              </span>
+              ?
             </h2>
-            <p className="text-xl md:text-2xl text-slate-400 font-medium mb-16 leading-relaxed">
-              We're onboarding pilot partners now. <br className="hidden md:block" /> Be part of the team shaping it.
+            <p
+              className="text-[18px] md:text-[21px] text-white/55 font-medium mb-14 max-w-2xl mx-auto leading-relaxed"
+              style={{ textTransform: 'none', letterSpacing: 'normal' }}
+            >
+              We're onboarding pilot partners now.
+              Be part of the team shaping the future of African logistics.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <button
                 onClick={() => navigate('/register')}
-                className="w-full sm:w-auto px-20 py-10 bg-brand hover:bg-orange-600 text-white text-base font-black uppercase tracking-[0.3em] shadow-2xl transition-all hover:translate-y-[-4px] active:scale-95 rounded-3xl"
+                className="btn-primary-brand !h-14 !px-12 !rounded-xl !text-[13px] justify-center w-full sm:w-auto"
+                aria-label="Sign up free for Shipstack"
               >
-                Sign up free
+                Sign up free <ArrowRight size={18} />
               </button>
-              <button 
+              <button
                 onClick={() => navigate('/contact')}
-                className="w-full sm:w-auto px-20 py-10 bg-white/5 border-2 border-white/10 text-white text-base font-black uppercase tracking-[0.3em] hover:bg-white/10 transition-all rounded-3xl"
+                className="btn-ghost !h-14 !px-12 !rounded-xl !text-[13px] justify-center w-full sm:w-auto"
               >
                 Talk to our team
               </button>
@@ -932,93 +1139,19 @@ const LandingPage: React.FC = () => {
         </div>
       </SectionWrapper>
 
-      {/* FAQ + Contact Section (v2: image 12 split layout -- form left, accordion right) */}
-      <SectionWrapper className="py-32 bg-white border-t border-slate-100">
-        <div className="max-w-7xl mx-auto px-8 md:px-16 lg:px-24">
-          <div className="mb-16 max-w-3xl">
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#FF5722] mb-4">Frequently asked questions</p>
-            <h2 className="text-4xl md:text-6xl font-black tracking-tight text-slate-900 leading-[0.95] uppercase">
-              Got more questions? <br />
-              <span className="text-[#FF5722]">We're here to help.</span>
-            </h2>
-          </div>
-
-          <div className="grid lg:grid-cols-5 gap-10 lg:gap-16">
-            {/* Left: contact form */}
-            <div className="lg:col-span-2 bg-slate-50 rounded-3xl p-8 md:p-10 border border-slate-100">
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Just send us a message &mdash;</h3>
-              <p className="text-sm text-slate-500 mb-8">We're here to help with your questions.</p>
-              <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); navigate('/contact'); }}>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-2">Name</label>
-                    <input type="text" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-[#FF5722] transition-colors" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-2">Phone</label>
-                    <input type="tel" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-[#FF5722] transition-colors" />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-2">Email</label>
-                  <input type="email" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-[#FF5722] transition-colors" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-2">Message</label>
-                  <textarea rows={4} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-[#FF5722] transition-colors resize-none" />
-                </div>
-                <button type="submit" className="w-full bg-[#FF5722] hover:bg-[#E64A19] text-white text-sm font-bold py-4 rounded-xl shadow-lg shadow-[#FF5722]/20 transition-all active:scale-95">
-                  Send message
-                </button>
-              </form>
-            </div>
-
-            {/* Right: FAQ accordion */}
-            <div className="lg:col-span-3 space-y-2">
-              <FAQItem
-                question="Where is my data stored?"
-                answer="Your data lives in regional Supabase clusters with row-level security. We comply with GDPR, Kenya's DPA, and Nigeria's NDPR."
-              />
-              <FAQItem
-                question="How long does setup take?"
-                answer="Pilot partners are typically up and running within a day. Larger fleets, about a week, with our team alongside you."
-              />
-              <FAQItem
-                question="What kind of support do you offer?"
-                answer="Pilot partners get direct chat with our team while we shape the product together. Plan-tiered support kicks in as we scale beyond pilot."
-              />
-              <FAQItem
-                question="Do you handle customs clearance?"
-                answer="Cross-border customs is on the roadmap. For now, Shipstack tracks customs documents and timestamps but doesn't file them on your behalf."
-              />
-              <FAQItem
-                question="How can I track my shipment?"
-                answer="Every delivery note has a public tracking link your customer can open. Drivers also see status from the driver PWA."
-              />
-              <FAQItem
-                question="What if my shipment is lost or damaged?"
-                answer="Exceptions are first-class in Shipstack: report them in-app with a photo, and we flag the affected delivery + a follow-up task automatically."
-              />
-              <FAQItem
-                question="Do you offer eco-friendly shipping options?"
-                answer="We surface route efficiency metrics so you can pick the lowest-fuel option. A dedicated low-carbon mode is on the roadmap."
-              />
-            </div>
-          </div>
-        </div>
-      </SectionWrapper>
-
-      {/* Back to Top */}
+      {/* Back to top */}
       <AnimatePresence>
         {showBackToTop && (
           <motion.button
-            initial={{ opacity: 0, scale: 0.5 }}
+            initial={prefersReducedMotion ? {} : { opacity: 0, scale: 0.7 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.5 }}
+            exit={prefersReducedMotion ? {} : { opacity: 0, scale: 0.7 }}
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="fixed bottom-10 right-10 z-[100] h-14 w-14 bg-brand text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-brand/40"
+            className="fixed bottom-8 right-8 z-[100] h-12 w-12 rounded-2xl text-white shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-transform focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            style={{ background: 'linear-gradient(135deg, #FF5722 0%, #E64A19 100%)', boxShadow: '0 6px 24px rgba(255,87,34,0.45)' }}
+            aria-label="Back to top"
           >
-            <ChevronUp size={24} />
+            <ChevronUp size={22} />
           </motion.button>
         )}
       </AnimatePresence>

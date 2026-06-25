@@ -405,6 +405,7 @@ const TaskItem = React.forwardRef<HTMLDivElement, {
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
+          <span className="font-mono text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200 uppercase tracking-widest">{task.id.substring(0, 8)}</span>
           <h4 className={`text-sm font-black uppercase tracking-tight transition-all ${
             task.completed ? 'text-slate-400 line-through' : 'text-ink'
           }`}>

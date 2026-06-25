@@ -10,25 +10,36 @@ const TELEMETRY_INTERVAL = 15000;
 export const useTripTelemetry = (tripId: string | undefined, enabled: boolean) => {
   const { isOnline, addNotification } = useAppStore();
   const [syncing, setSyncing] = useState(false);
+  const syncingRef = useRef(false);
   const lastPingAt = useRef<number>(0);
   const watchId = useRef<number | null>(null);
 
+  // Flush any queued offline telemetry when we (re)gain connectivity. Depends
+  // only on `isOnline` — the previous version also depended on `syncing`, which
+  // it set itself, creating a re-render loop that re-synced and fired the
+  // "synced" toast on every cycle. We now run once per online transition and
+  // only notify when points were actually flushed.
   useEffect(() => {
-    if (isOnline && !syncing) {
-      const sync = async () => {
-        setSyncing(true);
-        try {
-          await api.syncOfflineTelemetry();
-          addNotification(`Synced offline telemetry markers.`, 'success');
-        } catch (err) {
-          console.debug("Telemetry sync deferred.");
-        } finally {
-          setSyncing(false);
+    if (!isOnline || syncingRef.current) return;
+    let cancelled = false;
+    const sync = async () => {
+      syncingRef.current = true;
+      setSyncing(true);
+      try {
+        const synced = await api.syncOfflineTelemetry();
+        if (!cancelled && synced > 0) {
+          addNotification(`Synced ${synced} offline location${synced === 1 ? '' : 's'}.`, 'success');
         }
-      };
-      sync();
-    }
-  }, [isOnline, syncing]);
+      } catch (err) {
+        console.debug("Telemetry sync deferred.");
+      } finally {
+        syncingRef.current = false;
+        if (!cancelled) setSyncing(false);
+      }
+    };
+    sync();
+    return () => { cancelled = true; };
+  }, [isOnline]);
 
   useEffect(() => {
     if (!enabled || !tripId || !navigator.geolocation) {

@@ -24,13 +24,13 @@ export const ModuleGuard: React.FC<ModuleGuardProps> = ({ moduleId, children }) 
     const { isModuleEnabled, tenant } = useTenant();
     const { user } = useAuthStore();
 
-    // Global Bypass for Demo Admin
-    const isDemoAdmin = user?.email === 'joemugoh215@gmail.com' || 
-                        user?.email?.endsWith('@shipstack.com') || 
-                        localStorage.getItem('shipstack_demo_mode') === 'true';
+    // Platform staff (super_admin) see every module regardless of the tenant's
+    // plan — this is legitimate RBAC, not an email-based bypass. (The previous
+    // check waved through any @shipstack.com address or a localStorage flag.)
+    const isSuperAdmin = (user?.role || '').toLowerCase() === 'super_admin';
 
     // 1. Basic validation
-    if (!moduleId || isDemoAdmin) {
+    if (!moduleId || isSuperAdmin) {
       return <>{children}</>;
     }
 

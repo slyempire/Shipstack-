@@ -1,0 +1,93 @@
+name: Deploy — Production
+
+# Triggered ONLY by a versioned tag pushed to main (e.g. v1.2.3).
+# This ensures you can never accidentally deploy production from a branch.
+#
+# Workflow:
+#   1. Developer merges staging → main via approved PR.
+#   2. Developer runs: git tag v1.x.x && git push origin v1.x.x
+#   3. This workflow fires, requires manual approval (via GitHub Environment gate),
+#      builds with production secrets, deploys, and creates a GitHub Release.
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'   # Matches v1.0.0, v2.3.14, etc.
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    environment: production    # Requires manual approval — configure in GitHub Settings
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Fetch full history so action-gh-release can generate proper changelogs.
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Build (production)
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL:      ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_ENABLE_DEMO_AUTH:  'false'
+          ENABLE_DEMO_AUTH:       'false'
+          GEMINI_API_KEY:         ${{ secrets.GEMINI_API_KEY }}
+
+      # ─────────────────────────────────────────────────────────────────────
+      # REPLACE THIS STEP with your actual hosting provider command.
+      #
+      # Examples:
+      #   Fly.io:   flyctl deploy --remote-only --app shipstack-prod
+      #   Railway:  railway up --service shipstack-prod
+      #   Render:   curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_PROD }}
+      # ─────────────────────────────────────────────────────────────────────
+      - name: Deploy to host
+        run: |
+          echo "Replace this step with your host deploy command."
+          echo "e.g. flyctl deploy --remote-only --app shipstack-prod"
+
+      # Automatically generate a GitHub Release with a changelog from commit messages.
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          name: "Release ${{ github.ref_name }}"
+
+      - name: Notify Slack on success
+        if: success() && secrets.SLACK_WEBHOOK_URL != ''
+        uses: slackapi/slack-github-action@v2
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "🚀 *Production deploy succeeded* — `${{ github.ref_name }}`\n<${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.ref_name }}|View Release>"
+            }
+
+      - name: Notify Slack on failure
+        if: failure() && secrets.SLACK_WEBHOOK_URL != ''
+        uses: slackapi/slack-github-action@v2
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "🚨 *Production deploy FAILED* — `${{ github.ref_name }}`\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View run>"
+            }

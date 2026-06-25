@@ -152,7 +152,7 @@ const DriverRecruitmentView: React.FC = () => {
     );
   }
   return (
-    <div className="min-h-screen bg-white font-sans text-slate-900">
+    <div className="marketing-surface min-h-screen bg-white font-sans text-slate-900">
       {/* Navigation */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-100">
         <div className="container-responsive flex items-center justify-between py-4">

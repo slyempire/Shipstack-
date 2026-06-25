@@ -1,14 +1,13 @@
 name: CI
 
-# Runs on every PR targeting main and on every push to main.
-# Deploys are deliberately not wired up here yet; that's a separate PR once
-# we settle on a host.
+# Runs on every PR targeting any protected branch, and on every push to those branches.
+# This is the single source of truth for "is this code safe to merge?"
 
 on:
   push:
-    branches: [main]
+    branches: [main, staging, develop]
   pull_request:
-    branches: [main]
+    branches: [main, staging, develop]
 
 # Avoid stacking duplicate runs on the same branch.
 concurrency:
@@ -88,3 +87,8 @@ jobs:
       # that `tsc --noEmit` might miss.
       - name: Build (vite + esbuild)
         run: npm run build
+        env:
+          # Build with empty keys — app must gracefully degrade in CI.
+          VITE_SUPABASE_URL: ''
+          VITE_SUPABASE_ANON_KEY: ''
+          VITE_ENABLE_DEMO_AUTH: 'true'

@@ -16,6 +16,16 @@ import {
 import { motion } from 'framer-motion';
 import MarketingLayout from '../../components/marketing/MarketingLayout';
 
+// Static accent classes per vertical. Written as full literal strings so the
+// Tailwind v4 JIT can see them — `bg-${color}-50` style interpolation gets
+// purged and silently renders nothing.
+const ACCENTS: Record<string, { soft: string; dot: string }> = {
+  blue: { soft: 'bg-blue-50 text-blue-600', dot: 'bg-blue-500' },
+  emerald: { soft: 'bg-emerald-50 text-emerald-600', dot: 'bg-emerald-500' },
+  orange: { soft: 'bg-orange-50 text-orange-600', dot: 'bg-orange-500' },
+  rose: { soft: 'bg-rose-50 text-rose-600', dot: 'bg-rose-500' },
+};
+
 const SolutionsPage: React.FC = () => {
   const solutions = [
     {
@@ -89,8 +99,8 @@ const SolutionsPage: React.FC = () => {
             transition={{ duration: 0.8, ease: 'easeOut' }}
             className="max-w-3xl lg:ml-12 xl:ml-20"
           >
-            <h1 className="text-5xl md:text-7xl font-black text-white tracking-tight leading-[0.95] mb-8 uppercase">
-              Built for <br/><span className="text-[#FF5722]">your industry.</span>
+            <h1 className="text-5xl md:text-7xl font-black text-white tracking-tight leading-[0.95] mb-8">
+              Built for <br/><span className="font-serif italic font-medium text-[#FF5722]">your industry.</span>
             </h1>
             <p className="text-lg md:text-xl text-white/70 font-medium leading-relaxed max-w-2xl">
               Shipstack works the way your industry works. Pick the playbook for yours.
@@ -122,19 +132,19 @@ const SolutionsPage: React.FC = () => {
 
               <div className="relative z-10 flex flex-col h-full">
                 <div className="flex items-center justify-between mb-12">
-                  <div className={`h-20 w-20 bg-${item.color}-50 text-${item.color}-600 rounded-[2rem] flex items-center justify-center shadow-sm group-hover:bg-slate-900 group-hover:text-white transition-all duration-300`}>
+                  <div className={`h-20 w-20 ${ACCENTS[item.color].soft} rounded-[2rem] flex items-center justify-center shadow-sm group-hover:bg-slate-900 group-hover:text-white transition-all duration-300`}>
                     <item.icon size={40} />
                   </div>
                   <span className="text-[10px] font-black text-slate-200">Industry / 0{i+1}</span>
                 </div>
 
-                <h3 className="text-4xl font-black uppercase tracking-tight mb-6">{item.title}</h3>
-                <p className="text-xl text-slate-500 font-medium mb-12 leading-tight uppercase tracking-tight">{item.desc}</p>
-                
+                <h3 className="text-4xl font-black tracking-tight mb-6">{item.title}</h3>
+                <p className="text-xl text-slate-500 font-medium mb-12 leading-snug">{item.desc}</p>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
                   {item.features.map((feature, j) => (
                     <div key={j} className="flex items-center gap-3 text-sm font-bold text-slate-800 bg-slate-50 border border-slate-100 px-6 py-4 rounded-2xl group-hover:bg-white group-hover:border-slate-200 transition-colors">
-                      <div className={`h-2 w-2 rounded-full bg-${item.color}-500`} />
+                      <div className={`h-2 w-2 rounded-full ${ACCENTS[item.color].dot}`} />
                       {feature}
                     </div>
                   ))}

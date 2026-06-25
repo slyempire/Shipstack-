@@ -251,34 +251,53 @@ const Layout: React.FC<LayoutProps> = ({ children, title, subtitle, fullWidth = 
   }, [navigationConfig, currentUserRole, tenant, moduleClicks]);
 
   return (
-    <div className="flex h-full w-full bg-slate-50 overflow-hidden font-sans transition-colors duration-300 text-gray-900">
+    <div className="flex h-full w-full bg-[var(--bg-page)] overflow-hidden font-sans transition-colors duration-300 text-gray-900">
       {/* Sidebar Overlay for Mobile */}
       {sidebarOpen && (
         <div 
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden" 
           onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
         />
       )}
 
-      <aside className={`fixed inset-y-0 left-0 z-50 ${sidebarCollapsed ? 'w-20' : 'w-64'} bg-white border-r border-slate-100 transition-all duration-500 lg:relative lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col`}>
-        <div className="flex h-16 items-center justify-between px-6 border-b border-slate-50 shrink-0">
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 ${
+          sidebarCollapsed ? 'w-20' : 'w-64'
+        } bg-white border-r border-[#F1F5F9] transition-all duration-500 lg:relative lg:translate-x-0 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } flex flex-col shadow-[1px_0_0_#F1F5F9]`}
+        aria-label="Main navigation"
+      >
+        {/* Logo / Brand area */}
+        <div className="flex h-16 items-center px-5 border-b border-[#F1F5F9] shrink-0">
           <div className="flex items-center gap-3 overflow-hidden">
-            <div className="h-8 w-8 rounded-lg bg-slate-900 flex items-center justify-center shrink-0">
-              <Layers size={18} className="text-white" strokeWidth={3} />
+            <div
+              className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 transition-transform duration-200 hover:scale-105"
+              style={{ background: 'linear-gradient(135deg, #FF5722 0%, #FF7A50 100%)', boxShadow: '0 3px 10px rgba(255,87,34,0.35)' }}
+            >
+              <Layers size={17} className="text-white" strokeWidth={2.5} />
             </div>
             {!sidebarCollapsed && (
-              <div className="flex flex-col">
-                <span className="text-sm font-black tracking-tight uppercase leading-none text-slate-900">Shipstack</span>
-              </div>
+              <span
+                className="text-[14px] font-black tracking-[-0.02em] uppercase leading-none text-slate-900"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                Shipstack
+              </span>
             )}
           </div>
         </div>
         
-        <nav className="flex-1 mt-4 px-3 space-y-6 overflow-y-auto no-scrollbar pb-32">
+        <nav className="flex-1 mt-3 px-3 space-y-5 overflow-y-auto no-scrollbar pb-32" aria-label="Sidebar navigation">
           {filteredNavigation.map((group) => (
             <div key={group.group}>
-              {!sidebarCollapsed && <p className="px-4 text-[9px] font-black uppercase tracking-widest mb-3 text-slate-300">{group.group}</p>}
-              <div className="space-y-px">
+              {!sidebarCollapsed && (
+                <p className="px-3 text-[10px] font-bold uppercase tracking-[0.22em] mb-2 text-slate-400">
+                  {group.group}
+                </p>
+              )}
+              <div className="space-y-0.5">
                 {group.items.map((item) => (
                   <NavItem 
                     key={item.path || item.name} 
@@ -294,8 +313,8 @@ const Layout: React.FC<LayoutProps> = ({ children, title, subtitle, fullWidth = 
         </nav>
       </aside>
 
-      <div className="flex flex-1 flex-col min-w-0 h-full overflow-hidden bg-white">
-        <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-50 bg-white px-6 lg:px-8 z-[1000]">
+      <div className="flex flex-1 flex-col min-w-0 h-full overflow-hidden bg-[var(--bg-page)]">
+        <header className="header-glass flex h-16 shrink-0 items-center justify-between px-6 lg:px-8 z-[1000] sticky top-0">
           <div className="flex items-center gap-4">
             <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-slate-400 hover:text-slate-900">
               <Menu size={20} />
@@ -482,10 +501,13 @@ const Layout: React.FC<LayoutProps> = ({ children, title, subtitle, fullWidth = 
             )}
             <button 
               onClick={() => setQuickActionOpen(!quickActionOpen)}
-              className="h-16 w-16 rounded-[2rem] bg-slate-900 text-white shadow-2xl shadow-slate-400 flex items-center justify-center hover:scale-110 active:scale-95 transition-all group overflow-hidden relative"
+              className="h-14 w-14 rounded-2xl text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-all group overflow-hidden relative"
+              style={{ background: 'linear-gradient(135deg, #FF5722 0%, #E64A19 100%)', boxShadow: '0 6px 24px rgba(255,87,34,0.45)' }}
+              aria-label={quickActionOpen ? 'Close quick actions' : 'Open quick actions'}
+              aria-expanded={quickActionOpen}
             >
-              <div className="absolute inset-0 bg-brand/50 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
-              {quickActionOpen ? <X size={24} className="relative z-10" /> : <Plus size={24} className="relative z-10" />}
+              <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+              {quickActionOpen ? <X size={22} className="relative z-10" /> : <Plus size={22} className="relative z-10" />}
             </button>
           </div>
         </div>
@@ -496,26 +518,56 @@ const Layout: React.FC<LayoutProps> = ({ children, title, subtitle, fullWidth = 
 
 const NavItem = ({ item, collapsed, location, onNavigate }: any) => {
   const Icon = item.icon as any;
-  const navigate = useNavigate();
   const isActive = location.pathname === item.path;
 
-  const handleNav = (e: React.MouseEvent) => {
+  const handleNav = () => {
     if (onNavigate) onNavigate(item.moduleId);
   };
 
-  const navItemClasses = `flex-1 flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-xs font-bold uppercase tracking-tight group relative ${isActive ? 'bg-slate-50 text-slate-900' : 'text-slate-400 hover:text-slate-900 hover:bg-slate-50/50'}`;
-
   return (
-    <Link to={item.path!} className="block" id={item.id} onClick={handleNav}>
-      <div className={navItemClasses}>
-        {isActive && <div className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-slate-900 rounded-r" />}
-        <div className={`shrink-0 transition-transform duration-200 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`}>
+    <Link
+      to={item.path!}
+      id={item.id}
+      onClick={handleNav}
+      className="block"
+      aria-current={isActive ? 'page' : undefined}
+    >
+      <div
+        className={`relative flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-200 group overflow-hidden ${
+          isActive
+            ? 'text-[#FF5722] font-bold'
+            : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50/70 font-semibold'
+        }`}
+        style={isActive ? { backgroundColor: 'rgba(255,87,34,0.08)' } : {}}
+      >
+        {/* Active left border pill */}
+        {isActive && (
+          <span
+            className="absolute left-0 top-[20%] bottom-[20%] w-[3px] rounded-r-full"
+            style={{ background: '#FF5722' }}
+            aria-hidden="true"
+          />
+        )}
+
+        <div
+          className={`shrink-0 transition-all duration-200 ${
+            isActive ? 'scale-105' : 'group-hover:scale-105'
+          }`}
+        >
           <Icon size={16} strokeWidth={isActive ? 2.5 : 2} />
         </div>
-        {!collapsed && <span className="flex-1 text-left truncate">{item.name}</span>}
-        
+
+        {!collapsed && (
+          <span
+            className="flex-1 text-left truncate text-[12px] uppercase tracking-[0.08em]"
+          >
+            {item.name}
+          </span>
+        )}
+
+        {/* Collapsed tooltip */}
         {collapsed && (
-          <div className="absolute left-full ml-4 px-3 py-1.5 bg-slate-900 text-white rounded text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 z-50 whitespace-nowrap shadow-xl">
+          <div className="absolute left-full ml-3 px-3 py-2 bg-slate-900 text-white rounded-lg text-[11px] font-semibold uppercase tracking-widest opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-150 z-50 whitespace-nowrap shadow-xl">
             {item.name}
           </div>
         )}

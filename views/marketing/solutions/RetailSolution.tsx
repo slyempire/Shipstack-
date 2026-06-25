@@ -118,7 +118,7 @@ const RetailSolution: React.FC = () => {
                   <div className="h-10 w-10 bg-blue-600 rounded-xl flex items-center justify-center"><Zap size={20} /></div>
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Auto-Replenishment</p>
-                    <p className="text-sm font-bold">Active for 124 stores</p>
+                    <p className="text-sm font-bold">Built for multi-store retail networks</p>
                   </div>
                 </div>
               </div>
@@ -136,8 +136,8 @@ const RetailSolution: React.FC = () => {
                   <Globe size={24} />
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-black text-blue-600">99.9%</p>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Inventory Accuracy</p>
+                  <p className="text-2xl font-black text-blue-600">Live</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Inventory Tracking</p>
                 </div>
               </div>
               <div>
@@ -259,16 +259,16 @@ const RetailSolution: React.FC = () => {
           
           <div className="grid md:grid-cols-3 gap-8">
             <div className="p-10 bg-white/5 rounded-3xl border border-white/10">
-              <p className="text-4xl font-black text-blue-600 mb-2">25%</p>
-              <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Lower operational cost</p>
+              <p className="text-4xl font-black text-blue-600 mb-2">Multi-drop</p>
+              <p className="text-[10px] font-black uppercase tracking-widest opacity-60">route optimised</p>
             </div>
             <div className="p-10 bg-white/5 rounded-3xl border border-white/10">
-              <p className="text-4xl font-black text-blue-600 mb-2">99%</p>
-              <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Inventory Accuracy</p>
+              <p className="text-4xl font-black text-blue-600 mb-2">Real-time</p>
+              <p className="text-[10px] font-black uppercase tracking-widest opacity-60">stock visibility</p>
             </div>
             <div className="p-10 bg-white/5 rounded-3xl border border-white/10">
-              <p className="text-4xl font-black text-blue-600 mb-2">10x</p>
-              <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Faster Restocking</p>
+              <p className="text-4xl font-black text-blue-600 mb-2">One platform</p>
+              <p className="text-[10px] font-black uppercase tracking-widest opacity-60">every location</p>
             </div>
           </div>
         </div>

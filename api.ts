@@ -713,121 +713,83 @@ export const api = {
         await logAudit('LOGIN_SUCCESS', { email: sanitizedEmail }, result.user.name);
         return result;
       } catch (error: any) {
-        console.warn('Frappe login failed, disabling Frappe integration', error);
+        // Non-fatal: Frappe is an optional legacy path. If it's unavailable
+        // (misconfigured, offline, or an auth error), disable it and fall
+        // through to the demo / Supabase auth below rather than blocking login.
+        console.warn('Frappe login unavailable, falling back to primary auth', error);
         isFrappeHealthy = false;
-        // If it's a network error, we don't throw, we let it fallback to demo/supabase
-        const isNetworkError = error.message?.toLowerCase().includes('failed to fetch');
-        if (!isNetworkError) throw error;
       }
     }
 
-    // Demo bypass logic - Priority check before hitting external services
-    const isKnownDemoEmail = normalizedEmail.includes('shipstack.com') || 
-                             normalizedEmail.includes('example.com') ||
-                             normalizedEmail === 'joemugoh215@gmail.com' ||
-                             normalizedEmail === 'admin@shipstack.com' ||
-                             normalizedEmail.includes('pilot') ||
-                             normalizedEmail.includes('hub') ||
-                             normalizedEmail.includes('warehouse') ||
-                             normalizedEmail.includes('finance');
+    // ── Demo / local auth (explicit opt-in) ──────────────────────────────
+    // Enabled only when Supabase is not configured, or when an operator
+    // explicitly sets VITE_ENABLE_DEMO_AUTH=true (local/dev). Demo accounts
+    // must present their real seeded password — we never infer access from the
+    // email and never accept an empty password. This replaces the previous
+    // "known demo email" heuristic, which granted access far too broadly.
+    const demoAuthEnabled = !isSupabaseConfigured || import.meta.env.VITE_ENABLE_DEMO_AUTH === 'true';
 
     const allMockUsers = [...initialUsers, ...getStore<User[]>('users', [])];
     const mockUser = allMockUsers.find(u => u.email.toLowerCase() === normalizedEmail);
 
-    // If it's a known demo account or matches a mock user, bypass Supabase if configured for demo
-    if (mockUser && (password === 'password' || !password || isKnownDemoEmail)) {
-      await logAudit('DEMO_LOGIN_SUCCESS', { email: normalizedEmail }, mockUser.name);
-      return { user: mockUser, token: 'mock-jwt-token' };
-    }
-
-    if (isSupabaseConfigured) {
-      try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: sanitizedEmail,
-          password: password || 'password',
-        });
-
-        if (error) {
-          const errorMessage = error.message?.toLowerCase() || '';
-          
-          // Enhanced detection for identity mismatches
-          const isInvalidCredentials = errorMessage.includes('invalid') || 
-                                        errorMessage.includes('credentials') ||
-                                        errorMessage.includes('not found') ||
-                                        error.status === 400 ||
-                                        error.status === 401;
-                                      
-          if (isInvalidCredentials) {
-            // Final fallback for recognized operational profiles even if Supabase rejects
-            if (mockUser) {
-              console.warn('[AUTH] Supabase verification bypass: applying local identity protocol for', normalizedEmail);
-              return { user: mockUser, token: 'sk_local_' + btoa(normalizedEmail).substring(0, 16) };
-            }
-            throw new Error(`We couldn't find an account for '${sanitizedEmail}'. Check your email or sign up.`);
-          }
-          
-          console.error('[AUTH] Gateway Failure:', error);
-          if (mockUser) return { user: mockUser, token: 'sk_resilience_token' };
-          throw new Error('Identity service unreachable. Deploying emergency access protocols...');
-        }
-
-        if (!data.user) throw new Error('Security profile retrieval failed');
-
-        let user = await api.getUserById(data.user.id);
-        
-        if (!user) {
-          user = {
-            id: data.user.id,
-            email: sanitizedEmail,
-            name: sanitizedEmail.split('@')[0].toUpperCase(),
-            role: sanitizedEmail.includes('admin') ? 'ADMIN' : 'ADMIN',
-            company: 'Shipstack Corp',
-            verificationStatus: 'VERIFIED',
-            isOnboarded: true
-          };
-          const users = await api.getUsers();
-          setStore('users', [...users, user]);
-        }
-        
-        return { user, token: data.session?.access_token || '' };
-      } catch (error: any) {
-        // Fallback to error handling logic above if not already handled
-        if (error.message?.includes('Identity verification failed')) throw error;
-        
-        console.error('[AUTH] Critical Auth Pipeline Exception:', error);
-        if (mockUser) return { user: mockUser, token: 'mock-jwt-token' };
-        throw error;
+    if (demoAuthEnabled && mockUser) {
+      if (!password || !mockUser.password || password !== mockUser.password) {
+        await logAudit('LOGIN_FAILED', { email: normalizedEmail, reason: 'bad_demo_credentials' });
+        throw new Error('Incorrect email or password.');
       }
+      await logAudit('DEMO_LOGIN_SUCCESS', { email: normalizedEmail }, mockUser.name);
+      return { user: mockUser, token: 'demo.' + btoa(mockUser.email) };
     }
 
-    // Secondary fallback to mock logic if Supabase not configured or failed to find user
-    try {
-      const users = await api.getUsers();
-      const searchEmail = normalizedEmail;
-      let user = users.find(u => u.email.toLowerCase() === searchEmail);
-      
-      if (!user && (searchEmail.includes('shipstack.com') || searchEmail === 'admin@shipstack.com')) {
+    // ── Real authentication via Supabase (primary) ───────────────────────
+    // A rejection here is FINAL. We surface a clear error and never fall back
+    // to a local identity — that silent fallback was the auth bypass.
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: sanitizedEmail,
+        password: password || '',
+      });
+
+      if (error) {
+        const msg = error.message?.toLowerCase() || '';
+        const invalidCredentials = msg.includes('invalid') ||
+                                   msg.includes('credentials') ||
+                                   msg.includes('not found') ||
+                                   error.status === 400 ||
+                                   error.status === 401;
+        await logAudit('LOGIN_FAILED', { email: sanitizedEmail, reason: error.message });
+        if (invalidCredentials) {
+          throw new Error('Incorrect email or password.');
+        }
+        throw new Error('Could not reach the sign-in service. Please try again in a moment.');
+      }
+
+      if (!data.user) throw new Error('Sign-in failed. Please try again.');
+
+      let user = await api.getUserById(data.user.id);
+      if (!user) {
         user = {
-          id: `u-demo-${Date.now()}`,
-          name: searchEmail.split('@')[0].toUpperCase(),
-          email: searchEmail,
-          role: searchEmail.includes('admin') ? 'ADMIN' : searchEmail.includes('driver') ? 'DRIVER' : 'ADMIN',
-          company: 'Shipstack Demo Corp',
+          id: data.user.id,
+          email: sanitizedEmail,
+          name: sanitizedEmail.split('@')[0].toUpperCase(),
+          role: 'ADMIN',
+          company: 'Shipstack Corp',
           verificationStatus: 'VERIFIED',
           isOnboarded: true
         };
+        const users = await api.getUsers();
+        setStore('users', [...users, user]);
       }
 
-      if (!user) throw new Error('Identity profile not detected in the network. Ensure you have registered or use a demo operational ID.');
-      if (password && user.password && user.password !== password && password !== 'password') {
-        throw new Error('Security token verification failed. Access denied.');
-      }
-      
-      return { user, token: 'mock-jwt-token' };
-    } catch (error: any) {
-      console.error('Auth Error:', error);
-      throw new Error(error.message || 'Authentication failed');
+      await logAudit('LOGIN_SUCCESS', { email: sanitizedEmail }, user.name);
+      return { user, token: data.session?.access_token || '' };
     }
+
+    // ── No authentication backend available ──────────────────────────────
+    if (demoAuthEnabled) {
+      throw new Error('No account found for that email. Check the address or sign up.');
+    }
+    throw new Error('Sign-in is not configured. Please contact your administrator.');
   },
 
   async loginWithGoogle(): Promise<{ user: User, token: string }> {
@@ -1035,7 +997,7 @@ export const api = {
 
     const users = await api.getUsers();
     setStore('users', [...users, user]);
-    return { user, token: 'mock-jwt-token' };
+    return { user, token: 'demo.' + btoa(user.email) };
   },
 
   async completeOnboarding(
@@ -2955,8 +2917,8 @@ export const api = {
     await cacheService.set(`telemetry_${dnId}`, { lat, lng, timestamp: new Date().toISOString() }, 600);
   },
 
-  async syncOfflineTelemetry(): Promise<void> {
-    await telemetryService.syncOfflineQueue();
+  async syncOfflineTelemetry(): Promise<number> {
+    return telemetryService.syncOfflineQueue();
   },
 
   async generateDocument(dnId: string, type: LogisticsDocumentType, user: string): Promise<void> {

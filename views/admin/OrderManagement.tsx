@@ -7,6 +7,7 @@ import { Badge } from '../../packages/ui/Badge';
 import { useAppStore, useAuthStore } from '../../store';
 import { useTenant } from '../../hooks/useTenant';
 import RoleGuard from '../../components/RoleGuard';
+import { KPICard } from '../../components/shared/KPICard';
 import { 
   ShoppingBag, 
   Search, 
@@ -146,10 +147,10 @@ const OrderManagement: React.FC = () => {
       <div className="space-y-8">
         {/* Stats Header */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <StatCard label="Pending Approval" value={orders.filter(o => o.status === 'PENDING').length} icon={Clock} color="text-orange-500" />
-          <StatCard label="Total Revenue" value={formatCurrency(orders.reduce((acc, o) => acc + o.totalAmount, 0))} icon={CreditCard} color="text-emerald-500" />
-          <StatCard label="Avg Fraud Score" value={(orders.reduce((acc, o) => acc + (o.fraudScore || 0), 0) / orders.length || 0).toFixed(1)} icon={ShieldCheck} color="text-blue-500" />
-          <StatCard label="Total Orders" value={orders.length} icon={ShoppingBag} color="text-slate-500" />
+          <KPICard variant="console-light" label="Pending Approval" value={orders.filter(o => o.status === 'PENDING').length} icon={Clock} color="text-orange-500 bg-orange-500/10" />
+          <KPICard variant="console-light" label="Total Revenue" value={formatCurrency(orders.reduce((acc, o) => acc + o.totalAmount, 0))} icon={CreditCard} color="text-emerald-500 bg-emerald-500/10" />
+          <KPICard variant="console-light" label="Avg Fraud Score" value={(orders.reduce((acc, o) => acc + (o.fraudScore || 0), 0) / orders.length || 0).toFixed(1)} icon={ShieldCheck} color="text-blue-500 bg-blue-500/10" />
+          <KPICard variant="console-light" label="Total Orders" value={orders.length} icon={ShoppingBag} color="text-slate-500 bg-slate-500/10" />
         </div>
 
         {/* Controls */}
@@ -201,7 +202,7 @@ const OrderManagement: React.FC = () => {
         </div>
 
         {/* Orders Table */}
-        <div className="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+        <div className="card-logistics !p-0 overflow-hidden">
           <table className="w-full text-left">
             <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
               <tr>
@@ -243,7 +244,7 @@ const OrderManagement: React.FC = () => {
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center text-slate-400"><ShoppingBag size={18} /></div>
                         <div>
-                          <span className="body-value truncate-name block">{order.externalId}</span>
+                          <span className="font-mono text-sm font-bold truncate block tracking-tight text-slate-900 dark:text-white">{order.externalId}</span>
                           <span className="text-[10px] text-slate-400 font-bold uppercase">{new Date(order.createdAt).toLocaleDateString()}</span>
                         </div>
                       </div>
@@ -516,17 +517,7 @@ const OrderManagement: React.FC = () => {
   );
 };
 
-const StatCard = ({ label, value, icon: Icon, color }: any) => (
-  <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-6">
-    <div className={`h-14 w-14 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center ${color} shadow-inner`}>
-      <Icon size={24} />
-    </div>
-    <div>
-      <p className="label-logistics text-slate-400 mb-1">{label}</p>
-      <p className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter">{value}</p>
-    </div>
-  </div>
-);
+
 
 const SkeletonRow = () => (
   <tr className="animate-pulse">

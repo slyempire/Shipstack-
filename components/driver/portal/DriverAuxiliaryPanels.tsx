@@ -1,6 +1,7 @@
 import React from 'react';
 import { DeliveryNote, DNStatus } from '../../../types';
 import { Activity, Award, AlertTriangle, Bell, Camera, Check, CheckCircle2, ChevronRight, ClipboardCheck, Clock, HelpCircle, LogOut, RefreshCw, ShieldCheck, Smartphone, TrendingUp, Circle } from 'lucide-react';
+import { KPICard } from '../../shared/KPICard';
 
 export type AuxTab = 'PERFORMANCE' | 'INSPECTION' | 'SUPPORT' | 'SETTINGS';
 
@@ -37,18 +38,10 @@ export const DriverPerformancePanel: React.FC<PerformancePanelProps> = ({
   actionConfig,
   onActionClick
 }) => (
-  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-32">
     <div className="grid grid-cols-2 gap-3">
-      <div className="card-tactical !p-5 flex flex-col justify-between">
-        <TrendingUp className="text-emerald-500 mb-3" size={20} />
-        <p className="label-mono mb-1">On-Time Rate</p>
-        <p className="text-xl font-black text-slate-900 dark:text-white">98.4%</p>
-      </div>
-      <div className="card-tactical !p-5 flex flex-col justify-between">
-        <Award className="text-orange-500 mb-3" size={20} />
-        <p className="label-mono mb-1 text-slate-500 dark:text-white/60">Driver Score</p>
-        <p className="text-xl font-black text-slate-900 dark:text-white">4.92</p>
-      </div>
+      <KPICard variant="driver-light" icon={TrendingUp} label="On-Time Rate" value="98.4%" color="text-emerald-500" />
+      <KPICard variant="driver-light" icon={Award} label="Driver Score" value="4.92" color="text-orange-500" />
     </div>
 
     <div className="card-tactical bg-emerald-600/10 border-emerald-500/20 !p-6 flex items-center gap-5">
@@ -115,7 +108,7 @@ export const DriverInspectionPanel: React.FC<InspectionPanelProps> = ({
   onPhotoUpload,
   onSubmit
 }) => (
-  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-32">
     <div>
       <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-1">Safety Protocol</h3>
       <p className="label-mono">Daily Vehicle Health Check</p>
@@ -172,7 +165,7 @@ export const DriverInspectionPanel: React.FC<InspectionPanelProps> = ({
 );
 
 export const DriverSupportPanel: React.FC<SupportPanelProps> = ({ onOpenGuide }) => (
-  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-32">
     <div>
       <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-1">Operations Support</h3>
       <p className="label-mono">24/7 Field Assistance</p>
@@ -212,7 +205,7 @@ export const DriverSupportPanel: React.FC<SupportPanelProps> = ({ onOpenGuide })
 );
 
 export const DriverSettingsPanel: React.FC<SettingsPanelProps> = ({ onLogout }) => (
-  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-32">
     <div>
       <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-1">Terminal Config</h3>
       <p className="label-mono">Personalize your experience</p>

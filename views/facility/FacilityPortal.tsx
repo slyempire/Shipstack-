@@ -1,6 +1,6 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuthStore, useAppStore } from '../../store';
+import { KPICard } from '../../components/shared/KPICard';
 import { api } from '../../api';
 import { useTenant } from '../../hooks/useTenant';
 import { useRealtimeTable } from '../../hooks/useRealtimeTable';
@@ -197,7 +197,7 @@ const FacilityPortal: React.FC = () => {
         </div>
       </header>
 
-      <main className="flex-1 p-8 space-y-10 max-w-[1600px] mx-auto w-full">
+      <main className="flex-1 p-8 pb-24 lg:pb-10 space-y-10 max-w-[1600px] mx-auto w-full">
         {/* Quick Actions & Stats */}
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -218,16 +218,15 @@ const FacilityPortal: React.FC = () => {
               <span className="text-xs font-black uppercase tracking-widest">Manage Bays</span>
             </button>
           </div>
-          <div className="lg:col-span-4 bg-charcoal border border-white/5 rounded-[2.5rem] p-8 flex flex-col justify-between relative overflow-hidden">
-            <Activity className="absolute -right-8 -bottom-8 opacity-5" size={160} />
-            <div>
-              <p className="label-logistics mb-2">Operational Efficiency</p>
-              <h3 className="text-4xl font-black tracking-tighter">94.2%</h3>
-            </div>
-            <div className="flex items-center gap-2 text-emerald mt-4">
-              <TrendingUp size={16} />
-              <span className="label-logistics !text-emerald !mb-0">+2.4% vs Yesterday</span>
-            </div>
+          <div className="lg:col-span-4 h-full">
+            <KPICard
+              variant="facility-dark"
+              icon={Activity}
+              label="Operational Efficiency"
+              value="94.2%"
+              trend={2.4}
+              subValue="vs Yesterday"
+            />
           </div>
         </section>
 
