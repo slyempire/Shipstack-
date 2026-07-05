@@ -313,73 +313,47 @@ const AdminDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Stunning Hero Section for Bleed Design */}
-        <section className="relative w-full h-[500px] bg-slate-950 flex flex-col items-center justify-center px-10 overflow-hidden">
-           {/* Background Mesh/Images */}
-           <div className="absolute inset-0 z-0 opacity-20 transition-opacity duration-1000">
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-slate-900 to-slate-950 z-10" />
-              <img 
-                src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&q=80&w=2000" 
-                className="w-full h-full object-cover grayscale transition-transform duration-[20s] scale-110 hover:scale-100" 
-                alt="Logistics Background"
-              />
+        {/* Compact operational header: greeting + today's numbers. The
+            dashboard's job is orientation, not a slogan — keep it short so
+            the KPIs and queues start above the fold. */}
+        <section className="relative w-full bg-slate-950 px-10 py-10 overflow-hidden">
+           <div className="absolute bottom-[-80px] right-[-60px] opacity-10 pointer-events-none">
+              <Zap size={260} className="text-brand" />
            </div>
-           
-           <div className="relative z-10 max-w-4xl w-full text-center">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.8 }}
-                className="inline-flex items-center gap-3 px-4 py-2 bg-brand/20 border border-brand/30 rounded-full mb-8 backdrop-blur-md"
-              >
-                 <ShieldCheck size={14} className="text-brand-accent animate-pulse" />
-                 <span className="text-[10px] font-black uppercase tracking-widest text-white">Advanced Telemetry Node Active</span>
-              </motion.div>
-              
-              <motion.h1 
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2, duration: 0.8 }}
-                className="text-6xl md:text-8xl font-black text-white italic tracking-tighter leading-[0.8] mb-8 uppercase"
-              >
-                Control.<br />
-                <span className="text-brand-accent">Precision.</span>
-              </motion.h1>
-              
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.6 }}
-                className="flex flex-wrap justify-center gap-8 md:gap-12"
-              >
-                 <div className="text-center group">
+           <div className="relative z-10 flex flex-col md:flex-row md:items-end md:justify-between gap-8 max-w-7xl">
+              <div>
+                 <p className="text-[10px] font-black uppercase tracking-widest text-brand-accent mb-2 flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live overview
+                 </p>
+                 <h1 className="text-3xl md:text-4xl font-black text-white tracking-tighter uppercase">
+                    {(() => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; })()}{user?.name ? `, ${user.name.split(' ')[0]}` : ''}.
+                 </h1>
+                 <p className="text-sm text-white/50 font-medium mt-2">Here's where your operation stands right now.</p>
+              </div>
+              <div className="flex flex-wrap gap-8 md:gap-12">
+                 <div className="group">
                     <p className="text-xs font-black text-white/40 uppercase tracking-widest mb-1 group-hover:text-brand-accent transition-colors">Shipments</p>
                     <p className="text-3xl font-black text-white tracking-tighter">{dns.length}</p>
                  </div>
-                 <div className="w-px h-10 bg-white/10 hidden md:block" />
-                 <div className="text-center group">
-                    <p className="text-xs font-black text-white/40 uppercase tracking-widest mb-1 group-hover:text-brand-accent transition-colors">Fleet Nodes</p>
+                 <div className="w-px h-12 bg-white/10 hidden md:block" />
+                 <div className="group">
+                    <p className="text-xs font-black text-white/40 uppercase tracking-widest mb-1 group-hover:text-brand-accent transition-colors">Vehicles</p>
                     <p className="text-3xl font-black text-white tracking-tighter">{vehicles.length}</p>
                  </div>
-                 <div className="w-px h-10 bg-white/10 hidden md:block" />
-                 <div className="text-center group">
-                    <p className="text-xs font-black text-white/40 uppercase tracking-widest mb-1 group-hover:text-brand-accent transition-colors">Hub Efficiency</p>
+                 <div className="w-px h-12 bg-white/10 hidden md:block" />
+                 <div className="group">
+                    <p className="text-xs font-black text-white/40 uppercase tracking-widest mb-1 group-hover:text-brand-accent transition-colors">On-time rate</p>
                     <p className="text-3xl font-black text-white tracking-tighter">{onTimeRate}%</p>
                  </div>
-              </motion.div>
-           </div>
-
-           {/* Floating UI elements for "Pulse" */}
-           <div className="absolute bottom-[-50px] left-[-50px] opacity-10 pointer-events-none">
-              <Zap size={300} className="text-brand animate-pulse" />
+              </div>
            </div>
         </section>
 
         <div className="px-10 py-12 space-y-12">
           <div className="flex justify-between items-end">
              <div>
-                <h2 className="text-4xl font-black tracking-tighter text-gray-900 mb-1 uppercase">Command Hub</h2>
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Tactical Oversight Layer v2.4</p>
+                <h2 className="text-4xl font-black tracking-tighter text-gray-900 mb-1 uppercase">Overview</h2>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Today's operations at a glance</p>
              </div>
              <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-2xl border border-slate-200 mr-4">
@@ -388,20 +362,20 @@ const AdminDashboard: React.FC = () => {
                       onClick={() => setActiveTab('HEALTH')}
                       className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'HEALTH' ? 'bg-white text-brand shadow-xl' : 'text-slate-400 hover:text-brand'}`}
                     >
-                      System Lifecycle
+                      Operations
                     </button>
                   )}
                   <button 
                     onClick={() => setActiveTab('INTELLIGENCE')}
                     className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'INTELLIGENCE' ? 'bg-white text-brand shadow-xl' : 'text-slate-400 hover:text-brand'}`}
                   >
-                    Neural Mesh
+                    Insights
                   </button>
                   <button 
                     onClick={() => setActiveTab('VERTICAL')}
                     className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'VERTICAL' ? 'bg-white text-brand shadow-xl' : 'text-slate-400 hover:text-brand'}`}
                   >
-                    Industry Hubs
+                    Industry
                   </button>
                 </div>
              </div>
@@ -620,7 +594,7 @@ const AdminDashboard: React.FC = () => {
                         </div>
                         <h4 className="text-lg font-black uppercase tracking-tight text-slate-900 mb-2">Idle Time Reduction</h4>
                         <p className="text-xs font-medium text-slate-500 leading-relaxed uppercase">
-                           Neural mesh has optimized warehouse loading cycles, reducing average dispatch latency by 14.5 minutes.
+                           Routing suggestions are based on your recent trips. Estimates improve as more trips complete.
                         </p>
                      </div>
                   </div>
@@ -733,8 +707,8 @@ const AdminDashboard: React.FC = () => {
                   <div className="card-logistics !p-8">
                     <div className="flex items-center justify-between mb-8">
                       <div>
-                        <h3 className="heading-primary mb-1">Network Volume Matrix</h3>
-                        <p className="label-logistics text-gray-400">Tactical shipment distribution</p>
+                        <h3 className="heading-primary mb-1">Shipment volume</h3>
+                        <p className="label-logistics text-gray-400">Shipments over time</p>
                       </div>
                       <div className="flex items-center gap-6">
                         <div className="flex items-center gap-2">

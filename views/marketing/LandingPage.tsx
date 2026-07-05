@@ -147,35 +147,6 @@ const StepAction = ({ number, title, icon: Icon, desc, delay }: any) => {
   );
 };
 
-const TestimonialCard = ({ quote, author, role, company, city, delay }: any) => {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true });
-
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, x: -20 }}
-      animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -20 }}
-      transition={{ delay }}
-      className="bg-white p-10 rounded-[3rem] shadow-xl border border-slate-100 flex flex-col justify-between"
-    >
-      <div className="mb-8">
-        <div className="flex gap-1 mb-4">
-          {[1,2,3,4,5].map(i => <span key={i} className="text-brand">★</span>)}
-        </div>
-        <p className="text-lg text-slate-700 italic font-medium leading-relaxed">"{quote}"</p>
-      </div>
-      <div className="flex items-center gap-4">
-        <div className="h-12 w-12 bg-slate-100 rounded-full flex-shrink-0 border-2 border-slate-50" />
-        <div>
-          <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight">{author}</h4>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{role}, {company} — {city}</p>
-        </div>
-      </div>
-    </motion.div>
-  );
-};
-
 const FAQItem = ({ question, answer }: any) => {
   const [isOpen, setIsOpen] = useState(false);
   return (
@@ -636,57 +607,43 @@ const LandingPage: React.FC = () => {
              </div>
           </div>
 
+          {/* Pilot onboarding timeline — honest education about what joining
+              actually looks like. No invented customers or metrics. */}
           <div className="bg-[#121E36] rounded-[4rem] p-10 md:p-20 border border-white/5 relative overflow-hidden shadow-2xl">
             <div className="absolute top-0 right-0 p-20 opacity-5 pointer-events-none">
               <Plus size={300} className="text-brand" />
             </div>
-            
-            <div className="grid lg:grid-cols-2 gap-20 items-center relative z-10">
-              <div>
-                <div className="flex items-center gap-4 mb-8">
-                  <div className="h-16 w-16 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10">
-                    <Building className="text-brand" size={32} />
-                  </div>
-                  <div>
-                    <h3 className="text-2xl font-black text-white uppercase tracking-tight">FastCourier</h3>
-                    <p className="text-sm font-black text-brand uppercase tracking-widest">Nairobi, Kenya</p>
-                  </div>
-                </div>
-                
-                <div className="mb-12">
-                  <MessageSquare className="text-brand mb-6 opacity-50" size={48} />
-                  <p className="text-2xl md:text-3xl text-white font-medium italic leading-relaxed">
-                    "Shipstack gave us complete operational visibility during our trial, helping us streamline driver settlements."
-                  </p>
-                </div>
 
-                <div className="flex flex-wrap gap-4">
-                  <div className="px-6 py-4 bg-brand/10 border border-brand/20 rounded-2xl">
-                    <p className="text-3xl font-black text-white">250%</p>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-brand">Revenue Growth</p>
-                  </div>
-                  <div className="px-6 py-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl">
-                    <p className="text-3xl font-black text-white">40%</p>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Cost Reduction</p>
-                  </div>
-                  <div className="px-6 py-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl">
-                    <p className="text-3xl font-black text-white">6 Month</p>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-blue-500">Timeline</p>
-                  </div>
-                </div>
+            <div className="relative z-10">
+              <div className="mb-16 max-w-2xl">
+                <p className="text-[10px] font-black uppercase tracking-widest text-brand mb-4">What joining looks like</p>
+                <h3 className="text-3xl md:text-4xl font-black text-white uppercase tracking-tighter mb-4">Your first two weeks on Shipstack</h3>
+                <p className="text-slate-400 font-medium leading-relaxed">
+                  Pilot partners don't get a login and a manual — they get our team, on the ground, until your operation runs on Shipstack.
+                </p>
               </div>
 
-              <div className="relative group">
-                <div className="absolute -inset-4 bg-brand/20 rounded-[3rem] blur-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="relative bg-navy rounded-[3rem] p-10 border border-white/10 shadow-2xl overflow-hidden aspect-square flex flex-col justify-center items-center text-center">
-                  <div className="h-32 w-32 bg-brand rounded-full mb-8 flex items-center justify-center text-white shadow-2xl relative">
-                    <Truck size={64} />
-                    <div className="absolute -right-2 -bottom-2 h-12 w-12 bg-white rounded-full flex items-center justify-center text-brand">
-                      <TrendingUp size={24} />
-                    </div>
-                  </div>
-                  <h4 className="text-4xl font-black text-white mb-4 uppercase tracking-tighter">500+</h4>
-                  <p className="text-slate-400 font-black uppercase tracking-widest text-xs">Daily deliveries</p>
+              <div className="grid md:grid-cols-3 gap-6">
+                <div className="p-8 bg-white/5 border border-white/5 rounded-3xl">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-brand mb-3">Day 1</p>
+                  <h4 className="text-lg font-black text-white uppercase tracking-tight mb-3">Set up together</h4>
+                  <p className="text-sm text-slate-400 font-medium leading-relaxed">
+                    We import your vehicles, drivers, and routes with you — from spreadsheets, your ERP, or paper if that's where they live.
+                  </p>
+                </div>
+                <div className="p-8 bg-white/5 border border-white/5 rounded-3xl">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-brand mb-3">Week 1</p>
+                  <h4 className="text-lg font-black text-white uppercase tracking-tight mb-3">Train your team</h4>
+                  <p className="text-sm text-slate-400 font-medium leading-relaxed">
+                    Hands-on sessions for dispatchers and drivers, in English and Kiswahili. Your drivers check in from their own phones by day three.
+                  </p>
+                </div>
+                <div className="p-8 bg-white/5 border border-white/5 rounded-3xl">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-brand mb-3">Week 2</p>
+                  <h4 className="text-lg font-black text-white uppercase tracking-tight mb-3">Run live, review weekly</h4>
+                  <p className="text-sm text-slate-400 font-medium leading-relaxed">
+                    Real trips, real payouts. We review what worked every week and build what's missing — that's the co-development deal.
+                  </p>
                 </div>
               </div>
             </div>
@@ -712,39 +669,46 @@ const LandingPage: React.FC = () => {
         </div>
       </SectionWrapper>
 
-      {/* Testimonials section (v2: image 9 dark grid -- 4 cards on #0B0E16) */}
+      {/* Try-it-yourself section — replaces the former testimonial grid.
+          We're pre-launch: instead of invented quotes, give visitors real
+          ways to evaluate the product themselves. */}
       <SectionWrapper className="py-32 bg-[#0B0E16]">
         <div className="max-w-7xl mx-auto px-8 md:px-16 lg:px-24">
           <div className="mb-20">
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand mb-4">Pilot feedback</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand mb-4">See for yourself</p>
             <h2 className="text-4xl md:text-6xl font-black tracking-tight text-white mb-4 uppercase max-w-3xl leading-[0.95]">
-              Your trust, our journey &mdash; <span className="text-brand">delivering excellence</span> together.
+              Don't take our word for it. <span className="text-brand">Try it.</span>
             </h2>
-            <p className="text-white/50 font-medium text-base max-w-xl">Early notes from operators piloting Shipstack with us.</p>
+            <p className="text-white/50 font-medium text-base max-w-xl">
+              We're pre-launch, so we won't show you invented praise. Explore the live product instead.
+            </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { quote: "Finally a platform that doesn't ignore the complexity of the African last mile. The visibility into driver settlements is exactly what we needed.", author: "Amara Diallo", role: "Operations Director, SwiftRoute Logistics", initial: "A" },
-              { quote: "Shipstack's integration with our existing ERP was seamless. It's the first logistics OS that feels built for scale, not just hype.", author: "Moussa Keïta", role: "CTO, Sahel Freight", initial: "M" },
-              { quote: "The early-access support has been incredible. They aren't just selling software — they're helping us refine our entire operational flow.", author: "Kwame Mensah", role: "Founder, Nexus Courier", initial: "K" },
-              { quote: "Live tracking changed how we run dispatch. We can see every trip and respond before customers even call to ask.", author: "Naledi Khumalo", role: "Fleet Manager, Cape Cargo Co", initial: "N" },
-            ].map((t, i) => (
+              { icon: LayoutDashboard, title: 'Tour the dashboard', desc: 'Log in with a demo account and click around the real dispatch, fleet, and billing screens. No sign-up needed.', cta: 'Open the demo', to: '/login' },
+              { icon: MapPin, title: 'Track a shipment', desc: 'This is the page your customers see. Try the public tracking experience with any reference.', cta: 'Try tracking', to: '/track' },
+              { icon: Truck, title: 'See the driver app', desc: 'Shift check-in, trip claiming, offline sync — the tools your drivers use from their own phones.', cta: 'How drivers work', to: '/product' },
+              { icon: MessageSquare, title: 'Ask us anything', desc: 'Talk directly to the team building Shipstack. We answer within a business day.', cta: 'Talk to us', to: '/contact' },
+            ].map((c, i) => (
               <motion.div
-                key={t.author}
+                key={c.title}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.08, duration: 0.5 }}
                 className="bg-[#1A1F2E] border border-white/5 rounded-3xl p-8 flex flex-col h-full hover:border-brand/30 transition-all"
               >
-                <div className="h-12 w-12 rounded-full bg-brand/10 border border-brand/20 text-brand flex items-center justify-center font-black text-lg mb-6">
-                  {t.initial}
+                <div className="h-12 w-12 rounded-2xl bg-brand/10 border border-brand/20 text-brand flex items-center justify-center mb-6">
+                  <c.icon size={22} />
                 </div>
-                <p className="text-white/80 text-sm leading-relaxed font-medium flex-1 mb-6">&ldquo;{t.quote}&rdquo;</p>
-                <div className="pt-6 border-t border-white/5">
-                  <p className="text-white font-bold text-sm mb-1">{t.author}</p>
-                  <p className="text-white/40 text-xs font-medium">{t.role}</p>
-                </div>
+                <h4 className="text-white font-black uppercase tracking-tight text-lg mb-3">{c.title}</h4>
+                <p className="text-white/60 text-sm leading-relaxed font-medium flex-1 mb-6">{c.desc}</p>
+                <button
+                  onClick={() => navigate(c.to)}
+                  className="pt-6 border-t border-white/5 text-left text-brand text-xs font-black uppercase tracking-widest hover:text-brand-accent transition-colors"
+                >
+                  {c.cta} &rarr;
+                </button>
               </motion.div>
             ))}
           </div>

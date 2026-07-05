@@ -172,17 +172,20 @@ const Layout: React.FC<LayoutProps> = ({ children, title, subtitle, fullWidth = 
   // Navigation Configuration - UPDATED with module mapping and groups
   const navigationConfig = useMemo(() => {
     return [
+      // Kept intentionally lean: daily work first, admin/config last.
+      // Names match the vocabulary used inside the pages (Dispatch = trips
+      // and routing; Shipments = the delivery-note queue). Visibility is
+      // permission-filtered below, so each role sees only what it can open.
       {
         group: 'Operations',
         items: [
           { name: 'Dashboard', path: '/admin', icon: LayoutDashboard, id: 'nav-dashboard', moduleId: 'dashboard' },
-          { name: 'Orders', path: '/admin/orders', icon: ShoppingBag, id: 'nav-orders', moduleId: 'orders' },
-          { name: 'Routing', path: '/admin/dispatch', icon: RouteIcon, id: 'nav-dispatch', moduleId: 'dispatch' },
-          { name: 'Manifests', path: '/admin/queue', icon: Clock, id: 'nav-queue', moduleId: 'dispatch' },
+          { name: 'Shipments', path: '/admin/queue', icon: Clock, id: 'nav-queue', moduleId: 'dispatch' },
+          { name: 'Dispatch', path: '/admin/dispatch', icon: RouteIcon, id: 'nav-dispatch', moduleId: 'dispatch' },
           { name: 'Tracking', path: '/admin/tracking', icon: Activity, id: 'nav-tracking', moduleId: 'dispatch' },
+          { name: 'Orders', path: '/admin/orders', icon: ShoppingBag, id: 'nav-orders', moduleId: 'orders' },
           { name: 'Alerts', path: '/admin/exceptions', icon: AlertOctagon, id: 'nav-exceptions', moduleId: 'dispatch' },
           { name: 'Tasks', path: '/admin/tasks', icon: ClipboardList, id: 'nav-tasks', moduleId: 'dashboard' },
-          { name: 'Ingress', path: '/admin/ingress', icon: DatabaseZap, id: 'nav-ingress', moduleId: 'integrations' },
         ]
       },
       {
@@ -205,6 +208,7 @@ const Layout: React.FC<LayoutProps> = ({ children, title, subtitle, fullWidth = 
         items: [
           { name: 'Teams', path: '/admin/users', icon: Users, id: 'nav-teams', moduleId: 'dashboard' },
           { name: 'Recruit', path: '/admin/recruitment', icon: Briefcase, id: 'nav-recruitment', moduleId: 'fleet' },
+          { name: 'Integrations', path: '/admin/ingress', icon: DatabaseZap, id: 'nav-ingress', moduleId: 'integrations' },
           { name: 'Marketplace', path: '/admin/marketplace', icon: Layers, id: 'nav-marketplace', roles: ['super_admin', 'tenant_admin'] },
           { name: 'Security', path: '/admin/security', icon: ShieldCheck, id: 'nav-security', roles: ['super_admin', 'tenant_admin'] },
           { name: 'System', path: '/admin/tenants', icon: Building2, id: 'nav-tenants', roles: ['super_admin'] },
