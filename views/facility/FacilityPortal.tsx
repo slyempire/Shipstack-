@@ -183,8 +183,8 @@ const FacilityPortal: React.FC = () => {
         <div className="flex items-center gap-6">
           <div className="hidden lg:flex items-center gap-8 px-8 border-x border-white/5">
             <div className="text-center">
-              <p className="text-[8px] font-black text-white/20 uppercase tracking-widest mb-1">Staff on Shift</p>
-              <p className="text-lg font-black tracking-tighter">24 Agents</p>
+              <p className="text-[8px] font-black text-white/20 uppercase tracking-widest mb-1">Shipments</p>
+              <p className="text-lg font-black tracking-tighter">{inboundShipments.length + outboundShipments.length}</p>
             </div>
             <div className="text-center">
               <p className="text-[8px] font-black text-white/20 uppercase tracking-widest mb-1">Active Bays</p>
@@ -220,13 +220,17 @@ const FacilityPortal: React.FC = () => {
           </div>
           <div className="lg:col-span-4 bg-charcoal border border-white/5 rounded-[2.5rem] p-8 flex flex-col justify-between relative overflow-hidden">
             <Activity className="absolute -right-8 -bottom-8 opacity-5" size={160} />
+            {/* Bay utilization is the one efficiency measure this screen can
+                actually compute — no invented percentages. */}
             <div>
-              <p className="label-logistics mb-2">Operational Efficiency</p>
-              <h3 className="text-4xl font-black tracking-tighter">94.2%</h3>
+              <p className="label-logistics mb-2">Bay Utilization</p>
+              <h3 className="text-4xl font-black tracking-tighter">
+                {bays.length > 0 ? `${Math.round((activeBayCount / bays.length) * 100)}%` : '—'}
+              </h3>
             </div>
             <div className="flex items-center gap-2 text-emerald mt-4">
               <TrendingUp size={16} />
-              <span className="label-logistics !text-emerald !mb-0">+2.4% vs Yesterday</span>
+              <span className="label-logistics !text-emerald !mb-0">{activeBayCount} of {bays.length} bays in use</span>
             </div>
           </div>
         </section>
@@ -368,35 +372,16 @@ const FacilityPortal: React.FC = () => {
               ))}
             </div>
 
-            {/* Staff Overview */}
+            {/* Staff roster: no staff data source exists yet for facilities.
+                Show an honest placeholder instead of invented people. */}
             <div className="p-8 bg-charcoal border border-white/5 rounded-[2.5rem] space-y-6">
               <h4 className="label-logistics">Staff Status</h4>
-              <div className="space-y-4">
-                {[
-                  { name: 'John Kamau', role: 'Bay Supervisor', status: 'Active' },
-                  { name: 'Sarah Chen', role: 'Inventory Lead', status: 'On Break' },
-                  { name: 'David Omondi', role: 'Gate Security', status: 'Active' },
-                ].map((staff, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-4 bg-navy/50 rounded-2xl border border-white/5">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center text-white/40 font-black text-xs">
-                        {staff.name.charAt(0)}
-                      </div>
-                      <div>
-                        <p className="body-value !mb-0">{staff.name}</p>
-                        <p className="label-logistics opacity-20 !mb-0">{staff.role}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`h-1.5 w-1.5 rounded-full ${staff.status === 'Active' ? 'bg-emerald' : 'bg-amber'}`} />
-                      <span className="label-logistics opacity-40 !mb-0">{staff.status}</span>
-                    </div>
-                  </div>
-                ))}
+              <div className="p-6 bg-navy/50 rounded-2xl border border-white/5 text-center">
+                <p className="text-sm font-bold text-white/40 uppercase tracking-widest mb-2">No staff assigned yet</p>
+                <p className="text-[10px] text-white/25 uppercase tracking-widest leading-relaxed">
+                  Ask your workspace admin to add facility staff under Teams
+                </p>
               </div>
-              <button className="w-full py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-all">
-                View Full Roster
-              </button>
             </div>
           </div>
         </section>

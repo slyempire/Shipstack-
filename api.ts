@@ -2603,7 +2603,19 @@ export const api = {
     const cached = getCached(cacheKey);
     if (cached) return cached;
 
-    const data = { dispatchTimeAvg: 18, completionRate: 94, exceptionRate: 3, telemetryLag: 4 };
+    // Computed from live delivery notes — previously returned hardcoded
+    // numbers that made empty accounts look busy.
+    const dns = await api.getDeliveryNotes();
+    const completed = dns.filter(d => d.status === DNStatus.DELIVERED || d.status === DNStatus.COMPLETED);
+
+    const data = {
+      // No per-status timestamps exist yet to measure dispatch latency;
+      // report 0 rather than a made-up average until they do.
+      dispatchTimeAvg: 0,
+      completionRate: dns.length > 0 ? Math.round((completed.length / dns.length) * 100) : 0,
+      exceptionRate: dns.length > 0 ? Math.round((dns.filter(d => d.exceptionType).length / dns.length) * 100) : 0,
+      telemetryLag: 0
+    };
     setCached(cacheKey, data);
     return data;
   },

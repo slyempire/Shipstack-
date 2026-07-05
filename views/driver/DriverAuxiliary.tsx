@@ -48,22 +48,26 @@ const DriverAuxiliary: React.FC = () => {
   const [inspectionData, setInspectionData] = useState<Record<string, InspectionStatus>>({});
   const [guideOpen, setGuideOpen] = useState(false);
   const [activeTrip, setActiveTrip] = useState<DeliveryNote | null>(null);
+  const [allTrips, setAllTrips] = useState<DeliveryNote[]>([]);
   const [loadingTrip, setLoadingTrip] = useState(true);
 
-  // Gamification & ISO 14001 States
-  const [badges, setBadges] = useState([
-    { id: 'safety_pro', name: 'Safety Pro', icon: ShieldCheck, color: 'text-emerald-500', earned: true },
-    { id: 'eco_warrior', name: 'Eco Warrior', icon: Activity, color: 'text-blue-500', earned: true },
-    { id: 'night_owl', name: 'Night Owl', icon: Moon, color: 'text-indigo-500', earned: false },
-    { id: 'top_driver', name: 'Top Driver', icon: Award, color: 'text-orange-500', earned: false },
-  ]);
+  // Badges are earned from real trip history — nothing pre-earned.
+  const completedTrips = allTrips.filter(t => t.status === DNStatus.COMPLETED || t.status === DNStatus.DELIVERED);
+  const onTimeCompleted = completedTrips.filter(t => !t.isDeviated);
+  const onTimeRate = completedTrips.length > 0 ? Math.round((onTimeCompleted.length / completedTrips.length) * 100) : null;
 
-  const [carbonSaved, setCarbonSaved] = useState(124.5); // kg CO2
+  const badges = [
+    { id: 'safety_pro', name: 'Safety Pro', icon: ShieldCheck, color: 'text-emerald-500', earned: completedTrips.length >= 5 && onTimeRate !== null && onTimeRate >= 90 },
+    { id: 'eco_warrior', name: 'Eco Warrior', icon: Activity, color: 'text-blue-500', earned: completedTrips.length >= 10 },
+    { id: 'night_owl', name: 'Night Owl', icon: Moon, color: 'text-indigo-500', earned: false },
+    { id: 'top_driver', name: 'Top Driver', icon: Award, color: 'text-orange-500', earned: completedTrips.length >= 25 },
+  ];
 
   useEffect(() => {
     const fetchTrip = async () => {
       try {
         const trips = await api.getDriverTrips(user?.id || '');
+        setAllTrips(trips);
         const active = trips.find(t => t.status !== DNStatus.COMPLETED);
         setActiveTrip(active || null);
       } catch (error) {
@@ -152,7 +156,7 @@ const DriverAuxiliary: React.FC = () => {
     if (activeTab === 'PERFORMANCE') return (
       <DriverPerformancePanel
         badges={badges}
-        carbonSaved={carbonSaved}
+        stats={{ onTimeRate, completedTrips: completedTrips.length }}
         activeTrip={activeTrip}
         loadingTrip={loadingTrip}
         actionConfig={{

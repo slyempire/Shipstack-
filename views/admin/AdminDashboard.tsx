@@ -97,17 +97,7 @@ const ChecklistItem = ({ icon: Icon, title, desc, done, onClick, index }: {
   </motion.button>
 );
 
-const StatCard = ({ title, value, icon: Icon, color, subValue, trend, index }: any) => {
-  const sparkData = [
-    { value: 10 + Math.random() * 20 },
-    { value: 15 + Math.random() * 20 },
-    { value: 12 + Math.random() * 20 },
-    { value: 18 + Math.random() * 20 },
-    { value: 25 + Math.random() * 20 },
-    { value: 20 + Math.random() * 20 },
-    { value: 30 + Math.random() * 20 },
-  ];
-
+const StatCard = ({ title, value, icon: Icon, color, subValue, trend, index, sparkData }: any) => {
   return (
     <motion.div 
       initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -130,10 +120,14 @@ const StatCard = ({ title, value, icon: Icon, color, subValue, trend, index }: a
       </div>
       <div className="pt-6 border-t border-slate-50 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <MiniSparkline data={sparkData} color={trend > 0 ? '#10B981' : '#EF4444'} />
+          {/* Sparkline/trend render only when real series data is supplied —
+              no synthetic history. */}
+          {sparkData && sparkData.length > 0 && (
+            <MiniSparkline data={sparkData} color={trend != null && trend < 0 ? '#EF4444' : '#10B981'} />
+          )}
           <span className="text-[10px] font-medium text-gray-400">{subValue}</span>
         </div>
-        {trend && (
+        {trend != null && trend !== 0 && (
           <div className={`flex items-center gap-1 text-[10px] font-bold ${trend > 0 ? 'text-emerald' : 'text-red'}`}>
             {trend > 0 ? '↑' : '↓'} {Math.abs(trend)}%
           </div>
@@ -165,87 +159,121 @@ const AdminDashboard: React.FC = () => {
   const activeVertical = tenant?.industry || 'E-COMMERCE';
   const activeIndustry = activeVertical === 'GENERAL' ? 'E-COMMERCE' : activeVertical;
 
-  // KPI Calculations
+  // KPI calculations — everything below is derived from live data. When
+  // there is nothing to compute yet we show '—' or 0, never an invented
+  // number: a dashboard that lies while empty destroys trust in it when full.
   const activeShipments = dns.filter(d => d.status === DNStatus.IN_TRANSIT).length;
-  
+
   const deliveredDns = dns.filter(d => d.status === DNStatus.DELIVERED || d.status === DNStatus.COMPLETED);
   const onTimeDns = deliveredDns.filter(d => !d.isDeviated);
-  const onTimeRate = deliveredDns.length > 0 ? Math.round((onTimeDns.length / deliveredDns.length) * 100) : 98;
+  const onTimeRate = deliveredDns.length > 0 ? Math.round((onTimeDns.length / deliveredDns.length) * 100) : null;
+  const onTimeDisplay = onTimeRate === null ? '—' : `${onTimeRate}%`;
 
   const activeVehicles = vehicles.filter(v => v.status === 'ACTIVE').length;
-  const fleetUtilization = vehicles.length > 0 ? Math.round((activeVehicles / vehicles.length) * 100) : 85;
+  const fleetUtilization = vehicles.length > 0 ? Math.round((activeVehicles / vehicles.length) * 100) : null;
 
   const monthlyRevenue = dns.reduce((acc, curr) => acc + (curr.rate || 0), 0);
 
+  const exceptionsCount = dns.filter(d => d.exceptionType).length;
+  const exceptionRate = dns.length > 0 ? Math.round((exceptionsCount / dns.length) * 100) : null;
+  const pendingSettlement = dns.filter(d => d.status === DNStatus.DELIVERED).length;
+
+  // The three headline stats are the same real metrics for every industry;
+  // only the framing copy changes per vertical.
+  const computedStats = {
+    stat1: {
+      label: 'Exceptions',
+      value: exceptionRate === null ? '—' : `${exceptionRate}%`,
+      sub: `${exceptionsCount} of ${dns.length} shipments`
+    },
+    stat2: {
+      label: 'Delivery SLA',
+      value: onTimeDisplay,
+      sub: `${deliveredDns.length} delivered`
+    },
+    stat3: {
+      label: 'Awaiting Settlement',
+      value: `${pendingSettlement}`,
+      sub: 'delivered, not yet settled'
+    }
+  };
+
   const verticalLabels: Record<string, any> = {
     'E-COMMERCE': {
-      stat1: { label: "Returns Rate", value: "4.2%", sub: "Processing 12 units", trend: -2 },
-      stat2: { label: "Delivery SLA", value: `${onTimeRate}%`, sub: "Last 30 days", trend: 1 },
-      stat3: { label: "COD Recon", value: "$4.1k", sub: "18 pending payments", trend: 15 },
-      insightTitle: "Marketplace intelligence",
-      insightDesc: "Yielding 18% higher conversion with AI-estimated delivery"
+      ...computedStats,
+      insightTitle: 'Marketplace view',
+      insightDesc: 'Order, payment, and delivery status in one timeline per customer'
     },
     'AGRICULTURE': {
-      stat1: { label: "Cold Chain Deviations", value: "2", sub: "Active monitoring on", trend: -50 },
-      stat2: { label: "Harvest On-Time", value: "98.2%", sub: "Peak season ready", trend: 4 },
-      stat3: { label: "Waste Reduction", value: "12%", sub: "Freshness integrity OK", trend: 8 },
-      insightTitle: "Freshness audit",
-      insightDesc: "ML predicts 2.4 days extended shelf life for current batches"
+      ...computedStats,
+      insightTitle: 'Freshness tracking',
+      insightDesc: 'Time-in-transit monitoring for perishable cargo'
     },
     'MEDICAL': {
-      stat1: { label: "Chain of Custody", value: "100%", sub: "Zero protocol gaps", trend: 0 },
-      stat2: { label: "Temp Stability", value: "99.8%", sub: "Medical grade integrity", trend: 2 },
-      stat3: { label: "KEMSA Sync", value: "Live", sub: "1,240 items tracked", trend: 100 },
-      insightTitle: "Regulatory compliance",
-      insightDesc: "Compliance reports auto-generated for Ministry of Health"
+      ...computedStats,
+      insightTitle: 'Chain of custody',
+      insightDesc: 'Signed, timestamped handover records for every consignment'
     },
     'RETAIL': {
-      stat1: { label: "Store Replenishment", value: "88%", sub: "54 routes active", trend: 12 },
-      stat2: { label: "Inventory Stock-out", value: "1.4%", sub: "AI prediction active", trend: -20 },
-      stat3: { label: "Boda Efficiency", value: "92%", sub: "Hyper-local speed", trend: 5 },
-      insightTitle: "Omnichannel oversight",
-      insightDesc: "Unified visibility across 14 distribution facilities"
+      ...computedStats,
+      insightTitle: 'Replenishment view',
+      insightDesc: 'Store deliveries grouped by route and facility'
     }
   };
 
   const labels = verticalLabels[activeIndustry] || verticalLabels['E-COMMERCE'];
-  const revenueDisplay = monthlyRevenue > 0 ? `$${(monthlyRevenue / 1000).toFixed(1)}k` : "$14.2k";
+  const revenueDisplay = `$${(monthlyRevenue / 1000).toFixed(1)}k`;
+  // Straight-line projection from month-to-date run rate.
+  const now = new Date();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const projectedRevenue = monthlyRevenue > 0
+    ? `Projected $${((monthlyRevenue / now.getDate()) * daysInMonth / 1000).toFixed(1)}k`
+    : 'No billed shipments yet';
 
-  // Data for enhanced charts
+  // Data for charts — real distributions, zeros included.
   const statusData = [
-    { name: 'In Transit', value: dns.filter(d => d.status === DNStatus.IN_TRANSIT).length || 12 },
-    { name: 'Delivered', value: dns.filter(d => d.status === DNStatus.DELIVERED || d.status === DNStatus.COMPLETED).length || 45 },
-    { name: 'Pending', value: dns.filter(d => d.status === DNStatus.PENDING).length || 8 },
-    { name: 'Exceptions', value: dns.filter(d => d.exceptionType).length || 3 },
+    { name: 'In Transit', value: dns.filter(d => d.status === DNStatus.IN_TRANSIT).length },
+    { name: 'Delivered', value: deliveredDns.length },
+    { name: 'Pending', value: dns.filter(d => d.status === DNStatus.PENDING).length },
+    { name: 'Exceptions', value: exceptionsCount },
   ];
 
+  // Radar axes we can actually measure today. Axes without a data source
+  // (cost, safety) are deliberately absent rather than invented.
   const efficiencyData = [
-    { subject: 'Speed', A: 85, fullMark: 100 },
-    { subject: 'Reliability', A: 92, fullMark: 100 },
-    { subject: 'Cost', A: 78, fullMark: 100 },
-    { subject: 'Safety', A: 95, fullMark: 100 },
-    { subject: 'Sustainability', A: 65, fullMark: 100 },
+    { subject: 'On-time', A: onTimeRate ?? 0, fullMark: 100 },
+    { subject: 'Exception-free', A: exceptionRate === null ? 0 : 100 - exceptionRate, fullMark: 100 },
+    { subject: 'Fleet active', A: fleetUtilization ?? 0, fullMark: 100 },
+    { subject: 'Settled', A: dns.length > 0 ? Math.round((dns.filter(d => d.status === DNStatus.COMPLETED).length / dns.length) * 100) : 0, fullMark: 100 },
   ];
 
-  const comparisonData = [
-    { name: 'Nairobi', value: 820 },
-    { name: 'Mombasa', value: 450 },
-    { name: 'Kisumu', value: 320 },
-    { name: 'Nakuru', value: 240 },
-    { name: 'Eldoret', value: 180 },
-  ];
+  // Top origins by shipment count (was a hardcoded city list).
+  const comparisonData = Object.entries(
+    dns.reduce<Record<string, number>>((acc, d) => {
+      const key = d.originName || 'Unassigned';
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {})
+  )
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 5);
 
-  // Weekly Volume Data (Mocking distribution for the chart)
-  const weeklyData = [
-    { day: 'Mon', count: 42 },
-    { day: 'Tue', count: 58 },
-    { day: 'Wed', count: 45 },
-    { day: 'Thu', count: 62 },
-    { day: 'Fri', count: 75 },
-    { day: 'Sat', count: 30 },
-    { day: 'Sun', count: 15 },
-  ];
-  const maxVolume = Math.max(...weeklyData.map(d => d.count));
+  // Shipments created per weekday over the last 7 days (was mocked).
+  const weeklyData = (() => {
+    const days: { day: string; count: number }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = d.toDateString();
+      days.push({
+        day: d.toLocaleDateString('en-US', { weekday: 'short' }),
+        count: dns.filter(x => x.createdAt && new Date(x.createdAt).toDateString() === key).length
+      });
+    }
+    return days;
+  })();
+  const maxVolume = Math.max(1, ...weeklyData.map(d => d.count));
 
   useEffect(() => {
     loadData();
@@ -343,7 +371,7 @@ const AdminDashboard: React.FC = () => {
                  <div className="w-px h-12 bg-white/10 hidden md:block" />
                  <div className="group">
                     <p className="text-xs font-black text-white/40 uppercase tracking-widest mb-1 group-hover:text-brand-accent transition-colors">On-time rate</p>
-                    <p className="text-3xl font-black text-white tracking-tighter">{onTimeRate}%</p>
+                    <p className="text-3xl font-black text-white tracking-tighter">{onTimeDisplay}</p>
                  </div>
               </div>
            </div>
@@ -391,32 +419,30 @@ const AdminDashboard: React.FC = () => {
                 className="space-y-12"
               >
                 <div id="dashboard-kpis" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard 
+                <StatCard
                   index={0}
-                  title={labels.stat1.label} 
-                  value={labels.stat1.value} 
-                  icon={Navigation} 
-                  color="bg-brand/10 text-brand" 
-                  subValue={labels.stat1.sub} 
-                  trend={labels.stat1.trend}
+                  title={labels.stat1.label}
+                  value={labels.stat1.value}
+                  icon={Navigation}
+                  color="bg-brand/10 text-brand"
+                  subValue={labels.stat1.sub}
                 />
-                <StatCard 
+                <StatCard
                   index={1}
-                  title={labels.stat2.label} 
-                  value={labels.stat2.value} 
-                  icon={CheckCircle} 
-                  color="bg-emerald/10 text-emerald" 
-                  subValue={labels.stat2.sub} 
-                  trend={labels.stat2.trend}
+                  title={labels.stat2.label}
+                  value={labels.stat2.value}
+                  icon={CheckCircle}
+                  color="bg-emerald/10 text-emerald"
+                  subValue={labels.stat2.sub}
+                  sparkData={weeklyData.map(d => ({ value: d.count }))}
                 />
-                <StatCard 
+                <StatCard
                   index={2}
-                  title={labels.stat3.label} 
-                  value={labels.stat3.value} 
-                  icon={DatabaseZap} 
-                  color="bg-amber/10 text-amber" 
-                  subValue={labels.stat3.sub} 
-                  trend={labels.stat3.trend}
+                  title={labels.stat3.label}
+                  value={labels.stat3.value}
+                  icon={DatabaseZap}
+                  color="bg-amber/10 text-amber"
+                  subValue={labels.stat3.sub}
                 />
                 {isModuleEnabled('finance') && (
                   <StatCard
@@ -425,8 +451,7 @@ const AdminDashboard: React.FC = () => {
                     value={revenueDisplay}
                     icon={DollarSign}
                     color="bg-emerald/10 text-emerald"
-                    subValue="Projected $18k"
-                    trend={8}
+                    subValue={projectedRevenue}
                   />
                 )}
               </div>
