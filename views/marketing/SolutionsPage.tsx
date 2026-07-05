@@ -79,7 +79,7 @@ const SolutionsPage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             className="self-start inline-flex items-center gap-3 px-5 py-2.5 bg-white/5 border border-white/10 rounded-full backdrop-blur-md"
           >
-            <Globe size={14} className="text-[#FF5722]" />
+            <Globe size={14} className="text-brand" />
             <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/80">Solutions</span>
           </motion.div>
 
@@ -90,7 +90,7 @@ const SolutionsPage: React.FC = () => {
             className="max-w-3xl lg:ml-12 xl:ml-20"
           >
             <h1 className="text-5xl md:text-7xl font-black text-white tracking-tight leading-[0.95] mb-8 uppercase">
-              Built for <br/><span className="text-[#FF5722]">your industry.</span>
+              Built for <br/><span className="text-brand">your industry.</span>
             </h1>
             <p className="text-lg md:text-xl text-white/70 font-medium leading-relaxed max-w-2xl">
               Shipstack works the way your industry works. Pick the playbook for yours.
@@ -186,7 +186,7 @@ const SolutionsPage: React.FC = () => {
           <p className="text-xl md:text-3xl text-slate-400 font-bold uppercase tracking-tight mb-16 leading-tight">
             Bring your supply chain onto one platform <br className="hidden md:block" /> built for African logistics.
           </p>
-          <Link to="/register" className="inline-flex bg-brand hover:bg-orange-600 text-white px-16 py-8 rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] shadow-2xl active:scale-95 transition-all">
+          <Link to="/register" className="inline-flex bg-brand hover:bg-brand-orange-dark text-white px-16 py-8 rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] shadow-2xl active:scale-95 transition-all">
             Sign up free
           </Link>
         </div>

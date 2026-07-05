@@ -186,9 +186,9 @@ const DriverAuxiliary: React.FC = () => {
           <button onClick={() => navigate(-1)} className="p-3 bg-white/5 border border-white/5 rounded-2xl text-white active:scale-90 transition-all shadow-sm">
             <ChevronLeft size={24} />
           </button>
-          <h1 className="text-xl font-black uppercase tracking-widest text-[#FF8C42]">Driver Hub</h1>
+          <h1 className="text-xl font-black uppercase tracking-widest text-brand">Driver Hub</h1>
         </div>
-        <div className="h-12 w-12 rounded-2xl bg-[#FF8C42] text-white flex items-center justify-center text-lg font-black shadow-lg">
+        <div className="h-12 w-12 rounded-2xl bg-brand text-white flex items-center justify-center text-lg font-black shadow-lg">
           {user?.name?.charAt(0) || '?'}
         </div>
       </header>
@@ -200,7 +200,7 @@ const DriverAuxiliary: React.FC = () => {
             onClick={() => setActiveTab(tab)}
             className={`flex-1 py-3 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all ${
               activeTab === tab 
-                ? 'bg-[#FF8C42] text-white shadow-lg' 
+                ? 'bg-brand text-white shadow-lg' 
                 : 'text-white/40 hover:text-white'
             }`}
           >

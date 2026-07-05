@@ -5,29 +5,37 @@ import { Layers, Check, Zap, ShieldCheck, Truck, ChevronLeft } from 'lucide-reac
 import MarketingLayout from '../../components/marketing/MarketingLayout';
 
 const PricingPage: React.FC = () => {
+  // amount: numeric monthly USD price rendered as "$N / month".
+  // label + note: non-metered plans (pilot, enterprise) get plain wording
+  // instead of the price template.
   const plans = [
     {
       name: 'Pilot',
-      price: 'Early Access',
+      label: 'Free',
+      note: 'during the pilot program',
       desc: 'For founding partners helping shape the product.',
       features: ['Full platform access', 'Co-development support', 'Custom ERP integration', 'White-glove onboarding', 'Priority support', 'Weekly progress reviews'],
       cta: 'Apply for pilot',
+      to: '/contact',
       highlight: false
     },
     {
       name: 'Growth',
-      price: '199',
+      amount: '199',
       desc: 'For growing teams running 20+ vehicles.',
       features: ['Unlimited shipments', 'Live telemetry', 'M-Pesa & Flutterwave payouts', 'Up to 20 dispatchers', 'Fraud detection', 'Smart route optimization', 'Onboarding training'],
       cta: 'Sign up',
+      to: '/register',
       highlight: true
     },
     {
       name: 'Enterprise',
-      price: 'Custom',
+      label: 'Custom',
+      note: 'tailored to your network',
       desc: 'For national networks and multi-country operators.',
       features: ['Multi-country sync', 'On-premise deployment', 'Unlimited users', '99.99% uptime SLA', 'Custom compliance rules', 'Dedicated engineer access'],
       cta: 'Talk to sales',
+      to: '/contact',
       highlight: false
     }
   ];
@@ -53,12 +61,12 @@ const PricingPage: React.FC = () => {
           <div className="max-w-3xl lg:ml-12 xl:ml-20">
             <h1 className="text-5xl md:text-7xl font-black text-white tracking-tight leading-[0.95] mb-8 uppercase">
               Simple <br />
-              <span className="text-[#FF5722]">pricing.</span>
+              <span className="text-brand">pricing.</span>
             </h1>
             <p className="text-lg md:text-xl text-white/70 font-medium leading-relaxed max-w-2xl mb-4">
-              Pick the plan that fits your team. All plans include a 14-day free trial.
+              Pick the plan that fits your team. Growth includes a 14-day free trial — or join the pilot free.
             </p>
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#FF5722]">
+            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand">
               Pay via M-Pesa, card, or invoice &bull; No setup fees
             </p>
           </div>
@@ -67,7 +75,7 @@ const PricingPage: React.FC = () => {
 
       <section className="px-8 pt-24 pb-32 max-w-[90rem] mx-auto">
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
           {plans.map((plan) => (
             <div key={plan.name} className={`bg-white rounded-[3rem] p-10 flex flex-col h-full text-left relative overflow-hidden transition-all hover:scale-[1.02] border border-slate-100 ${plan.highlight ? 'shadow-2xl shadow-brand/10 ring-2 ring-brand' : 'shadow-sm'}`}>
               {plan.highlight && (
@@ -79,9 +87,18 @@ const PricingPage: React.FC = () => {
                 <h3 className="text-xl font-black uppercase tracking-tight mb-2 text-brand">{plan.name}</h3>
                 <p className="text-xs font-bold text-slate-500 uppercase tracking-widest leading-relaxed">{plan.desc}</p>
               </div>
-              <div className="mb-10 flex items-baseline gap-2">
-                <span className="text-5xl font-black text-slate-900">{plan.price === 'Custom' || plan.price === 'Free' ? '' : '$'}{plan.price}</span>
-                {plan.price !== 'Custom' && plan.price !== 'Free' && <span className="text-sm font-bold text-slate-500 uppercase">/ month</span>}
+              <div className="mb-10">
+                {plan.amount ? (
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-5xl font-black text-slate-900">${plan.amount}</span>
+                    <span className="text-sm font-bold text-slate-500 uppercase">/ month</span>
+                  </div>
+                ) : (
+                  <div>
+                    <span className="text-5xl font-black text-slate-900">{plan.label}</span>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-2">{plan.note}</p>
+                  </div>
+                )}
               </div>
               <ul className="space-y-6 mb-12 flex-1">
                 {plan.features.map(feature => (
@@ -90,7 +107,7 @@ const PricingPage: React.FC = () => {
                   </li>
                 ))}
               </ul>
-              <Link to="/register" className={`w-full py-5 rounded-2xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-3 transition-all ${plan.highlight ? 'bg-brand text-white shadow-xl shadow-brand/20 active:scale-95' : 'bg-slate-50 text-slate-900 hover:bg-slate-100 active:scale-95'}`}>
+              <Link to={plan.to} className={`w-full py-5 rounded-2xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-3 transition-all ${plan.highlight ? 'bg-brand text-white shadow-xl shadow-brand/20 active:scale-95' : 'bg-slate-50 text-slate-900 hover:bg-slate-100 active:scale-95'}`}>
                 {plan.cta}
               </Link>
             </div>

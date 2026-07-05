@@ -31,7 +31,7 @@ const CookieConsent: React.FC = () => {
     <div className="fixed bottom-4 inset-x-4 md:bottom-8 md:right-8 md:left-auto md:max-w-md z-[100]">
       <div className="bg-[#0B0E16] border border-white/10 rounded-3xl shadow-2xl p-6 md:p-8">
         <div className="flex items-center gap-3 mb-4">
-          <div className="h-9 w-9 bg-white/5 rounded-xl flex items-center justify-center text-[#FF8C42]">
+          <div className="h-9 w-9 bg-white/5 rounded-xl flex items-center justify-center text-brand">
             <Cookie size={18} />
           </div>
           <h4 className="text-sm font-black uppercase tracking-widest text-white">Cookies</h4>
@@ -46,7 +46,7 @@ const CookieConsent: React.FC = () => {
         <div className="flex gap-3">
           <button
             onClick={() => choose('accepted')}
-            className="flex-1 px-5 py-3 bg-[#FF8C42] hover:bg-orange-600 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-colors"
+            className="flex-1 px-5 py-3 bg-brand hover:bg-brand-orange-dark text-white text-xs font-black uppercase tracking-widest rounded-xl transition-colors"
           >
             Accept
           </button>

@@ -289,7 +289,7 @@ const TripManagement: React.FC = () => {
   };
 
   return (
-    <Layout title="Dispatch & Route Manifesting">
+    <Layout title="Dispatch & Routing">
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>

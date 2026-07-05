@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Layout from '../../components/Layout';
+import { statusLabel } from '../../packages/ui/Badge';
 import { api } from '../../api';
 import { Tenant, IndustryType, ModuleId } from '../../types';
 import { 
@@ -249,7 +250,7 @@ const TenantManagement: React.FC = () => {
                           <div className={`w-2 h-2 rounded-full ${
                             tenant.status === 'ACTIVE' || tenant.status === 'active' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-300'
                           }`} />
-                          <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">{tenant.status}</span>
+                          <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">{statusLabel(tenant.status)}</span>
                         </div>
                       </td>
                       <td className="px-6 py-6">

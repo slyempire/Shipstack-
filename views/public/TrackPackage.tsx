@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../../api';
 import { DeliveryNote, DNStatus, LatLngTuple } from '../../types';
 import MapEngine from '../../components/MapEngine';
-import { Badge } from '../../packages/ui/Badge';
+import { Badge, statusLabel } from '../../packages/ui/Badge';
 import { 
   Package, 
   MapPin, 
@@ -141,7 +141,7 @@ const TrackPackage: React.FC = () => {
                 <div className="flex items-center justify-between mb-2">
                    <span className="text-[10px] font-black text-brand uppercase tracking-[0.2em]">Shipment Status</span>
                    <Badge variant={isDelivered ? 'delivered' : isInTransit ? 'transit' : 'neutral'}>
-                      {dn.status}
+                      {statusLabel(dn.status)}
                    </Badge>
                 </div>
                 <h2 className="text-4xl font-black text-slate-900 uppercase tracking-tighter leading-none mb-2">

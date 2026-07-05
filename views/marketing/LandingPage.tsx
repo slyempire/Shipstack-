@@ -279,7 +279,7 @@ const LandingPage: React.FC = () => {
         {/* Full-bleed photo with dark gradient overlay for headline legibility */}
         <div className="relative h-[85vh] min-h-[640px] md:min-h-[720px]">
           <img
-            src="https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?q=80&w=2600&auto=format&fit=crop"
+            src="https://images.unsplash.com/photo-1549194388-f61be84a6e9e?q=80&w=2600&auto=format&fit=crop"
             alt="Logistics truck on highway"
             className="absolute inset-0 w-full h-full object-cover"
             referrerPolicy="no-referrer"
@@ -302,7 +302,7 @@ const LandingPage: React.FC = () => {
               className="self-start"
             >
               <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-white/5 border border-white/10 rounded-full backdrop-blur-md">
-                <span className="flex h-2 w-2 rounded-full bg-[#FF5722] animate-pulse" />
+                <span className="flex h-2 w-2 rounded-full bg-brand animate-pulse" />
                 <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/80">Now onboarding pilot partners</span>
               </div>
             </motion.div>
@@ -316,7 +316,7 @@ const LandingPage: React.FC = () => {
             >
               <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-black uppercase tracking-tight leading-[0.95] text-white mb-8">
                 Logistics, <br />
-                built for <span className="text-[#FF5722]">Africa.</span>
+                built for <span className="text-brand">Africa.</span>
               </h1>
               <p className="text-lg md:text-xl text-white/70 font-medium leading-relaxed mb-10 max-w-2xl">
                 One place to manage your fleet, dispatch drivers, and reconcile payments &mdash; built for African logistics teams.
@@ -324,7 +324,7 @@ const LandingPage: React.FC = () => {
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   onClick={() => isAuthenticated ? handleDashboardRedirect() : navigate('/register')}
-                  className="px-8 py-5 bg-[#FF5722] hover:bg-[#E64A19] text-white text-sm font-bold rounded-xl shadow-2xl shadow-[#FF5722]/20 hover:shadow-[#FF5722]/30 transition-all active:scale-95 flex items-center justify-center gap-3"
+                  className="px-8 py-5 bg-brand hover:bg-brand-orange-dark text-white text-sm font-bold rounded-xl shadow-2xl shadow-brand/20 hover:shadow-brand/30 transition-all active:scale-95 flex items-center justify-center gap-3"
                 >
                   Get started
                   <ArrowRight size={18} />
@@ -716,9 +716,9 @@ const LandingPage: React.FC = () => {
       <SectionWrapper className="py-32 bg-[#0B0E16]">
         <div className="max-w-7xl mx-auto px-8 md:px-16 lg:px-24">
           <div className="mb-20">
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#FF5722] mb-4">Pilot feedback</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand mb-4">Pilot feedback</p>
             <h2 className="text-4xl md:text-6xl font-black tracking-tight text-white mb-4 uppercase max-w-3xl leading-[0.95]">
-              Your trust, our journey &mdash; <span className="text-[#FF5722]">delivering excellence</span> together.
+              Your trust, our journey &mdash; <span className="text-brand">delivering excellence</span> together.
             </h2>
             <p className="text-white/50 font-medium text-base max-w-xl">Early notes from operators piloting Shipstack with us.</p>
           </div>
@@ -735,9 +735,9 @@ const LandingPage: React.FC = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.08, duration: 0.5 }}
-                className="bg-[#1A1F2E] border border-white/5 rounded-3xl p-8 flex flex-col h-full hover:border-[#FF5722]/30 transition-all"
+                className="bg-[#1A1F2E] border border-white/5 rounded-3xl p-8 flex flex-col h-full hover:border-brand/30 transition-all"
               >
-                <div className="h-12 w-12 rounded-full bg-[#FF5722]/10 border border-[#FF5722]/20 text-[#FF5722] flex items-center justify-center font-black text-lg mb-6">
+                <div className="h-12 w-12 rounded-full bg-brand/10 border border-brand/20 text-brand flex items-center justify-center font-black text-lg mb-6">
                   {t.initial}
                 </div>
                 <p className="text-white/80 text-sm leading-relaxed font-medium flex-1 mb-6">&ldquo;{t.quote}&rdquo;</p>
@@ -894,7 +894,7 @@ const LandingPage: React.FC = () => {
       <SectionWrapper className="py-48 relative overflow-hidden bg-[#0B0E16] border-y border-white/5">
         <div className="absolute inset-0 z-0">
           <img 
-            src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?q=80&w=2600&auto=format&fit=crop" 
+            src="https://images.unsplash.com/photo-1449824913935-59a10b8d2000?q=80&w=2600&auto=format&fit=crop" 
             alt="Logistics Operations" 
             className="w-full h-full object-cover opacity-60 scale-105"
             referrerPolicy="no-referrer"
@@ -917,7 +917,7 @@ const LandingPage: React.FC = () => {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
               <button
                 onClick={() => navigate('/register')}
-                className="w-full sm:w-auto px-20 py-10 bg-brand hover:bg-orange-600 text-white text-base font-black uppercase tracking-[0.3em] shadow-2xl transition-all hover:translate-y-[-4px] active:scale-95 rounded-3xl"
+                className="w-full sm:w-auto px-20 py-10 bg-brand hover:bg-brand-orange-dark text-white text-base font-black uppercase tracking-[0.3em] shadow-2xl transition-all hover:translate-y-[-4px] active:scale-95 rounded-3xl"
               >
                 Sign up free
               </button>
@@ -936,10 +936,10 @@ const LandingPage: React.FC = () => {
       <SectionWrapper className="py-32 bg-white border-t border-slate-100">
         <div className="max-w-7xl mx-auto px-8 md:px-16 lg:px-24">
           <div className="mb-16 max-w-3xl">
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#FF5722] mb-4">Frequently asked questions</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand mb-4">Frequently asked questions</p>
             <h2 className="text-4xl md:text-6xl font-black tracking-tight text-slate-900 leading-[0.95] uppercase">
               Got more questions? <br />
-              <span className="text-[#FF5722]">We're here to help.</span>
+              <span className="text-brand">We're here to help.</span>
             </h2>
           </div>
 
@@ -952,22 +952,22 @@ const LandingPage: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-2">Name</label>
-                    <input type="text" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-[#FF5722] transition-colors" />
+                    <input type="text" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-brand transition-colors" />
                   </div>
                   <div>
                     <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-2">Phone</label>
-                    <input type="tel" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-[#FF5722] transition-colors" />
+                    <input type="tel" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-brand transition-colors" />
                   </div>
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-2">Email</label>
-                  <input type="email" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-[#FF5722] transition-colors" />
+                  <input type="email" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-brand transition-colors" />
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-2">Message</label>
-                  <textarea rows={4} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-[#FF5722] transition-colors resize-none" />
+                  <textarea rows={4} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-brand transition-colors resize-none" />
                 </div>
-                <button type="submit" className="w-full bg-[#FF5722] hover:bg-[#E64A19] text-white text-sm font-bold py-4 rounded-xl shadow-lg shadow-[#FF5722]/20 transition-all active:scale-95">
+                <button type="submit" className="w-full bg-brand hover:bg-brand-orange-dark text-white text-sm font-bold py-4 rounded-xl shadow-lg shadow-brand/20 transition-all active:scale-95">
                   Send message
                 </button>
               </form>

@@ -6,14 +6,14 @@ const MarketingFooter: React.FC = () => {
   return (
     <footer className="bg-[#1A2B4D] border-t border-white/5 py-24 px-6 relative overflow-hidden">
       {/* Decorative Blur */}
-      <div className="absolute bottom-0 right-0 h-64 w-64 bg-[#FF8C42]/5 blur-3xl rounded-full translate-x-1/2 translate-y-1/2" />
+      <div className="absolute bottom-0 right-0 h-64 w-64 bg-brand/5 blur-3xl rounded-full translate-x-1/2 translate-y-1/2" />
       
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-16 pb-20 border-b border-white/5">
           {/* Column 1: About */}
           <div className="space-y-8">
             <div className="flex items-center gap-2">
-              <div className="h-10 w-10 bg-[#FF8C42] rounded-xl flex items-center justify-center text-white shadow-lg">
+              <div className="h-10 w-10 bg-brand rounded-xl flex items-center justify-center text-white shadow-lg">
                 <Layers size={22} />
               </div>
               <span className="text-xl font-black tracking-tighter uppercase text-white">Shipstack</span>
@@ -27,7 +27,7 @@ const MarketingFooter: React.FC = () => {
 
           {/* Column 2: Product */}
           <div>
-            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] mb-8 text-[#FF8C42]">Product</h4>
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] mb-8 text-brand">Product</h4>
             <ul className="space-y-4">
               <li><Link to="/product" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">Features</Link></li>
               <li><Link to="/solutions" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">Solutions</Link></li>
@@ -38,7 +38,7 @@ const MarketingFooter: React.FC = () => {
 
           {/* Column 3: Company */}
           <div>
-            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] mb-8 text-[#FF8C42]">Company</h4>
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] mb-8 text-brand">Company</h4>
             <ul className="space-y-4">
               <li><Link to="/about" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">About Us</Link></li>
               <li><Link to="/recruitment" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">Drive with Us</Link></li>
@@ -49,7 +49,7 @@ const MarketingFooter: React.FC = () => {
 
           {/* Column 4: Legal */}
           <div>
-            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] mb-8 text-[#FF8C42]">Legal</h4>
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] mb-8 text-brand">Legal</h4>
             <ul className="space-y-4">
               <li><Link to="/legal/privacy" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">Privacy Policy</Link></li>
               <li><Link to="/legal/terms" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">Terms of Service</Link></li>

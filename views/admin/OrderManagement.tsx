@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
 import { api } from '../../api';
 import { Order, DeliveryItem } from '../../types';
-import { Badge } from '../../packages/ui/Badge';
+import { Badge, statusLabel } from '../../packages/ui/Badge';
 import { useAppStore, useAuthStore } from '../../store';
 import { useTenant } from '../../hooks/useTenant';
 import RoleGuard from '../../components/RoleGuard';
@@ -142,7 +142,7 @@ const OrderManagement: React.FC = () => {
   });
 
   return (
-    <Layout title="Order Orchestration Hub">
+    <Layout title="Orders">
       <div className="space-y-8">
         {/* Stats Header */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -259,7 +259,7 @@ const OrderManagement: React.FC = () => {
                     </td>
                     <td className="px-8 py-6">
                       <Badge variant={order.status === 'APPROVED' ? 'delivered' : order.status === 'PENDING' ? 'neutral' : 'failed'}>
-                        {order.status}
+                        {statusLabel(order.status)}
                       </Badge>
                     </td>
                     <td className="px-8 py-6">

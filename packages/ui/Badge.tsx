@@ -29,6 +29,16 @@ interface BadgeProps {
   className?: string;
 }
 
+/**
+ * Human-readable form of a machine status: "READY_FOR_DISPATCH" →
+ * "Ready for dispatch". Rendering contexts that want uppercase apply it
+ * with CSS — never show raw snake_case to users.
+ */
+export const statusLabel = (status: string): string => {
+  const words = status.replace(/[_-]+/g, ' ').trim().toLowerCase();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+};
+
 export const Badge: React.FC<BadgeProps> = ({ children, variant = 'neutral', className = '' }) => {
   const variants: Record<BadgeVariant, string> = {
     received: "bg-blue/10 text-brand border-blue/20",
@@ -54,8 +64,8 @@ export const Badge: React.FC<BadgeProps> = ({ children, variant = 'neutral', cla
   };
 
   return (
-    <span className={`inline-flex items-center px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest ${variants[variant]} ${className}`}>
-      {children}
+    <span className={`inline-flex items-center px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest ${variants[variant] ?? variants.neutral} ${className}`}>
+      {typeof children === 'string' ? statusLabel(children) : children}
     </span>
   );
 };

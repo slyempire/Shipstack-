@@ -22,7 +22,7 @@ import {
 import { Task, Priority, User, SubTask, TaskActivity } from '../types';
 import { api } from '../api';
 import { useAuthStore, useAppStore } from '../store';
-import { Badge } from '../packages/ui/Badge';
+import { Badge, statusLabel } from '../packages/ui/Badge';
 import Layout from './Layout';
 
 const TaskDetailDrawer: React.FC<{
@@ -89,7 +89,7 @@ const TaskDetailDrawer: React.FC<{
           <div>
             <div className="flex items-center gap-3 mb-2">
                <Badge variant={task.completed ? 'delivered' : 'pending'}>
-                  {task.status}
+                  {statusLabel(task.status)}
                </Badge>
                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{task.id}</span>
             </div>

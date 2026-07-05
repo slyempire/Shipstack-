@@ -19,12 +19,12 @@ export const DriverBottomNav: React.FC<DriverBottomNavProps> = ({
     <div className="fixed bottom-0 left-0 right-0 bg-[#0a0f1a]/95 backdrop-blur-xl border-t border-white/5 px-6 pb-10 pt-4 z-[100] flex justify-between items-center shadow-2xl transition-all">
       <button 
         onClick={() => onTabChange('LIST')} 
-        className={`flex flex-col items-center gap-1.5 transition-all group relative ${activeTab === 'LIST' ? 'text-[#FF8C42]' : 'text-slate-500 hover:text-white'}`}
+        className={`flex flex-col items-center gap-1.5 transition-all group relative ${activeTab === 'LIST' ? 'text-brand' : 'text-slate-500 hover:text-white'}`}
         id="nav-trips"
       >
         <Truck className={`w-6 h-6 group-hover:scale-110 transition-transform ${activeTab === 'LIST' ? 'stroke-[3px]' : ''}`} />
         <span className="text-[10px] font-bold uppercase tracking-tight">Trips</span>
-        {activeTab === 'LIST' && <div className="absolute -bottom-2 h-1 w-1 bg-[#FF8C42] rounded-full" />}
+        {activeTab === 'LIST' && <div className="absolute -bottom-2 h-1 w-1 bg-brand rounded-full" />}
       </button>
       
       <button 

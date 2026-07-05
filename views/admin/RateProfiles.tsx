@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
 import { api } from '../../api';
 import { useAuthStore, useAppStore, useTenantStore } from '../../store';
-import { Badge } from '../../packages/ui/Badge';
+import { Badge, statusLabel } from '../../packages/ui/Badge';
 import { 
   DollarSign, 
   MapPin, 
@@ -89,7 +89,7 @@ const RateProfiles: React.FC = () => {
               <Lock size={40} />
            </div>
            <div className="max-w-xs">
-              <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Security Clearance Denied</h2>
+              <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">You don't have access to this page</h2>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2 leading-relaxed">
                 Commercial and financial rate profiles are restricted to authorized personnel.
               </p>
@@ -144,7 +144,7 @@ const RateProfiles: React.FC = () => {
               <div className="flex items-center gap-3 mb-8">
                 <span className="text-[10px] font-black text-brand uppercase tracking-[0.2em]">{profile.type}</span>
                 <Badge variant={profile.status === 'Active' ? 'delivered' : 'neutral'} className="scale-90 origin-left">
-                  {profile.status}
+                  {statusLabel(profile.status)}
                 </Badge>
               </div>
               

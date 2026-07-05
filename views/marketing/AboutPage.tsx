@@ -34,7 +34,7 @@ const AboutPage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             className="self-start inline-flex items-center gap-3 px-5 py-2.5 bg-white/5 border border-white/10 rounded-full backdrop-blur-md"
           >
-            <Heart size={14} className="text-[#FF5722]" />
+            <Heart size={14} className="text-brand" />
             <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/80">Our story</span>
           </motion.div>
 
@@ -46,7 +46,7 @@ const AboutPage: React.FC = () => {
           >
             <h1 className="text-5xl md:text-7xl font-black text-white tracking-tight leading-[0.95] mb-8 uppercase">
               Built for Africa. <br />
-              <span className="text-[#FF5722]">Built to scale.</span>
+              <span className="text-brand">Built to scale.</span>
             </h1>
             <p className="text-lg md:text-xl text-white/70 font-medium leading-relaxed max-w-2xl">
               We&rsquo;re building the infrastructure layer to simplify how goods move across the continent.
@@ -173,7 +173,7 @@ const AboutPage: React.FC = () => {
           <p className="text-xl md:text-3xl text-slate-400 font-bold uppercase tracking-tight mb-16 leading-tight">
             Join us in building the new standard <br className="hidden md:block" /> for African logistics.
           </p>
-          <Link to="/register" className="inline-flex bg-brand hover:bg-orange-600 text-white px-16 py-8 rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] shadow-2xl active:scale-95 transition-all">
+          <Link to="/register" className="inline-flex bg-brand hover:bg-brand-orange-dark text-white px-16 py-8 rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] shadow-2xl active:scale-95 transition-all">
             Get started
           </Link>
         </div>

@@ -416,52 +416,6 @@ const AdminDashboard: React.FC = () => {
                 exit={{ opacity: 0, y: -20 }}
                 className="space-y-12"
               >
-                {/* Tech Seeding Utility - EXECUTABLE FOR REAL */}
-                {currentUserRole === 'super_admin' && (
-                  <div className="bg-slate-900 rounded-[3rem] p-10 border border-white/5 shadow-2xl relative overflow-hidden group">
-                     <div className="absolute inset-0 bg-gradient-to-r from-brand/10 to-transparent pointer-events-none" />
-                     <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
-                        <div className="max-w-xl">
-                           <div className="flex items-center gap-4 mb-4">
-                              <div className="h-12 w-12 bg-white/10 text-brand-accent rounded-2xl flex items-center justify-center">
-                                 <DatabaseZap size={24} />
-                              </div>
-                              <h3 className="text-2xl font-black text-white uppercase tracking-tight">Technical Audit & Seeding</h3>
-                           </div>
-                           <p className="text-sm text-white/50 font-medium leading-relaxed uppercase tracking-tight">
-                              Execute deep-store synchronization and generate high-fidelity test telemetry to audit Driver Portal progression and Routing throughput.
-                           </p>
-                        </div>
-                        <div className="flex flex-col sm:flex-row gap-4 shrink-0">
-                           <button 
-                             onClick={async () => {
-                               setTroubleshooting(true);
-                               try {
-                                 const res = await api.generateTestTelemetry();
-                                 addNotification("Test Telemetry Injected: Nodes active in Driver Portal", "success");
-                                 loadData();
-                               } catch (err) {
-                                 addNotification("Seeding protocol failed", "error");
-                               } finally {
-                                 setTroubleshooting(false);
-                               }
-                             }}
-                             disabled={troubleshooting}
-                             className="px-10 py-5 bg-white text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-2xl disabled:opacity-50"
-                           >
-                             {troubleshooting ? 'Initializing...' : 'Seed Operational Data'}
-                           </button>
-                           <button 
-                             onClick={handleTroubleshoot}
-                             className="px-10 py-5 bg-white/5 border border-white/10 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
-                           >
-                             Run Integrity Audit
-                           </button>
-                        </div>
-                     </div>
-                  </div>
-                )}
-
                 <div id="dashboard-kpis" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard 
                   index={0}
@@ -491,17 +445,64 @@ const AdminDashboard: React.FC = () => {
                   trend={labels.stat3.trend}
                 />
                 {isModuleEnabled('finance') && (
-                  <StatCard 
+                  <StatCard
                     index={3}
-                    title="Revenue (MTD)" 
-                    value={revenueDisplay} 
-                    icon={DollarSign} 
-                    color="bg-emerald/10 text-emerald" 
-                    subValue="Projected $18k" 
+                    title="Revenue (MTD)"
+                    value={revenueDisplay}
+                    icon={DollarSign}
+                    color="bg-emerald/10 text-emerald"
+                    subValue="Projected $18k"
                     trend={8}
                   />
                 )}
               </div>
+
+                {/* Demo/test tooling — super-admin only, kept below the
+                    operational KPIs so real operations lead the dashboard. */}
+                {currentUserRole === 'super_admin' && (
+                  <div className="bg-slate-900 rounded-[3rem] p-10 border border-white/5 shadow-2xl relative overflow-hidden group">
+                     <div className="absolute inset-0 bg-gradient-to-r from-brand/10 to-transparent pointer-events-none" />
+                     <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
+                        <div className="max-w-xl">
+                           <div className="flex items-center gap-4 mb-4">
+                              <div className="h-12 w-12 bg-white/10 text-brand-accent rounded-2xl flex items-center justify-center">
+                                 <DatabaseZap size={24} />
+                              </div>
+                              <h3 className="text-2xl font-black text-white uppercase tracking-tight">Demo & test data</h3>
+                           </div>
+                           <p className="text-sm text-white/50 font-medium leading-relaxed uppercase tracking-tight">
+                              Generate sample trips and telemetry to explore the driver portal and routing, or run a data health check.
+                           </p>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-4 shrink-0">
+                           <button
+                             onClick={async () => {
+                               setTroubleshooting(true);
+                               try {
+                                 const res = await api.generateTestTelemetry();
+                                 addNotification("Sample data created — open the driver portal to see it live", "success");
+                                 loadData();
+                               } catch (err) {
+                                 addNotification("Couldn't create sample data. Try again.", "error");
+                               } finally {
+                                 setTroubleshooting(false);
+                               }
+                             }}
+                             disabled={troubleshooting}
+                             className="px-10 py-5 bg-white text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-2xl disabled:opacity-50"
+                           >
+                             {troubleshooting ? 'Creating…' : 'Create sample data'}
+                           </button>
+                           <button
+                             onClick={handleTroubleshoot}
+                             className="px-10 py-5 bg-white/5 border border-white/10 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+                           >
+                             Run data health check
+                           </button>
+                        </div>
+                     </div>
+                  </div>
+                )}
             </motion.div>
           ) : activeTab === 'INTELLIGENCE' ? (
             <motion.div 

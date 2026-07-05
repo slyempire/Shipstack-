@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
 import { api } from '../../api';
-import { Badge } from '../../packages/ui/Badge';
+import { Badge, statusLabel } from '../../packages/ui/Badge';
 import { useAppStore, useAuthStore } from '../../store';
 import { Modal } from '../../components/Modal';
 import RoleGuard from '../../components/RoleGuard';
@@ -237,7 +237,7 @@ const CRMView: React.FC = () => {
                     <Users size={28} />
                   </div>
                   <Badge variant={customer.status === 'ACTIVE' ? 'delivered' : 'neutral'}>
-                    {customer.status}
+                    {statusLabel(customer.status)}
                   </Badge>
                 </div>
 

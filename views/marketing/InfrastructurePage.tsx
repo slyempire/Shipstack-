@@ -51,13 +51,13 @@ const InfrastructurePage: React.FC = () => {
 
           <div className="relative h-full max-w-7xl mx-auto px-8 md:px-16 lg:px-24 flex flex-col justify-between pt-32 pb-16">
             <div className="self-start inline-flex items-center gap-3 px-5 py-2.5 bg-white/5 border border-white/10 rounded-full backdrop-blur-md">
-              <Server size={14} className="text-[#FF5722]" />
+              <Server size={14} className="text-brand" />
               <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/80">Built for scale</span>
             </div>
 
             <div className="max-w-3xl lg:ml-12 xl:ml-20">
               <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-black text-white tracking-tight leading-[0.95] mb-8 uppercase">
-                Built for <br /> <span className="text-[#FF5722]">scale.</span>
+                Built for <br /> <span className="text-brand">scale.</span>
               </h1>
               <p className="text-lg md:text-xl text-white/70 font-medium leading-relaxed max-w-2xl">
                 Shipstack isn't just a dashboard. It's a platform built to handle the complexities of African supply chains.
@@ -73,17 +73,17 @@ const InfrastructurePage: React.FC = () => {
               <div className="py-10 px-6 md:px-10">
                 <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/40 mb-3">Uptime SLA</p>
                 <p className="text-4xl md:text-5xl font-black text-white tracking-tight leading-none mb-2">99.99%</p>
-                <p className="text-xs font-medium text-[#FF5722]">Built for production</p>
+                <p className="text-xs font-medium text-brand">Built for production</p>
               </div>
               <div className="py-10 px-6 md:px-10">
                 <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/40 mb-3">Latency</p>
                 <p className="text-4xl md:text-5xl font-black text-white tracking-tight leading-none mb-2">&lt;25 ms</p>
-                <p className="text-xs font-medium text-[#FF5722]">Regional edge servers</p>
+                <p className="text-xs font-medium text-brand">Regional edge servers</p>
               </div>
               <div className="py-10 px-6 md:px-10">
                 <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/40 mb-3">Data encryption</p>
                 <p className="text-4xl md:text-5xl font-black text-white tracking-tight leading-none mb-2">AES-256</p>
-                <p className="text-xs font-medium text-[#FF5722]">Bank-grade security</p>
+                <p className="text-xs font-medium text-brand">Bank-grade security</p>
               </div>
             </div>
           </div>
@@ -243,7 +243,7 @@ const InfrastructurePage: React.FC = () => {
             Join our pilot and help build the most resilient <br className="hidden md:block" /> logistics platform in Africa.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-6">
-            <Link to="/register" className="bg-brand hover:bg-orange-600 text-white px-16 py-8 rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] shadow-2xl active:scale-95 transition-all text-center">
+            <Link to="/register" className="bg-brand hover:bg-brand-orange-dark text-white px-16 py-8 rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] shadow-2xl active:scale-95 transition-all text-center">
               Apply for pilot
             </Link>
             <Link to="/pricing" className="bg-white/5 border-2 border-white/10 text-white px-16 py-8 rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] hover:bg-white/10 transition-all text-center">

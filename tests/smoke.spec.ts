@@ -223,15 +223,15 @@ test.describe('Offline sync (fix/sync)', () => {
   test('clock-in queues to IndexedDB when offline and clears on reconnect', async ({ page, context }) => {
     await loginAs(page, { role: 'driver' });
 
-    // Driver landing screen shows the CHECK_IN step ("Initialize Session.").
+    // Driver landing screen shows the CHECK_IN step ("Start your shift.").
     // The user has onDuty=false in the injected state, so CHECK_IN is the entry.
-    await expect(page.locator('text=Initialize').first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('text=Start').first()).toBeVisible({ timeout: 15_000 });
 
     // Go offline before clicking clock-in. runOrQueue should detect
     // navigator.onLine === false and enqueue instead of calling api.clockIn.
     await context.setOffline(true);
 
-    await page.locator('button:has-text("Validate Identity")').click();
+    await page.locator('button:has-text("Check in")').click();
 
     // The portal advances to BRIEFING ("Safety & Protocol") either way.
     await expect(page.locator('text=Safety').first()).toBeVisible({ timeout: 10_000 });

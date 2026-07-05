@@ -1,6 +1,7 @@
 
 import React, { Suspense, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { MotionConfig } from 'framer-motion';
 import { useAuthStore, useAppStore, useTenantStore } from './store';
 import { X, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import { useTenant } from './hooks/useTenant';
@@ -153,6 +154,9 @@ const App: React.FC = () => {
 
   return (
     <HashRouter>
+      {/* reducedMotion="user": framer-motion drops transform/layout animations
+          when the OS prefers-reduced-motion is set (accessibility). */}
+      <MotionConfig reducedMotion="user">
       <TenantInitializer>
         <ThemeManager>
           <NotificationToast />
@@ -417,6 +421,7 @@ const App: React.FC = () => {
           </Suspense>
         </ThemeManager>
       </TenantInitializer>
+      </MotionConfig>
     </HashRouter>
   );
 };

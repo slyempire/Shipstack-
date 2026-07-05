@@ -139,7 +139,7 @@ const Invoicing: React.FC = () => {
   const isEcommerce = currentTenant?.industry === 'E-COMMERCE';
 
   return (
-    <Layout title="Commercial Hub" subtitle="Financial settlements, driver compensation & revenue tracking">
+    <Layout title="Billing & Settlements" subtitle="Financial settlements, driver compensation & revenue tracking">
       <div className="space-y-8">
         {/* Navigation Tabs */}
         <div className="flex items-center gap-4 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm w-fit">
