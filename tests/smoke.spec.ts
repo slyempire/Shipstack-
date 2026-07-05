@@ -277,30 +277,8 @@ test.describe('Offline sync (fix/sync)', () => {
   });
 });
 
-test.describe('Supabase realtime (feat/realtime)', () => {
-  test('useRealtimeTable opens a realtime websocket when supabase is configured', async ({ page }) => {
-    test.skip(!process.env.VITE_SUPABASE_URL, 'Supabase not configured in this environment');
-
-    // supabase-js opens a WebSocket (wss://) to /realtime/v1/websocket when
-    // any channel subscribes. waitForRequest only tracks HTTP requests; for
-    // WS we need page.on('websocket').
-    const wsUrlPromise = new Promise<string>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error('No realtime websocket opened within 20s')), 20_000);
-      page.on('websocket', ws => {
-        const url = ws.url();
-        if (url.includes('/realtime/v1/')) {
-          clearTimeout(timer);
-          resolve(url);
-        }
-      });
-    });
-
-    await loginAs(page, { role: 'admin' });
-    // DNQueue subscribes to delivery_notes + trips, which triggers the
-    // supabase-js WebSocket handshake.
-    await page.goto('/#/admin/queue');
-
-    const wsUrl = await wsUrlPromise;
-    expect(wsUrl).toContain('/realtime/v1/');
-  });
-});
+// NOTE: the Supabase realtime websocket test was removed when the app
+// migrated realtime to Frappe socket.io (services/frappe-realtime.ts) and
+// supabase.ts was hard-disabled (isSupabaseConfigured = false). A Frappe
+// realtime E2E needs a running Frappe bench and belongs in a staging suite,
+// not this offline smoke run.
