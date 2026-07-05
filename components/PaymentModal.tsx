@@ -1,8 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Smartphone, CheckCircle2, AlertCircle, Loader2, CreditCard } from 'lucide-react';
 import { api } from '../api';
 import { useAppStore } from '../store';
+import { frappe_realtime } from '../services/frappe-realtime';
+
+// How long we wait for the Daraja payment callback before giving up.
+const PAYMENT_CONFIRMATION_TIMEOUT_MS = 120_000;
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -25,6 +29,45 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [status, setStatus] = useState<'IDLE' | 'PENDING' | 'SUCCESS' | 'ERROR'>('IDLE');
   const [error, setError] = useState<string | null>(null);
   const { addNotification } = useAppStore();
+  const cleanupRef = useRef<(() => void) | null>(null);
+
+  // Tear down any realtime listener / timeout when the modal unmounts
+  useEffect(() => () => cleanupRef.current?.(), []);
+
+  /**
+   * Wait for the Daraja callback (relayed as a "payment:update" realtime
+   * event) that matches our CheckoutRequestID.
+   */
+  const awaitConfirmation = (checkoutRequestId: string) => {
+    const handler = (data: any) => {
+      if (data?.checkoutRequestId !== checkoutRequestId) return;
+      cleanupRef.current?.();
+      if (data.status === 'PAID') {
+        setStatus('SUCCESS');
+        onSuccess(data.receipt || checkoutRequestId);
+        addNotification('Payment received successfully', 'success');
+      } else {
+        setStatus('ERROR');
+        setError(data.resultDescription || 'Payment was declined or cancelled.');
+        addNotification('Payment failed', 'error');
+      }
+    };
+
+    frappe_realtime.subscribe('shipstack_payments');
+    frappe_realtime.on('payment:update', handler);
+
+    const timeout = setTimeout(() => {
+      cleanupRef.current?.();
+      setStatus('ERROR');
+      setError('Timed out waiting for payment confirmation. If the customer paid, the receipt will appear in Billing shortly.');
+    }, PAYMENT_CONFIRMATION_TIMEOUT_MS);
+
+    cleanupRef.current = () => {
+      frappe_realtime.off('payment:update', handler);
+      clearTimeout(timeout);
+      cleanupRef.current = null;
+    };
+  };
 
   const handleInitiate = async () => {
     if (!phone) {
@@ -37,17 +80,23 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
     try {
       const response = await api.initiateMpesaPayment(phone, amount, dnId);
-      
-      if (response.status === 'SUCCESS') {
-        // In a real app, we'd poll for status, but here we'll simulate success
-        setTimeout(() => {
-          setStatus('SUCCESS');
-          onSuccess(response.receiptNumber || `MP-${Date.now()}`);
-          addNotification('Payment received successfully', 'success');
-        }, 2000);
-      } else {
+
+      if (!response.success) {
         throw new Error(response.message || 'Payment failed');
       }
+
+      if (response.simulated) {
+        // Local development without Daraja credentials: simulate confirmation
+        setTimeout(() => {
+          setStatus('SUCCESS');
+          onSuccess(`SIM-${Date.now()}`);
+          addNotification('Payment received successfully (simulated)', 'success');
+        }, 2000);
+        return;
+      }
+
+      // STK prompt is on the customer's phone; wait for the real callback.
+      awaitConfirmation(response.checkoutRequestId || '');
     } catch (err: any) {
       setStatus('ERROR');
       setError(err.message || 'Failed to initiate payment');

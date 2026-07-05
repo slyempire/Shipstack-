@@ -1,16 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-
-export const isSupabaseConfigured = Boolean(
-  supabaseUrl && 
-  supabaseAnonKey && 
-  !supabaseUrl.includes('your-project-url') &&
-  !supabaseAnonKey.includes('your-anon-key')
-);
-
-// Only create the client if we have a URL to avoid the "supabaseUrl is required" error.
-export const supabase = isSupabaseConfigured 
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null as any;
+// Supabase integration disabled. Replaced entirely by Frappe API.
+export const isSupabaseConfigured = false;
+export const supabase = null as any;

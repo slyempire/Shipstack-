@@ -90,11 +90,20 @@ export class FrappeService {
     return this.request<T>('POST', 'call-method', { method, args });
   }
 
+  private static getShipstackDocType(doctype: string): string {
+    const standardDocTypes = ['User', 'File', 'Role', 'Profile'];
+    if (standardDocTypes.includes(doctype) || doctype.startsWith('Shipstack ')) {
+      return doctype;
+    }
+    return `Shipstack ${doctype}`;
+  }
+
   // --- Generic Resource Methods ---
 
   static async getList<T>(doctype: string, filters?: any, fields: string[] = ['*'], limit_page_length: number = 20, limit_start: number = 0): Promise<T[]> {
+    const mappedDoctype = this.getShipstackDocType(doctype);
     const params = new URLSearchParams({
-      doctype,
+      doctype: mappedDoctype,
       filters: JSON.stringify(filters || {}),
       fields: JSON.stringify(fields),
       limit_page_length: limit_page_length.toString(),
@@ -107,32 +116,33 @@ export class FrappeService {
     else if (doctype === 'Delivery Note') endpoint = 'delivery-notes';
     else {
       // Generic fallback if needed, or handle specifically
-      return this.callMethod<T[]>(`frappe.client.get_list`, { doctype, filters, fields, limit_page_length, limit_start });
+      return this.callMethod<T[]>(`frappe.client.get_list`, { doctype: mappedDoctype, filters, fields, limit_page_length, limit_start });
     }
 
     return this.request<T[]>('GET', `${endpoint}?${params.toString()}`);
   }
 
   static async getDoc<T>(doctype: string, name: string): Promise<T> {
-    return this.callMethod<T>('frappe.client.get_value', { doctype, name, fieldname: '*' });
+    const mappedDoctype = this.getShipstackDocType(doctype);
+    return this.callMethod<T>('frappe.client.get_value', { doctype: mappedDoctype, name, fieldname: '*' });
   }
 
   static async createDoc<T>(doctype: string, data: any): Promise<T> {
-    await this.logAudit(`CREATE_${doctype.toUpperCase()}`, data);
-    if (doctype === 'Shipment') {
-      return this.request<T>('POST', 'create-shipment', data);
-    }
-    return this.callMethod<T>('frappe.client.insert', { doc: { doctype, ...data } });
+    const mappedDoctype = this.getShipstackDocType(doctype);
+    await this.logAudit(`CREATE_${mappedDoctype.toUpperCase()}`, data);
+    return this.callMethod<T>('frappe.client.insert', { doc: { doctype: mappedDoctype, ...data } });
   }
 
   static async updateDoc<T>(doctype: string, name: string, data: any): Promise<T> {
-    await this.logAudit(`UPDATE_${doctype.toUpperCase()}`, { name, data });
-    return this.callMethod<T>('frappe.client.set_value', { doctype, name, values: data });
+    const mappedDoctype = this.getShipstackDocType(doctype);
+    await this.logAudit(`UPDATE_${mappedDoctype.toUpperCase()}`, { name, data });
+    return this.callMethod<T>('frappe.client.set_value', { doctype: mappedDoctype, name, values: data });
   }
 
   static async deleteDoc(doctype: string, name: string): Promise<void> {
-    await this.logAudit(`DELETE_${doctype.toUpperCase()}`, { name });
-    await this.callMethod('frappe.client.delete', { doctype, name });
+    const mappedDoctype = this.getShipstackDocType(doctype);
+    await this.logAudit(`DELETE_${mappedDoctype.toUpperCase()}`, { name });
+    await this.callMethod('frappe.client.delete', { doctype: mappedDoctype, name });
   }
 
   // --- Specialized Methods ---

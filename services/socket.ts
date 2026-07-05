@@ -1,35 +1,9 @@
-import { io, Socket } from "socket.io-client";
+import { frappe_realtime } from "./frappe-realtime";
 import { useAuthStore } from "../store";
-
-let socket: Socket | null = null;
 
 export const telemetryService = {
   connect() {
-    if (socket?.connected) return;
-
-    const token = useAuthStore.getState().token;
-
-    // Standard socket connection with auth token
-    socket = io({
-      reconnectionAttempts: 5,
-      reconnectionDelay: 2000,
-      autoConnect: true,
-      transports: ['websocket', 'polling'],
-      auth: { token }
-    });
-
-    socket.on("connect", () => {
-      console.log("Telemetry Socket Connected:", socket?.id);
-    });
-
-    socket.on("connect_error", (err) => {
-      // Only log as warning if we haven't given up yet
-      if (socket && !socket.active) {
-         console.warn("Telemetry Socket Connection Failed. Ensure server.ts is running and reachable.");
-      } else {
-         console.log("Telemetry Socket attempting connection...");
-      }
-    });
+    frappe_realtime.connect();
   },
 
   async emitTelemetry(dnId: string, lat: number, lng: number, speed?: number, heading?: number) {
@@ -42,13 +16,7 @@ export const telemetryService = {
       timestamp: new Date().toISOString(),
     };
 
-    // Try socket first if connected
-    if (socket?.connected) {
-      socket.emit("telemetry:report", payload);
-      return;
-    }
-
-    // Fallback to HTTP POST
+    // Telemetry is sent via HTTP POST to Node proxy which will save to Frappe
     try {
       const token = useAuthStore.getState().token;
       const response = await fetch('/api/telemetry', {
@@ -66,11 +34,6 @@ export const telemetryService = {
     } catch (err) {
       console.error("Telemetry Fallback Error, queuing for offline sync:", err);
       this.queueOfflinePoint(payload);
-    }
-    
-    // Attempt to reconnect socket in background
-    if (!socket || !socket.connected) {
-      this.connect();
     }
   },
 
@@ -110,17 +73,16 @@ export const telemetryService = {
   },
 
   onTelemetryUpdate(callback: (data: any) => void) {
-    if (!socket) this.connect();
-    socket?.on("telemetry:update", callback);
+    frappe_realtime.subscribe("shipstack_telemetry");
+    frappe_realtime.on("telemetry:update", callback);
   },
 
   onIngestNew(callback: (data: any) => void) {
-    if (!socket) this.connect();
-    socket?.on("ingest:new", callback);
+    frappe_realtime.subscribe("shipstack_ingest");
+    frappe_realtime.on("ingest:new", callback);
   },
 
   disconnect() {
-    socket?.disconnect();
-    socket = null;
+    frappe_realtime.disconnect();
   }
 };

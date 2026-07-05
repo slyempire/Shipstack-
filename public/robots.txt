@@ -1,0 +1,8 @@
+# Shipstack — public marketing site + app shell.
+# The app is hash-routed, so all public pages live under "/".
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# Replace with the production domain at deploy time.
+# Sitemap: https://<your-domain>/sitemap.xml
