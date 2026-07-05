@@ -12,6 +12,22 @@ dist
 dist-ssr
 *.local
 
+# Secrets — never commit. Use .env.example as the template.
+.env
+
+# Local checkout of the Frappe framework source (819MB) — not part of this repo
+frappe/
+
+# Nightly DB dumps written by the db-backup compose service
+backups/
+
+# Local agent tooling
+.agents/
+
+# Python bytecode (Frappe app)
+__pycache__/
+*.pyc
+
 # Playwright
 test-results/
 playwright-report/

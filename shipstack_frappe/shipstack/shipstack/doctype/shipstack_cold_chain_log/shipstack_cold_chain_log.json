@@ -1,0 +1,110 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-06-25 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "dn_id",
+  "trip_id",
+  "vehicle_id",
+  "temperature",
+  "humidity",
+  "timestamp",
+  "lat",
+  "lng",
+  "is_alert",
+  "status"
+ ],
+ "fields": [
+  {
+   "fieldname": "dn_id",
+   "fieldtype": "Link",
+   "label": "Delivery Note",
+   "options": "Shipstack Delivery Note",
+   "reqd": 1
+  },
+  {
+   "fieldname": "trip_id",
+   "fieldtype": "Link",
+   "label": "Trip",
+   "options": "Shipstack Trip"
+  },
+  {
+   "fieldname": "vehicle_id",
+   "fieldtype": "Link",
+   "label": "Vehicle",
+   "options": "Shipstack Vehicle"
+  },
+  {
+   "fieldname": "temperature",
+   "fieldtype": "Float",
+   "label": "Temperature (C)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "humidity",
+   "fieldtype": "Float",
+   "label": "Humidity (%)"
+  },
+  {
+   "fieldname": "timestamp",
+   "fieldtype": "Datetime",
+   "label": "Timestamp",
+   "reqd": 1
+  },
+  {
+   "fieldname": "lat",
+   "fieldtype": "Float",
+   "label": "Latitude"
+  },
+  {
+   "fieldname": "lng",
+   "fieldtype": "Float",
+   "label": "Longitude"
+  },
+  {
+   "fieldname": "is_alert",
+   "fieldtype": "Check",
+   "label": "Is Alert"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "NORMAL\nCRITICAL\nWARNING",
+   "reqd": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-06-25 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Shipstack",
+ "name": "Shipstack Cold Chain Log",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "All"
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "istable": 0,
+ "autoname": "hash"
+}

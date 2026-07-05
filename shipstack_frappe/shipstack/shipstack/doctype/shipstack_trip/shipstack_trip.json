@@ -1,0 +1,151 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-06-25 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "external_id",
+  "route_title",
+  "driver_id",
+  "vehicle_id",
+  "status",
+  "priority",
+  "start_time",
+  "end_time",
+  "commission_status",
+  "commission_amount",
+  "cod_collected",
+  "allowance_amount",
+  "allowance_status",
+  "route_risk_level",
+  "route_geometry",
+  "dn_ids"
+ ],
+ "fields": [
+  {
+   "fieldname": "external_id",
+   "fieldtype": "Data",
+   "label": "External ID",
+   "unique": 1
+  },
+  {
+   "fieldname": "route_title",
+   "fieldtype": "Data",
+   "label": "Route Title"
+  },
+  {
+   "fieldname": "driver_id",
+   "fieldtype": "Link",
+   "label": "Driver",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fieldname": "vehicle_id",
+   "fieldtype": "Link",
+   "label": "Vehicle",
+   "options": "Shipstack Vehicle",
+   "reqd": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "PENDING\nACTIVE\nCOMPLETED\nRECONCILED",
+   "reqd": 1
+  },
+  {
+   "fieldname": "priority",
+   "fieldtype": "Select",
+   "label": "Priority",
+   "options": "LOW\nMEDIUM\nHIGH",
+   "reqd": 1
+  },
+  {
+   "fieldname": "start_time",
+   "fieldtype": "Datetime",
+   "label": "Start Time"
+  },
+  {
+   "fieldname": "end_time",
+   "fieldtype": "Datetime",
+   "label": "End Time"
+  },
+  {
+   "fieldname": "commission_status",
+   "fieldtype": "Select",
+   "label": "Commission Status",
+   "options": "PENDING\nAPPROVED\nPAID\nDISBURSED"
+  },
+  {
+   "fieldname": "commission_amount",
+   "fieldtype": "Currency",
+   "label": "Commission Amount"
+  },
+  {
+   "fieldname": "cod_collected",
+   "fieldtype": "Currency",
+   "label": "COD Collected"
+  },
+  {
+   "fieldname": "allowance_amount",
+   "fieldtype": "Currency",
+   "label": "Allowance Amount"
+  },
+  {
+   "fieldname": "allowance_status",
+   "fieldtype": "Select",
+   "label": "Allowance Status",
+   "options": "PENDING\nAPPROVED\nPAID\nDISBURSED"
+  },
+  {
+   "fieldname": "route_risk_level",
+   "fieldtype": "Select",
+   "label": "Route Risk Level",
+   "options": "LOW\nMEDIUM\nHIGH"
+  },
+  {
+   "fieldname": "route_geometry",
+   "fieldtype": "Long Text",
+   "label": "Route Geometry"
+  },
+  {
+   "fieldname": "dn_ids",
+   "fieldtype": "Table",
+   "label": "Delivery Notes",
+   "options": "Shipstack Trip DN Reference"
+  }
+ ],
+ "links": [],
+ "modified": "2026-06-25 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Shipstack",
+ "name": "Shipstack Trip",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "All"
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "istable": 0,
+ "autoname": "hash"
+}

@@ -1,0 +1,2 @@
+# patches
+shipstack.patches.add_performance_indexes

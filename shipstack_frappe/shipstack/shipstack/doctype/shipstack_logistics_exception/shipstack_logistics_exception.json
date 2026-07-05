@@ -1,0 +1,127 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-06-25 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "dn_id",
+  "dn_number",
+  "type",
+  "severity",
+  "status",
+  "description",
+  "reported_by",
+  "reported_at",
+  "resolved_by",
+  "resolved_at",
+  "resolution_notes",
+  "metadata"
+ ],
+ "fields": [
+  {
+   "fieldname": "dn_id",
+   "fieldtype": "Link",
+   "label": "Delivery Note",
+   "options": "Shipstack Delivery Note"
+  },
+  {
+   "fieldname": "dn_number",
+   "fieldtype": "Data",
+   "label": "Delivery Note Number"
+  },
+  {
+   "fieldname": "type",
+   "fieldtype": "Select",
+   "label": "Exception Type",
+   "options": "DAMAGE\nSHORTAGE\nREFUSAL\nWRONG_ITEM\nTECHNICAL\nLATE\nWEATHER",
+   "reqd": 1
+  },
+  {
+   "fieldname": "severity",
+   "fieldtype": "Select",
+   "label": "Severity",
+   "options": "LOW\nMEDIUM\nHIGH\nCRITICAL",
+   "reqd": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Exception Status",
+   "options": "REPORTED\nINVESTIGATING\nRESOLVED\nREJECTED",
+   "reqd": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description",
+   "reqd": 1
+  },
+  {
+   "fieldname": "reported_by",
+   "fieldtype": "Link",
+   "label": "Reported By User",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fieldname": "reported_at",
+   "fieldtype": "Datetime",
+   "label": "Reported At",
+   "reqd": 1
+  },
+  {
+   "fieldname": "resolved_by",
+   "fieldtype": "Link",
+   "label": "Resolved By User",
+   "options": "User"
+  },
+  {
+   "fieldname": "resolved_at",
+   "fieldtype": "Datetime",
+   "label": "Resolved At"
+  },
+  {
+   "fieldname": "resolution_notes",
+   "fieldtype": "Small Text",
+   "label": "Resolution Notes"
+  },
+  {
+   "fieldname": "metadata",
+   "fieldtype": "Code",
+   "label": "Metadata (JSON)",
+   "options": "JSON"
+  }
+ ],
+ "links": [],
+ "modified": "2026-06-25 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Shipstack",
+ "name": "Shipstack Logistics Exception",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "All"
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "istable": 0,
+ "autoname": "hash"
+}

@@ -1,0 +1,117 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-07-04 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "provider",
+  "checkout_request_id",
+  "merchant_request_id",
+  "status",
+  "result_code",
+  "result_description",
+  "amount",
+  "mpesa_receipt",
+  "phone",
+  "transaction_date",
+  "reference",
+  "tenant_id"
+ ],
+ "fields": [
+  {
+   "fieldname": "provider",
+   "fieldtype": "Select",
+   "label": "Provider",
+   "options": "MPESA\nCARD\nBANK\nCASH",
+   "default": "MPESA",
+   "reqd": 1
+  },
+  {
+   "fieldname": "checkout_request_id",
+   "fieldtype": "Data",
+   "label": "Checkout Request ID",
+   "unique": 1
+  },
+  {
+   "fieldname": "merchant_request_id",
+   "fieldtype": "Data",
+   "label": "Merchant Request ID"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "PENDING\nPAID\nFAILED\nREVERSED",
+   "default": "PENDING",
+   "reqd": 1
+  },
+  {
+   "fieldname": "result_code",
+   "fieldtype": "Data",
+   "label": "Result Code"
+  },
+  {
+   "fieldname": "result_description",
+   "fieldtype": "Small Text",
+   "label": "Result Description"
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "label": "Amount"
+  },
+  {
+   "fieldname": "mpesa_receipt",
+   "fieldtype": "Data",
+   "label": "M-Pesa Receipt Number"
+  },
+  {
+   "fieldname": "phone",
+   "fieldtype": "Data",
+   "label": "Phone"
+  },
+  {
+   "fieldname": "transaction_date",
+   "fieldtype": "Data",
+   "label": "Transaction Date"
+  },
+  {
+   "fieldname": "reference",
+   "fieldtype": "Data",
+   "label": "Account Reference"
+  },
+  {
+   "fieldname": "tenant_id",
+   "fieldtype": "Data",
+   "label": "Tenant ID"
+  }
+ ],
+ "links": [],
+ "modified": "2026-07-04 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Shipstack",
+ "name": "Shipstack Payment",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "istable": 0,
+ "autoname": "hash"
+}
