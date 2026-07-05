@@ -284,6 +284,18 @@ const FacilityPortal: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
+                    {(activeTab === 'INBOUND' ? inboundShipments : outboundShipments).length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="px-8 py-16 text-center">
+                          <p className="text-sm font-bold text-white/40 uppercase tracking-widest">
+                            No {activeTab === 'INBOUND' ? 'inbound' : 'outbound'} shipments today
+                          </p>
+                          <p className="text-[10px] text-white/25 uppercase tracking-widest mt-2">
+                            New shipments appear here as they're logged
+                          </p>
+                        </td>
+                      </tr>
+                    )}
                     {(activeTab === 'INBOUND' ? inboundShipments : outboundShipments).map(dn => (
                       <tr key={dn.id} className="hover:bg-white/5 transition-all group cursor-pointer">
                         <td className="px-8 py-6">

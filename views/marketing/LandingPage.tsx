@@ -179,12 +179,12 @@ const TestimonialCard = ({ quote, author, role, company, city, delay }: any) => 
 const FAQItem = ({ question, answer }: any) => {
   const [isOpen, setIsOpen] = useState(false);
   return (
-    <div className="border-b border-white/5 overflow-hidden">
-      <button 
+    <div className="border-b border-slate-200 overflow-hidden">
+      <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between py-6 text-left hover:text-brand transition-colors"
       >
-        <span className="text-lg font-black uppercase tracking-tight text-white">{question}</span>
+        <span className="text-lg font-black uppercase tracking-tight text-slate-900">{question}</span>
         {isOpen ? <Plus className="text-brand rotate-45" size={20} /> : <Plus className="text-brand" size={20} />}
       </button>
       <AnimatePresence>
@@ -195,7 +195,7 @@ const FAQItem = ({ question, answer }: any) => {
             exit={{ height: 0, opacity: 0 }}
             className="pb-6"
           >
-            <p className="text-slate-400 font-medium leading-relaxed">{answer}</p>
+            <p className="text-slate-600 font-medium leading-relaxed">{answer}</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -351,7 +351,7 @@ const LandingPage: React.FC = () => {
               {[
                 { value: 'Pilot', label: 'Live with first partners' },
                 { value: '<25ms', label: 'API response' },
-                { value: '99.99%', label: 'Uptime SLA' },
+                { value: '99.9%', label: 'Uptime target' },
                 { value: '24/7', label: 'Support during pilot' },
               ].map((stat) => (
                 <div key={stat.label} className="py-10 px-6 md:px-10">
@@ -489,7 +489,7 @@ const LandingPage: React.FC = () => {
                      { feature: "Live tracking", shipstack: true, trad: "Hourly batch", diy: "Phone calls" },
                      { feature: "M-Pesa integration", shipstack: true, trad: "No", diy: "Manual cash" },
                      { feature: "Demand forecasting", shipstack: true, trad: "Paid add-on", diy: "No" },
-                     { feature: "Uptime SLA", shipstack: "99.99%", trad: "99.0%", diy: "Best effort" }
+                     { feature: "Uptime", shipstack: "99.9% target", trad: "99.0%", diy: "Best effort" }
                    ].map((row, i) => (
                      <tr key={i} className="group">
                        <td className="py-10 px-10 bg-white/5 rounded-l-3xl border-y border-l border-white/5 group-hover:bg-white/10 transition-colors font-bold text-slate-300">{row.feature}</td>
@@ -977,7 +977,7 @@ const LandingPage: React.FC = () => {
             <div className="lg:col-span-3 space-y-2">
               <FAQItem
                 question="Where is my data stored?"
-                answer="Your data lives in regional Supabase clusters with row-level security. We comply with GDPR, Kenya's DPA, and Nigeria's NDPR."
+                answer="Your data lives in our managed database with per-tenant isolation, encrypted in transit, with nightly backups. We're built around Kenya's Data Protection Act, GDPR, and Nigeria's NDPR."
               />
               <FAQItem
                 question="How long does setup take?"

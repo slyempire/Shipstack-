@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useAuthStore, useAppStore, useTenantStore, useModuleStore } from '../store';
+import { canAccessRoute } from '../constants/rbac';
 import { api } from '../api';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { 
@@ -231,7 +232,11 @@ const Layout: React.FC<LayoutProps> = ({ children, title, subtitle, fullWidth = 
         items: sortedItems.filter(item => {
           // Role check
           if (item.roles && !item.roles.includes(role)) return false;
-          
+
+          // Permission check — same source of truth as the route guards, so
+          // the sidebar never shows a link the RoleGuard will then deny.
+          if (!canAccessRoute(role as any, item.path)) return false;
+
           // Marketplace is always visible by default as requested
           if (item.moduleId === 'integrations') return true;
 
@@ -240,10 +245,10 @@ const Layout: React.FC<LayoutProps> = ({ children, title, subtitle, fullWidth = 
 
           // CRM module: Superadmins always see it
           if (item.moduleId === 'crm' && isSuperAdmin) return true;
-          
+
           // Module enablement check
           if (item.moduleId && !enabledModules.includes(item.moduleId as any)) return false;
-          
+
           return true;
         })
       };

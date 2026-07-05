@@ -109,13 +109,16 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({
     return false;
   }, [effectiveRoles, currentUserRole, user]);
   
+  // Fail CLOSED: if the permission check itself is broken, deny rather than
+  // grant. A crash-avoidance default of "allow" turns every bug in the
+  // permission layer into an access-control bypass.
   const checkPermissionSafely = (p: Permission) => {
-    if (typeof hasPermission !== 'function') return true; // Default to allow if check is broken to avoid crash
+    if (typeof hasPermission !== 'function') return false;
     try {
       return hasPermission(p);
     } catch (e) {
       console.error('Permission check failed:', e);
-      return true;
+      return false;
     }
   };
 

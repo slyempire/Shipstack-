@@ -118,13 +118,13 @@ const PredictiveInsights = () => {
             </div>
             <h4 className="text-xl font-bold text-slate-900 tracking-tight mb-2">Intelligence Hub</h4>
             <p className="text-sm text-slate-500 font-medium mb-6">
-              AI-assisted operational directives to optimize your fleet and save costs. Upgrade to SCALE to unlock real-time recommendations.
+              AI-assisted recommendations to optimize your fleet and cut costs. Available on the Growth plan.
             </p>
             <button 
               onClick={() => window.location.href = '/admin/subscription'}
               className="w-full py-4 bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 transition-all font-sans"
             >
-              View Scale Intelligence
+              See Growth plan
             </button>
           </div>
         </div>

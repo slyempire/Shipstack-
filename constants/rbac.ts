@@ -52,6 +52,7 @@ export const ROLE_DEFINITIONS: Record<SystemRole, RoleDefinition> = {
       'marketplace:view', 'marketplace:install', 'marketplace:uninstall',
       'crm:view', 'crm:manage',
       'exceptions:view', 'exceptions:resolve',
+      'recruitment:all', 'subscription:manage',
       'tracking:view',
       'tasks:view', 'tasks:manage'
     ]
@@ -81,9 +82,11 @@ export const ROLE_DEFINITIONS: Record<SystemRole, RoleDefinition> = {
     description: 'Responsible for assigning trips and managing the live dispatch grid.',
     permissions: [
       'dashboard:view',
-      'trips:view', 'trips:assign',
-      'dispatch:view', 'dispatch:assign',
+      'trips:view', 'trips:create', 'trips:assign',
+      'dispatch:view', 'dispatch:manage', 'dispatch:assign',
       'fleet:view',
+      'orders:view',
+      'warehouse:view',
       'exceptions:view', 'exceptions:resolve',
       'tracking:view',
       'tasks:view', 'tasks:manage'
@@ -113,7 +116,8 @@ export const ROLE_DEFINITIONS: Record<SystemRole, RoleDefinition> = {
       'fleet:view', 'fleet:manage', 'fleet:all',
       'maintenance:view', 'maintenance:manage',
       'trips:view',
-      'analytics:view'
+      'analytics:view',
+      'tasks:view', 'tasks:manage'
     ]
   },
   recruiter: {
@@ -123,7 +127,8 @@ export const ROLE_DEFINITIONS: Record<SystemRole, RoleDefinition> = {
     permissions: [
       'dashboard:view',
       'recruitment:all',
-      'users:view'
+      'users:view',
+      'tasks:view', 'tasks:manage'
     ]
   },
   analyst: {
@@ -160,6 +165,7 @@ export const ROLE_DEFINITIONS: Record<SystemRole, RoleDefinition> = {
     label: 'Facility Operator',
     description: 'Manages warehouse operations and localized orders.',
     permissions: [
+      'dashboard:view',
       'warehouse:view', 'warehouse:manage', 'warehouse:all',
       'orders:view'
     ]
@@ -191,24 +197,30 @@ export const ROLE_DEFINITIONS: Record<SystemRole, RoleDefinition> = {
   }
 };
 
+// Mirrors the RoleGuard permissions on each route in App.tsx — keep the two
+// in sync when adding routes. (App.tsx route guards are the enforcement
+// point; this map exists for nav helpers via canAccessRoute.)
 export const ROUTE_PERMISSION_MAP: Record<string, Permission[]> = {
-  '/admin/dashboard': ['dashboard:view'],
-  '/admin/dispatch': ['dispatch:view'],
-  '/admin/trips': ['trips:view'],
-  '/admin/fleet': ['fleet:view'],
+  '/admin': ['dashboard:view'],
+  '/admin/dispatch': ['dispatch:manage'],
+  '/admin/queue': ['dispatch:view'],
+  '/admin/tracking': ['tracking:view'],
+  '/admin/exceptions': ['exceptions:view'],
+  '/admin/trip': ['trips:view'],
+  '/admin/fleet': ['fleet:manage'],
   '/admin/warehouse': ['warehouse:view'],
   '/admin/orders': ['orders:view'],
-  '/admin/finance': ['finance:view'],
-  '/admin/invoicing': ['invoicing:view'],
-  '/admin/billing': ['billing:view'],
-  '/admin/subscription': ['subscription:view'],
-  '/admin/users': ['users:view'],
-  '/admin/security': ['audit:view'],
+  '/admin/billing': ['finance:manage'],
+  '/admin/rates': ['rates:all'],
+  '/admin/subscription': ['subscription:manage'],
+  '/admin/users': ['users:manage'],
+  '/admin/security': ['security:view'],
   '/admin/marketplace': ['marketplace:view'],
   '/admin/ingress': ['data_ingress:view'],
   '/admin/analytics': ['analytics:view'],
   '/admin/recruitment': ['recruitment:all'],
-  '/admin/tasks': ['tasks:view']
+  '/admin/tasks': ['tasks:view'],
+  '/admin/crm': ['crm:manage']
 };
 
 export const hasPermission = (userRole: UserRole, permission: Permission, customRoles?: RoleDefinition[]): boolean => {

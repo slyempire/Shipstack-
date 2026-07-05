@@ -39,15 +39,17 @@ export const DriverPerformancePanel: React.FC<PerformancePanelProps> = ({
 }) => (
   <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
     <div className="grid grid-cols-2 gap-3">
+      {/* Page bg is always dark (#0a0f1a) — colors must not depend on the
+          OS dark: variant or values vanish on light-mode devices. */}
       <div className="card-tactical !p-5 flex flex-col justify-between">
         <TrendingUp className="text-emerald-500 mb-3" size={20} />
-        <p className="label-mono mb-1">On-Time Rate</p>
-        <p className="text-xl font-black text-slate-900 dark:text-white">98.4%</p>
+        <p className="label-mono mb-1 text-white/60">On-Time Rate</p>
+        <p className="text-xl font-black text-white">98.4%</p>
       </div>
       <div className="card-tactical !p-5 flex flex-col justify-between">
         <Award className="text-orange-500 mb-3" size={20} />
-        <p className="label-mono mb-1 text-slate-500 dark:text-white/60">Driver Score</p>
-        <p className="text-xl font-black text-slate-900 dark:text-white">4.92</p>
+        <p className="label-mono mb-1 text-white/60">Driver Score</p>
+        <p className="text-xl font-black text-white">4.92</p>
       </div>
     </div>
 
@@ -65,8 +67,8 @@ export const DriverPerformancePanel: React.FC<PerformancePanelProps> = ({
     <div className="card-tactical !p-6">
       <div className="flex items-center justify-between gap-4 mb-6">
         <div>
-          <h3 className="label-mono mb-1 flex items-center gap-2 text-slate-900 dark:text-white"><Activity size={12} className="text-brand-accent" /> Recent Activity</h3>
-          <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-tight">Route performance summary</p>
+          <h3 className="label-mono mb-1 flex items-center gap-2 text-white"><Activity size={12} className="text-brand-accent" /> Recent Activity</h3>
+          <p className="text-[10px] text-slate-400 uppercase tracking-tight">Route performance summary</p>
         </div>
         <button onClick={onActionClick} className="py-3 px-4 bg-slate-900 text-white rounded-3xl text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:bg-slate-800">
           <actionConfig.icon size={16} className="inline-block mr-2" /> {actionConfig.label}
@@ -87,7 +89,7 @@ export const DriverPerformancePanel: React.FC<PerformancePanelProps> = ({
             </div>
           </div>
         ) : (
-          <div className="rounded-3xl bg-slate-100 p-6 text-sm text-slate-500">No active runs assigned. Use Manifest to claim a trip.</div>
+          <div className="rounded-3xl bg-slate-100 p-6 text-sm text-slate-500">No active trips right now. Open the Trips tab to claim one.</div>
         )}
       </div>
     </div>

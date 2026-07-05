@@ -33,7 +33,7 @@ const PricingPage: React.FC = () => {
       label: 'Custom',
       note: 'tailored to your network',
       desc: 'For national networks and multi-country operators.',
-      features: ['Multi-country sync', 'On-premise deployment', 'Unlimited users', '99.99% uptime SLA', 'Custom compliance rules', 'Dedicated engineer access'],
+      features: ['Multi-country sync', 'On-premise deployment', 'Unlimited users', 'Custom uptime SLA', 'Custom compliance rules', 'Dedicated engineer access'],
       cta: 'Talk to sales',
       to: '/contact',
       highlight: false

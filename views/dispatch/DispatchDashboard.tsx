@@ -308,8 +308,8 @@ const DispatchDashboard: React.FC = () => {
         
         <div className="flex justify-between items-center">
            <div>
-              <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Operational Overview</h2>
-              <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Real-time logistics control</p>
+              <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">Operational Overview</h2>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Real-time logistics control</p>
            </div>
            <button 
              onClick={() => navigate('/admin/dispatch')}

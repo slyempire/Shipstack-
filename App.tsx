@@ -192,7 +192,7 @@ const App: React.FC = () => {
                 {/* Core App Routes - Guarded */}
                 <Route path="/admin" element={
                   <ProtectedRoute>
-                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin', 'dispatcher', 'finance_manager', 'facility_operator']} permissions={['dashboard:view']} showFullPageError>
+                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin', 'dispatcher', 'finance_manager', 'facility_operator', 'analyst', 'recruiter', 'fleet_manager']} permissions={['dashboard:view']} showFullPageError>
                       <DashboardSwitcher />
                     </RoleGuard>
                   </ProtectedRoute>
@@ -210,7 +210,7 @@ const App: React.FC = () => {
                 } />
                 <Route path="/admin/analytics" element={
                   <ProtectedRoute>
-                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin']} permissions={['analytics:view']} showFullPageError>
+                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin', 'analyst']} permissions={['analytics:view']} showFullPageError>
                       <ModuleGuard moduleId="analytics">
                         <Analytics />
                       </ModuleGuard>
@@ -249,7 +249,7 @@ const App: React.FC = () => {
                 } />
                 <Route path="/admin/warehouse" element={
                   <ProtectedRoute>
-                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin', 'dispatcher', 'facility_operator']} permissions={['warehouse:manage']} showFullPageError>
+                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin', 'dispatcher', 'facility_operator']} permissions={['warehouse:view']} showFullPageError>
                       <ModuleGuard moduleId="warehouse">
                         <WarehouseManagement />
                       </ModuleGuard>
@@ -274,7 +274,7 @@ const App: React.FC = () => {
                 } />
                 <Route path="/admin/ingress" element={
                   <ProtectedRoute>
-                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin', 'analyst']} permissions={['data_ingress:manage']} showFullPageError>
+                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin', 'analyst']} permissions={['data_ingress:view']} showFullPageError>
                       <ModuleGuard moduleId="integrations">
                         <DataIngress />
                       </ModuleGuard>
@@ -317,7 +317,9 @@ const App: React.FC = () => {
                 } />
                 <Route path="/admin/trip/:id" element={
                   <ProtectedRoute>
-                    <RoleGuard permissions={['trips:view']} showFullPageError>
+                    {/* Role gate matters here: drivers also hold trips:view but
+                        must use their portal, not the admin trip console. */}
+                    <RoleGuard allowedRoles={['super_admin', 'tenant_admin', 'dispatcher', 'fleet_manager']} permissions={['trips:view']} showFullPageError>
                       <TripDetail />
                     </RoleGuard>
                   </ProtectedRoute>
@@ -362,18 +364,16 @@ const App: React.FC = () => {
                   </ProtectedRoute>
                 } />
                 
+                {/* Profile/settings are personal pages: any authenticated user
+                    (including drivers/clients, who lack dashboard:view) owns one. */}
                 <Route path="/profile" element={
                   <ProtectedRoute>
-                    <RoleGuard permissions={['dashboard:view']} showFullPageError>
-                      <ProfileView />
-                    </RoleGuard>
+                    <ProfileView />
                   </ProtectedRoute>
                 } />
                 <Route path="/settings" element={
                   <ProtectedRoute>
-                    <RoleGuard permissions={['dashboard:view']} showFullPageError>
-                      <SettingsView />
-                    </RoleGuard>
+                    <SettingsView />
                   </ProtectedRoute>
                 } />
 
