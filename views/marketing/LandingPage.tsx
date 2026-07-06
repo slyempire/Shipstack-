@@ -147,44 +147,15 @@ const StepAction = ({ number, title, icon: Icon, desc, delay }: any) => {
   );
 };
 
-const TestimonialCard = ({ quote, author, role, company, city, delay }: any) => {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true });
-
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, x: -20 }}
-      animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -20 }}
-      transition={{ delay }}
-      className="bg-white p-10 rounded-[3rem] shadow-xl border border-slate-100 flex flex-col justify-between"
-    >
-      <div className="mb-8">
-        <div className="flex gap-1 mb-4">
-          {[1,2,3,4,5].map(i => <span key={i} className="text-brand">★</span>)}
-        </div>
-        <p className="text-lg text-slate-700 italic font-medium leading-relaxed">"{quote}"</p>
-      </div>
-      <div className="flex items-center gap-4">
-        <div className="h-12 w-12 bg-slate-100 rounded-full flex-shrink-0 border-2 border-slate-50" />
-        <div>
-          <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight">{author}</h4>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{role}, {company} — {city}</p>
-        </div>
-      </div>
-    </motion.div>
-  );
-};
-
 const FAQItem = ({ question, answer }: any) => {
   const [isOpen, setIsOpen] = useState(false);
   return (
-    <div className="border-b border-white/5 overflow-hidden">
-      <button 
+    <div className="border-b border-slate-200 overflow-hidden">
+      <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between py-6 text-left hover:text-brand transition-colors"
       >
-        <span className="text-lg font-black uppercase tracking-tight text-white">{question}</span>
+        <span className="text-lg font-black uppercase tracking-tight text-slate-900">{question}</span>
         {isOpen ? <Plus className="text-brand rotate-45" size={20} /> : <Plus className="text-brand" size={20} />}
       </button>
       <AnimatePresence>
@@ -195,7 +166,7 @@ const FAQItem = ({ question, answer }: any) => {
             exit={{ height: 0, opacity: 0 }}
             className="pb-6"
           >
-            <p className="text-slate-400 font-medium leading-relaxed">{answer}</p>
+            <p className="text-slate-600 font-medium leading-relaxed">{answer}</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -279,7 +250,7 @@ const LandingPage: React.FC = () => {
         {/* Full-bleed photo with dark gradient overlay for headline legibility */}
         <div className="relative h-[85vh] min-h-[640px] md:min-h-[720px]">
           <img
-            src="https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?q=80&w=2600&auto=format&fit=crop"
+            src="https://images.unsplash.com/photo-1549194388-f61be84a6e9e?q=80&w=2600&auto=format&fit=crop"
             alt="Logistics truck on highway"
             className="absolute inset-0 w-full h-full object-cover"
             referrerPolicy="no-referrer"
@@ -302,7 +273,7 @@ const LandingPage: React.FC = () => {
               className="self-start"
             >
               <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-white/5 border border-white/10 rounded-full backdrop-blur-md">
-                <span className="flex h-2 w-2 rounded-full bg-[#FF5722] animate-pulse" />
+                <span className="flex h-2 w-2 rounded-full bg-brand animate-pulse" />
                 <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/80">Now onboarding pilot partners</span>
               </div>
             </motion.div>
@@ -316,7 +287,7 @@ const LandingPage: React.FC = () => {
             >
               <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-black uppercase tracking-tight leading-[0.95] text-white mb-8">
                 Logistics, <br />
-                built for <span className="text-[#FF5722]">Africa.</span>
+                built for <span className="text-brand">Africa.</span>
               </h1>
               <p className="text-lg md:text-xl text-white/70 font-medium leading-relaxed mb-10 max-w-2xl">
                 One place to manage your fleet, dispatch drivers, and reconcile payments &mdash; built for African logistics teams.
@@ -324,7 +295,7 @@ const LandingPage: React.FC = () => {
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   onClick={() => isAuthenticated ? handleDashboardRedirect() : navigate('/register')}
-                  className="px-8 py-5 bg-[#FF5722] hover:bg-[#E64A19] text-white text-sm font-bold rounded-xl shadow-2xl shadow-[#FF5722]/20 hover:shadow-[#FF5722]/30 transition-all active:scale-95 flex items-center justify-center gap-3"
+                  className="px-8 py-5 bg-brand hover:bg-brand-orange-dark text-white text-sm font-bold rounded-xl shadow-2xl shadow-brand/20 hover:shadow-brand/30 transition-all active:scale-95 flex items-center justify-center gap-3"
                 >
                   Get started
                   <ArrowRight size={18} />
@@ -351,7 +322,7 @@ const LandingPage: React.FC = () => {
               {[
                 { value: 'Pilot', label: 'Live with first partners' },
                 { value: '<25ms', label: 'API response' },
-                { value: '99.99%', label: 'Uptime SLA' },
+                { value: '99.9%', label: 'Uptime target' },
                 { value: '24/7', label: 'Support during pilot' },
               ].map((stat) => (
                 <div key={stat.label} className="py-10 px-6 md:px-10">
@@ -489,7 +460,7 @@ const LandingPage: React.FC = () => {
                      { feature: "Live tracking", shipstack: true, trad: "Hourly batch", diy: "Phone calls" },
                      { feature: "M-Pesa integration", shipstack: true, trad: "No", diy: "Manual cash" },
                      { feature: "Demand forecasting", shipstack: true, trad: "Paid add-on", diy: "No" },
-                     { feature: "Uptime SLA", shipstack: "99.99%", trad: "99.0%", diy: "Best effort" }
+                     { feature: "Uptime", shipstack: "99.9% target", trad: "99.0%", diy: "Best effort" }
                    ].map((row, i) => (
                      <tr key={i} className="group">
                        <td className="py-10 px-10 bg-white/5 rounded-l-3xl border-y border-l border-white/5 group-hover:bg-white/10 transition-colors font-bold text-slate-300">{row.feature}</td>
@@ -636,57 +607,43 @@ const LandingPage: React.FC = () => {
              </div>
           </div>
 
+          {/* Pilot onboarding timeline — honest education about what joining
+              actually looks like. No invented customers or metrics. */}
           <div className="bg-[#121E36] rounded-[4rem] p-10 md:p-20 border border-white/5 relative overflow-hidden shadow-2xl">
             <div className="absolute top-0 right-0 p-20 opacity-5 pointer-events-none">
               <Plus size={300} className="text-brand" />
             </div>
-            
-            <div className="grid lg:grid-cols-2 gap-20 items-center relative z-10">
-              <div>
-                <div className="flex items-center gap-4 mb-8">
-                  <div className="h-16 w-16 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10">
-                    <Building className="text-brand" size={32} />
-                  </div>
-                  <div>
-                    <h3 className="text-2xl font-black text-white uppercase tracking-tight">FastCourier</h3>
-                    <p className="text-sm font-black text-brand uppercase tracking-widest">Nairobi, Kenya</p>
-                  </div>
-                </div>
-                
-                <div className="mb-12">
-                  <MessageSquare className="text-brand mb-6 opacity-50" size={48} />
-                  <p className="text-2xl md:text-3xl text-white font-medium italic leading-relaxed">
-                    "Shipstack gave us complete operational visibility during our trial, helping us streamline driver settlements."
-                  </p>
-                </div>
 
-                <div className="flex flex-wrap gap-4">
-                  <div className="px-6 py-4 bg-brand/10 border border-brand/20 rounded-2xl">
-                    <p className="text-3xl font-black text-white">250%</p>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-brand">Revenue Growth</p>
-                  </div>
-                  <div className="px-6 py-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl">
-                    <p className="text-3xl font-black text-white">40%</p>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Cost Reduction</p>
-                  </div>
-                  <div className="px-6 py-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl">
-                    <p className="text-3xl font-black text-white">6 Month</p>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-blue-500">Timeline</p>
-                  </div>
-                </div>
+            <div className="relative z-10">
+              <div className="mb-16 max-w-2xl">
+                <p className="text-[10px] font-black uppercase tracking-widest text-brand mb-4">What joining looks like</p>
+                <h3 className="text-3xl md:text-4xl font-black text-white uppercase tracking-tighter mb-4">Your first two weeks on Shipstack</h3>
+                <p className="text-slate-400 font-medium leading-relaxed">
+                  Pilot partners don't get a login and a manual — they get our team, on the ground, until your operation runs on Shipstack.
+                </p>
               </div>
 
-              <div className="relative group">
-                <div className="absolute -inset-4 bg-brand/20 rounded-[3rem] blur-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="relative bg-navy rounded-[3rem] p-10 border border-white/10 shadow-2xl overflow-hidden aspect-square flex flex-col justify-center items-center text-center">
-                  <div className="h-32 w-32 bg-brand rounded-full mb-8 flex items-center justify-center text-white shadow-2xl relative">
-                    <Truck size={64} />
-                    <div className="absolute -right-2 -bottom-2 h-12 w-12 bg-white rounded-full flex items-center justify-center text-brand">
-                      <TrendingUp size={24} />
-                    </div>
-                  </div>
-                  <h4 className="text-4xl font-black text-white mb-4 uppercase tracking-tighter">500+</h4>
-                  <p className="text-slate-400 font-black uppercase tracking-widest text-xs">Daily deliveries</p>
+              <div className="grid md:grid-cols-3 gap-6">
+                <div className="p-8 bg-white/5 border border-white/5 rounded-3xl">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-brand mb-3">Day 1</p>
+                  <h4 className="text-lg font-black text-white uppercase tracking-tight mb-3">Set up together</h4>
+                  <p className="text-sm text-slate-400 font-medium leading-relaxed">
+                    We import your vehicles, drivers, and routes with you — from spreadsheets, your ERP, or paper if that's where they live.
+                  </p>
+                </div>
+                <div className="p-8 bg-white/5 border border-white/5 rounded-3xl">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-brand mb-3">Week 1</p>
+                  <h4 className="text-lg font-black text-white uppercase tracking-tight mb-3">Train your team</h4>
+                  <p className="text-sm text-slate-400 font-medium leading-relaxed">
+                    Hands-on sessions for dispatchers and drivers, in English and Kiswahili. Your drivers check in from their own phones by day three.
+                  </p>
+                </div>
+                <div className="p-8 bg-white/5 border border-white/5 rounded-3xl">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-brand mb-3">Week 2</p>
+                  <h4 className="text-lg font-black text-white uppercase tracking-tight mb-3">Run live, review weekly</h4>
+                  <p className="text-sm text-slate-400 font-medium leading-relaxed">
+                    Real trips, real payouts. We review what worked every week and build what's missing — that's the co-development deal.
+                  </p>
                 </div>
               </div>
             </div>
@@ -712,39 +669,46 @@ const LandingPage: React.FC = () => {
         </div>
       </SectionWrapper>
 
-      {/* Testimonials section (v2: image 9 dark grid -- 4 cards on #0B0E16) */}
+      {/* Try-it-yourself section — replaces the former testimonial grid.
+          We're pre-launch: instead of invented quotes, give visitors real
+          ways to evaluate the product themselves. */}
       <SectionWrapper className="py-32 bg-[#0B0E16]">
         <div className="max-w-7xl mx-auto px-8 md:px-16 lg:px-24">
           <div className="mb-20">
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#FF5722] mb-4">Pilot feedback</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand mb-4">See for yourself</p>
             <h2 className="text-4xl md:text-6xl font-black tracking-tight text-white mb-4 uppercase max-w-3xl leading-[0.95]">
-              Your trust, our journey &mdash; <span className="text-[#FF5722]">delivering excellence</span> together.
+              Don't take our word for it. <span className="text-brand">Try it.</span>
             </h2>
-            <p className="text-white/50 font-medium text-base max-w-xl">Early notes from operators piloting Shipstack with us.</p>
+            <p className="text-white/50 font-medium text-base max-w-xl">
+              We're pre-launch, so we won't show you invented praise. Explore the live product instead.
+            </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { quote: "Finally a platform that doesn't ignore the complexity of the African last mile. The visibility into driver settlements is exactly what we needed.", author: "Amara Diallo", role: "Operations Director, SwiftRoute Logistics", initial: "A" },
-              { quote: "Shipstack's integration with our existing ERP was seamless. It's the first logistics OS that feels built for scale, not just hype.", author: "Moussa Keïta", role: "CTO, Sahel Freight", initial: "M" },
-              { quote: "The early-access support has been incredible. They aren't just selling software — they're helping us refine our entire operational flow.", author: "Kwame Mensah", role: "Founder, Nexus Courier", initial: "K" },
-              { quote: "Live tracking changed how we run dispatch. We can see every trip and respond before customers even call to ask.", author: "Naledi Khumalo", role: "Fleet Manager, Cape Cargo Co", initial: "N" },
-            ].map((t, i) => (
+              { icon: LayoutDashboard, title: 'Tour the dashboard', desc: 'Log in with a demo account and click around the real dispatch, fleet, and billing screens. No sign-up needed.', cta: 'Open the demo', to: '/login' },
+              { icon: MapPin, title: 'Track a shipment', desc: 'This is the page your customers see. Try the public tracking experience with any reference.', cta: 'Try tracking', to: '/track' },
+              { icon: Truck, title: 'See the driver app', desc: 'Shift check-in, trip claiming, offline sync — the tools your drivers use from their own phones.', cta: 'How drivers work', to: '/product' },
+              { icon: MessageSquare, title: 'Ask us anything', desc: 'Talk directly to the team building Shipstack. We answer within a business day.', cta: 'Talk to us', to: '/contact' },
+            ].map((c, i) => (
               <motion.div
-                key={t.author}
+                key={c.title}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.08, duration: 0.5 }}
-                className="bg-[#1A1F2E] border border-white/5 rounded-3xl p-8 flex flex-col h-full hover:border-[#FF5722]/30 transition-all"
+                className="bg-[#1A1F2E] border border-white/5 rounded-3xl p-8 flex flex-col h-full hover:border-brand/30 transition-all"
               >
-                <div className="h-12 w-12 rounded-full bg-[#FF5722]/10 border border-[#FF5722]/20 text-[#FF5722] flex items-center justify-center font-black text-lg mb-6">
-                  {t.initial}
+                <div className="h-12 w-12 rounded-2xl bg-brand/10 border border-brand/20 text-brand flex items-center justify-center mb-6">
+                  <c.icon size={22} />
                 </div>
-                <p className="text-white/80 text-sm leading-relaxed font-medium flex-1 mb-6">&ldquo;{t.quote}&rdquo;</p>
-                <div className="pt-6 border-t border-white/5">
-                  <p className="text-white font-bold text-sm mb-1">{t.author}</p>
-                  <p className="text-white/40 text-xs font-medium">{t.role}</p>
-                </div>
+                <h4 className="text-white font-black uppercase tracking-tight text-lg mb-3">{c.title}</h4>
+                <p className="text-white/60 text-sm leading-relaxed font-medium flex-1 mb-6">{c.desc}</p>
+                <button
+                  onClick={() => navigate(c.to)}
+                  className="pt-6 border-t border-white/5 text-left text-brand text-xs font-black uppercase tracking-widest hover:text-brand-accent transition-colors"
+                >
+                  {c.cta} &rarr;
+                </button>
               </motion.div>
             ))}
           </div>
@@ -894,7 +858,7 @@ const LandingPage: React.FC = () => {
       <SectionWrapper className="py-48 relative overflow-hidden bg-[#0B0E16] border-y border-white/5">
         <div className="absolute inset-0 z-0">
           <img 
-            src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?q=80&w=2600&auto=format&fit=crop" 
+            src="https://images.unsplash.com/photo-1449824913935-59a10b8d2000?q=80&w=2600&auto=format&fit=crop" 
             alt="Logistics Operations" 
             className="w-full h-full object-cover opacity-60 scale-105"
             referrerPolicy="no-referrer"
@@ -917,7 +881,7 @@ const LandingPage: React.FC = () => {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
               <button
                 onClick={() => navigate('/register')}
-                className="w-full sm:w-auto px-20 py-10 bg-brand hover:bg-orange-600 text-white text-base font-black uppercase tracking-[0.3em] shadow-2xl transition-all hover:translate-y-[-4px] active:scale-95 rounded-3xl"
+                className="w-full sm:w-auto px-20 py-10 bg-brand hover:bg-brand-orange-dark text-white text-base font-black uppercase tracking-[0.3em] shadow-2xl transition-all hover:translate-y-[-4px] active:scale-95 rounded-3xl"
               >
                 Sign up free
               </button>
@@ -936,10 +900,10 @@ const LandingPage: React.FC = () => {
       <SectionWrapper className="py-32 bg-white border-t border-slate-100">
         <div className="max-w-7xl mx-auto px-8 md:px-16 lg:px-24">
           <div className="mb-16 max-w-3xl">
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#FF5722] mb-4">Frequently asked questions</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand mb-4">Frequently asked questions</p>
             <h2 className="text-4xl md:text-6xl font-black tracking-tight text-slate-900 leading-[0.95] uppercase">
               Got more questions? <br />
-              <span className="text-[#FF5722]">We're here to help.</span>
+              <span className="text-brand">We're here to help.</span>
             </h2>
           </div>
 
@@ -952,22 +916,22 @@ const LandingPage: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-2">Name</label>
-                    <input type="text" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-[#FF5722] transition-colors" />
+                    <input type="text" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-brand transition-colors" />
                   </div>
                   <div>
                     <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-2">Phone</label>
-                    <input type="tel" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-[#FF5722] transition-colors" />
+                    <input type="tel" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-brand transition-colors" />
                   </div>
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-2">Email</label>
-                  <input type="email" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-[#FF5722] transition-colors" />
+                  <input type="email" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-brand transition-colors" />
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block mb-2">Message</label>
-                  <textarea rows={4} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-[#FF5722] transition-colors resize-none" />
+                  <textarea rows={4} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-brand transition-colors resize-none" />
                 </div>
-                <button type="submit" className="w-full bg-[#FF5722] hover:bg-[#E64A19] text-white text-sm font-bold py-4 rounded-xl shadow-lg shadow-[#FF5722]/20 transition-all active:scale-95">
+                <button type="submit" className="w-full bg-brand hover:bg-brand-orange-dark text-white text-sm font-bold py-4 rounded-xl shadow-lg shadow-brand/20 transition-all active:scale-95">
                   Send message
                 </button>
               </form>
@@ -977,7 +941,7 @@ const LandingPage: React.FC = () => {
             <div className="lg:col-span-3 space-y-2">
               <FAQItem
                 question="Where is my data stored?"
-                answer="Your data lives in regional Supabase clusters with row-level security. We comply with GDPR, Kenya's DPA, and Nigeria's NDPR."
+                answer="Your data lives in our managed database with per-tenant isolation, encrypted in transit, with nightly backups. We're built around Kenya's Data Protection Act, GDPR, and Nigeria's NDPR."
               />
               <FAQItem
                 question="How long does setup take?"

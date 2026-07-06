@@ -1,0 +1,121 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-06-25 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "tenant_name",
+  "slug",
+  "subdomain",
+  "logo",
+  "plan",
+  "tier",
+  "status",
+  "industry",
+  "settings",
+  "enabled_modules",
+  "security_settings"
+ ],
+ "fields": [
+  {
+   "fieldname": "tenant_name",
+   "fieldtype": "Data",
+   "label": "Tenant Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "slug",
+   "fieldtype": "Data",
+   "label": "Slug",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "subdomain",
+   "fieldtype": "Data",
+   "label": "Subdomain",
+   "unique": 1
+  },
+  {
+   "fieldname": "logo",
+   "fieldtype": "Data",
+   "label": "Logo URL"
+  },
+  {
+   "fieldname": "plan",
+   "fieldtype": "Select",
+   "label": "Plan",
+   "options": "STARTER\nGROWTH\nSCALE\nENTERPRISE",
+   "reqd": 1
+  },
+  {
+   "fieldname": "tier",
+   "fieldtype": "Select",
+   "label": "Tier",
+   "options": "Free\nStarter\nProfessional\nEnterprise"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "ACTIVE\nSUSPENDED\nTRIAL",
+   "reqd": 1
+  },
+  {
+   "fieldname": "industry",
+   "fieldtype": "Select",
+   "label": "Industry",
+   "options": "MEDICAL\nPHARMA\nMANUFACTURING\nFOOD\nRETAIL\nCONSTRUCTION\nE-COMMERCE\nPROCESSING\nAGRICULTURE\nHEALTHCARE\nGENERAL"
+  },
+  {
+   "fieldname": "settings",
+   "fieldtype": "Code",
+   "label": "Settings (JSON)",
+   "options": "JSON"
+  },
+  {
+   "fieldname": "enabled_modules",
+   "fieldtype": "Code",
+   "label": "Enabled Modules (JSON)",
+   "options": "JSON"
+  },
+  {
+   "fieldname": "security_settings",
+   "fieldtype": "Code",
+   "label": "Security Settings (JSON)",
+   "options": "JSON"
+  }
+ ],
+ "links": [],
+ "modified": "2026-06-25 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Shipstack",
+ "name": "Shipstack Tenant",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "All"
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "istable": 0,
+ "autoname": "field:slug"
+}

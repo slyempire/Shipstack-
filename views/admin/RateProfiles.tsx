@@ -1,8 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
-import { useAuthStore, useAppStore } from '../../store';
-import { Badge } from '../../packages/ui/Badge';
+import { api } from '../../api';
+import { useAuthStore, useAppStore, useTenantStore } from '../../store';
+import { Badge, statusLabel } from '../../packages/ui/Badge';
 import { 
   DollarSign, 
   MapPin, 
@@ -17,20 +18,35 @@ import {
   CheckCircle2
 } from 'lucide-react';
 
+interface RateProfile {
+  id: string;
+  name: string;
+  type: string;
+  rate: string;
+  area: string;
+  status: string;
+}
+
 const RateProfiles: React.FC = () => {
   const { user } = useAuthStore();
   const { addNotification } = useAppStore();
+  const tenant = useTenantStore(state => state.currentTenant);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [profiles, setProfiles] = useState<RateProfile[]>([]);
 
   // Commercial logic restricted to FINANCE and ADMIN
   const hasAccess = user && ['ADMIN', 'FINANCE'].includes(user.role);
 
-  const [profiles, setProfiles] = useState([
-    { id: '1', name: 'Standard Urban', type: 'Per KM', rate: '2.50', area: 'City Limits', status: 'Active' },
-    { id: '2', name: 'Cold Chain Premium', type: 'Flat Fee', rate: '150.00', area: 'Regional', status: 'Active' },
-    { id: '3', name: 'Express Pharmacy', type: 'Per Weight', rate: '0.85', area: 'National', status: 'Draft' },
-  ]);
+  useEffect(() => {
+    if (!hasAccess) return;
+    api.getRateProfiles(tenant?.id || 'tenant-1')
+      .then(setProfiles)
+      .catch(err => {
+        console.error('Failed to load rate profiles', err);
+        addNotification('Failed to load rate profiles', 'error');
+      });
+  }, [hasAccess, tenant?.id]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -40,13 +56,27 @@ const RateProfiles: React.FC = () => {
     status: 'Draft'
   });
 
-  const handleCreateProfile = (e: React.FormEvent) => {
+  const handleCreateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newP = { id: Date.now().toString(), ...formData };
-    setProfiles([...profiles, newP]);
-    addNotification("New commercial rate manifested", "success");
-    setIsFormOpen(false);
-    setFormData({ name: '', type: 'Per KM', rate: '', area: 'Local', status: 'Draft' });
+    try {
+      const created = await api.createRateProfile(formData, tenant?.id || 'tenant-1');
+      setProfiles([...profiles, created]);
+      addNotification("New commercial rate manifested", "success");
+      setIsFormOpen(false);
+      setFormData({ name: '', type: 'Per KM', rate: '', area: 'Local', status: 'Draft' });
+    } catch (err: any) {
+      addNotification(err.message || 'Failed to create rate profile', 'error');
+    }
+  };
+
+  const handleDeleteProfile = async (id: string) => {
+    try {
+      await api.deleteRateProfile(id, tenant?.id || 'tenant-1');
+      setProfiles(profiles.filter(p => p.id !== id));
+      addNotification('Rate profile removed', 'success');
+    } catch (err: any) {
+      addNotification(err.message || 'Failed to delete rate profile', 'error');
+    }
   };
 
   const filtered = profiles.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
@@ -59,7 +89,7 @@ const RateProfiles: React.FC = () => {
               <Lock size={40} />
            </div>
            <div className="max-w-xs">
-              <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">Security Clearance Denied</h2>
+              <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">You don't have access to this page</h2>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2 leading-relaxed">
                 Commercial and financial rate profiles are restricted to authorized personnel.
               </p>
@@ -105,7 +135,7 @@ const RateProfiles: React.FC = () => {
               </div>
               <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-all translate-y-1 group-hover:translate-y-0">
                 <button className="p-2.5 text-slate-400 hover:text-brand bg-slate-50 rounded-xl border border-slate-100 shadow-sm"><Edit2 size={14} /></button>
-                <button className="p-2.5 text-slate-400 hover:text-red-500 bg-slate-50 rounded-xl border border-slate-100 shadow-sm"><Trash2 size={14} /></button>
+                <button onClick={() => handleDeleteProfile(profile.id)} className="p-2.5 text-slate-400 hover:text-red-500 bg-slate-50 rounded-xl border border-slate-100 shadow-sm"><Trash2 size={14} /></button>
               </div>
             </div>
             
@@ -114,7 +144,7 @@ const RateProfiles: React.FC = () => {
               <div className="flex items-center gap-3 mb-8">
                 <span className="text-[10px] font-black text-brand uppercase tracking-[0.2em]">{profile.type}</span>
                 <Badge variant={profile.status === 'Active' ? 'delivered' : 'neutral'} className="scale-90 origin-left">
-                  {profile.status}
+                  {statusLabel(profile.status)}
                 </Badge>
               </div>
               

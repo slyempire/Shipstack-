@@ -1,14 +1,15 @@
 name: CI
 
-# Runs on every PR targeting main and on every push to main.
-# Deploys are deliberately not wired up here yet; that's a separate PR once
-# we settle on a host.
+# Runs on every PR targeting main/develop and on every push to those
+# branches. Pushes to main additionally verify the production Docker images
+# build. Deploys are deliberately not wired up here yet; that's a separate
+# PR once we settle on a host.
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
 
 # Avoid stacking duplicate runs on the same branch.
 concurrency:
@@ -63,9 +64,8 @@ jobs:
         run: npx playwright install-deps chromium
 
       # The Playwright config starts `npm run dev` itself via webServer.
-      # /api/health is the readiness probe. The realtime smoke test skips
-      # automatically when VITE_SUPABASE_URL is not set; we don't pass it
-      # so CI runs a deterministic 3-passing / 1-skipped subset.
+      # /api/health is the readiness probe. All tests run against the
+      # mock-data fallback — no Frappe/ERP connectivity is needed.
       - name: Run Playwright smoke tests
         run: npm test
         env:
@@ -88,3 +88,39 @@ jobs:
       # that `tsc --noEmit` might miss.
       - name: Build (vite + esbuild)
         run: npm run build
+
+  # Verify the production container images build. Runs only on pushes to
+  # main (the deploy branch) — image builds are slow and PR feedback comes
+  # from the ci job above. Images are not pushed anywhere yet; this is a
+  # build-only gate so a broken Dockerfile never reaches deploy day.
+  docker:
+    name: Docker image build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: ci
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Node proxy image (Dockerfile.node)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.node
+          push: false
+          cache-from: type=gha,scope=node
+          cache-to: type=gha,mode=max,scope=node
+
+      - name: Build Frappe image (Dockerfile)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: false
+          cache-from: type=gha,scope=frappe
+          cache-to: type=gha,mode=max,scope=frappe

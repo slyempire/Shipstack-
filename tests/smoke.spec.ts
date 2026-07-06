@@ -223,15 +223,15 @@ test.describe('Offline sync (fix/sync)', () => {
   test('clock-in queues to IndexedDB when offline and clears on reconnect', async ({ page, context }) => {
     await loginAs(page, { role: 'driver' });
 
-    // Driver landing screen shows the CHECK_IN step ("Initialize Session.").
+    // Driver landing screen shows the CHECK_IN step ("Start your shift.").
     // The user has onDuty=false in the injected state, so CHECK_IN is the entry.
-    await expect(page.locator('text=Initialize').first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('text=Start').first()).toBeVisible({ timeout: 15_000 });
 
     // Go offline before clicking clock-in. runOrQueue should detect
     // navigator.onLine === false and enqueue instead of calling api.clockIn.
     await context.setOffline(true);
 
-    await page.locator('button:has-text("Validate Identity")').click();
+    await page.locator('button:has-text("Check in")').click();
 
     // The portal advances to BRIEFING ("Safety & Protocol") either way.
     await expect(page.locator('text=Safety').first()).toBeVisible({ timeout: 10_000 });
@@ -277,30 +277,8 @@ test.describe('Offline sync (fix/sync)', () => {
   });
 });
 
-test.describe('Supabase realtime (feat/realtime)', () => {
-  test('useRealtimeTable opens a realtime websocket when supabase is configured', async ({ page }) => {
-    test.skip(!process.env.VITE_SUPABASE_URL, 'Supabase not configured in this environment');
-
-    // supabase-js opens a WebSocket (wss://) to /realtime/v1/websocket when
-    // any channel subscribes. waitForRequest only tracks HTTP requests; for
-    // WS we need page.on('websocket').
-    const wsUrlPromise = new Promise<string>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error('No realtime websocket opened within 20s')), 20_000);
-      page.on('websocket', ws => {
-        const url = ws.url();
-        if (url.includes('/realtime/v1/')) {
-          clearTimeout(timer);
-          resolve(url);
-        }
-      });
-    });
-
-    await loginAs(page, { role: 'admin' });
-    // DNQueue subscribes to delivery_notes + trips, which triggers the
-    // supabase-js WebSocket handshake.
-    await page.goto('/#/admin/queue');
-
-    const wsUrl = await wsUrlPromise;
-    expect(wsUrl).toContain('/realtime/v1/');
-  });
-});
+// NOTE: the Supabase realtime websocket test was removed when the app
+// migrated realtime to Frappe socket.io (services/frappe-realtime.ts) and
+// supabase.ts was hard-disabled (isSupabaseConfigured = false). A Frappe
+// realtime E2E needs a running Frappe bench and belongs in a staging suite,
+// not this offline smoke run.

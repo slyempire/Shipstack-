@@ -34,7 +34,7 @@ const ContactPage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             className="self-start inline-flex items-center gap-3 px-5 py-2.5 bg-white/5 border border-white/10 rounded-full backdrop-blur-md"
           >
-            <MessageSquare size={14} className="text-[#FF5722]" />
+            <MessageSquare size={14} className="text-brand" />
             <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/80">Contact us</span>
           </motion.div>
 
@@ -45,7 +45,7 @@ const ContactPage: React.FC = () => {
             className="max-w-3xl lg:ml-12 xl:ml-20"
           >
             <h1 className="text-5xl md:text-7xl font-black text-white tracking-tight leading-[0.95] mb-8 uppercase">
-              Let&rsquo;s talk <span className="text-[#FF5722]">logistics.</span>
+              Let&rsquo;s talk <span className="text-brand">logistics.</span>
             </h1>
             <p className="text-lg md:text-xl text-white/70 font-medium leading-relaxed max-w-2xl">
               Whether you're an SME, a fleet operator, or an enterprise, we're here to help you scale.

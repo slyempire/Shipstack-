@@ -53,6 +53,7 @@ import {
   JourneyMilestone
 } from './types';
 import { telemetryService } from './services/socket';
+import { FrappeAuthService } from './services/frappe-auth';
 import { supabase, isSupabaseConfigured } from './supabase';
 import { sanitize, sanitizeObject, encryptData, decryptData } from './utils/security';
 import { FrappeService } from './services/frappe';
@@ -622,6 +623,39 @@ const toCamelCase = (obj: any) => {
   return camelObj;
 };
 
+/** Map a Frappe doc (snake_case, JSON fields as strings) to a frontend Order. */
+const mapFrappeOrder = (o: any): Order => {
+  const mapped = toCamelCase(o);
+  let items = mapped.items;
+  if (typeof items === 'string') {
+    try { items = JSON.parse(items); } catch { items = []; }
+  }
+  return {
+    ...mapped,
+    id: o.name || mapped.id,
+    items: items || [],
+    createdAt: mapped.createdAt || o.creation,
+    updatedAt: mapped.updatedAt || o.modified
+  } as Order;
+};
+
+/** Map a Frappe doc to a frontend Task. */
+const mapFrappeTask = (t: any): Task => {
+  const mapped = toCamelCase(t);
+  const parseJson = (v: any) => {
+    if (typeof v !== 'string') return v;
+    try { return JSON.parse(v); } catch { return undefined; }
+  };
+  return {
+    ...mapped,
+    id: t.name || mapped.id,
+    subtasks: parseJson(mapped.subtasks),
+    history: parseJson(mapped.history),
+    createdAt: mapped.createdAt || t.creation,
+    updatedAt: mapped.updatedAt || t.modified
+  } as Task;
+};
+
 /**
  * Ensures an operation is only performed once for a given request ID.
  * Returns true if the request is new, false if it has already been processed.
@@ -698,344 +732,92 @@ export const api = {
   },
 
   // --- Auth & Users ---
+  // --- Auth & Users ---
   async login(email: string, password?: string): Promise<{ user: User, token: string }> {
     const rawEmail = email.trim();
     const normalizedEmail = rawEmail.toLowerCase();
     const sanitizedEmail = sanitize(normalizedEmail);
     const sanitizedPassword = password;
 
-    if (canUseFrappe()) {
-      try {
-        const result = await FrappeService.callMethod<{ user: User, token: string }>('shipstack.api.login', {
-          email: sanitizedEmail,
-          password: sanitizedPassword
-        });
-        await logAudit('LOGIN_SUCCESS', { email: sanitizedEmail }, result.user.name);
-        return result;
-      } catch (error: any) {
-        console.warn('Frappe login failed, disabling Frappe integration', error);
-        isFrappeHealthy = false;
-        // If it's a network error, we don't throw, we let it fallback to demo/supabase
-        const isNetworkError = error.message?.toLowerCase().includes('failed to fetch');
-        if (!isNetworkError) throw error;
-      }
-    }
-
-    // Demo bypass logic - Priority check before hitting external services
-    const isKnownDemoEmail = normalizedEmail.includes('shipstack.com') || 
-                             normalizedEmail.includes('example.com') ||
-                             normalizedEmail === 'joemugoh215@gmail.com' ||
-                             normalizedEmail === 'admin@shipstack.com' ||
-                             normalizedEmail.includes('pilot') ||
-                             normalizedEmail.includes('hub') ||
-                             normalizedEmail.includes('warehouse') ||
-                             normalizedEmail.includes('finance');
-
-    const allMockUsers = [...initialUsers, ...getStore<User[]>('users', [])];
-    const mockUser = allMockUsers.find(u => u.email.toLowerCase() === normalizedEmail);
-
-    // If it's a known demo account or matches a mock user, bypass Supabase if configured for demo
-    if (mockUser && (password === 'password' || !password || isKnownDemoEmail)) {
-      await logAudit('DEMO_LOGIN_SUCCESS', { email: normalizedEmail }, mockUser.name);
-      return { user: mockUser, token: 'mock-jwt-token' };
-    }
-
-    if (isSupabaseConfigured) {
-      try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: sanitizedEmail,
-          password: password || 'password',
-        });
-
-        if (error) {
-          const errorMessage = error.message?.toLowerCase() || '';
-          
-          // Enhanced detection for identity mismatches
-          const isInvalidCredentials = errorMessage.includes('invalid') || 
-                                        errorMessage.includes('credentials') ||
-                                        errorMessage.includes('not found') ||
-                                        error.status === 400 ||
-                                        error.status === 401;
-                                      
-          if (isInvalidCredentials) {
-            // Final fallback for recognized operational profiles even if Supabase rejects
-            if (mockUser) {
-              console.warn('[AUTH] Supabase verification bypass: applying local identity protocol for', normalizedEmail);
-              return { user: mockUser, token: 'sk_local_' + btoa(normalizedEmail).substring(0, 16) };
-            }
-            throw new Error(`We couldn't find an account for '${sanitizedEmail}'. Check your email or sign up.`);
-          }
-          
-          console.error('[AUTH] Gateway Failure:', error);
-          if (mockUser) return { user: mockUser, token: 'sk_resilience_token' };
-          throw new Error('Identity service unreachable. Deploying emergency access protocols...');
-        }
-
-        if (!data.user) throw new Error('Security profile retrieval failed');
-
-        let user = await api.getUserById(data.user.id);
-        
-        if (!user) {
-          user = {
-            id: data.user.id,
-            email: sanitizedEmail,
-            name: sanitizedEmail.split('@')[0].toUpperCase(),
-            role: sanitizedEmail.includes('admin') ? 'ADMIN' : 'ADMIN',
-            company: 'Shipstack Corp',
-            verificationStatus: 'VERIFIED',
-            isOnboarded: true
-          };
-          const users = await api.getUsers();
-          setStore('users', [...users, user]);
-        }
-        
-        return { user, token: data.session?.access_token || '' };
-      } catch (error: any) {
-        // Fallback to error handling logic above if not already handled
-        if (error.message?.includes('Identity verification failed')) throw error;
-        
-        console.error('[AUTH] Critical Auth Pipeline Exception:', error);
-        if (mockUser) return { user: mockUser, token: 'mock-jwt-token' };
-        throw error;
-      }
-    }
-
-    // Secondary fallback to mock logic if Supabase not configured or failed to find user
     try {
-      const users = await api.getUsers();
-      const searchEmail = normalizedEmail;
-      let user = users.find(u => u.email.toLowerCase() === searchEmail);
-      
-      if (!user && (searchEmail.includes('shipstack.com') || searchEmail === 'admin@shipstack.com')) {
-        user = {
-          id: `u-demo-${Date.now()}`,
-          name: searchEmail.split('@')[0].toUpperCase(),
-          email: searchEmail,
-          role: searchEmail.includes('admin') ? 'ADMIN' : searchEmail.includes('driver') ? 'DRIVER' : 'ADMIN',
-          company: 'Shipstack Demo Corp',
-          verificationStatus: 'VERIFIED',
-          isOnboarded: true
-        };
-      }
-
-      if (!user) throw new Error('Identity profile not detected in the network. Ensure you have registered or use a demo operational ID.');
-      if (password && user.password && user.password !== password && password !== 'password') {
-        throw new Error('Security token verification failed. Access denied.');
-      }
-      
-      return { user, token: 'mock-jwt-token' };
+      const result = await FrappeAuthService.login(sanitizedEmail, sanitizedPassword || 'password');
+      await logAudit('LOGIN_SUCCESS', { email: sanitizedEmail }, result.user.name);
+      return result;
     } catch (error: any) {
-      console.error('Auth Error:', error);
-      throw new Error(error.message || 'Authentication failed');
+      console.error('[AUTH] Frappe Login Failed:', error);
+      // fallback to mock user for demo stability if configured/needed
+      const allMockUsers = [...initialUsers, ...getStore<User[]>('users', [])];
+      const mockUser = allMockUsers.find(u => u.email.toLowerCase() === normalizedEmail);
+      if (mockUser) {
+        return { user: mockUser, token: 'mock-jwt-token' };
+      }
+      throw error;
     }
   },
 
   async loginWithGoogle(): Promise<{ user: User, token: string }> {
-    if (!isSupabaseConfigured) {
-      throw new Error('Supabase is not configured. Use demo login.');
-    }
-
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin
-        }
-      });
-
-      if (error) throw error;
-      
-      // Note: Supabase OAuth redirect happens here, so we don't get the user immediately
-      // The session will be handled by the auth state listener in App.tsx
-      return { user: {} as User, token: '' };
-    } catch (error: any) {
-      console.error('Google Auth Error:', error);
-      throw new Error(error.message || 'Google Authentication failed');
-    }
+    throw new Error('Google Authentication is not supported on this tenant.');
   },
 
   async resetPassword(email: string): Promise<void> {
     const sanitizedEmail = sanitize(email);
-    
-    if (isSupabaseConfigured) {
-      try {
-        const { error } = await supabase.auth.resetPasswordForEmail(sanitizedEmail, {
-          redirectTo: `${window.location.origin}/#/reset-password`,
-        });
-        if (error) throw error;
-        await logAudit('PASSWORD_RESET_REQUESTED', { email: sanitizedEmail });
-      } catch (error: any) {
-        console.error('Supabase Reset Password Error:', error);
-        throw new Error(error.message || 'Failed to send reset password email');
-      }
-    } else {
-      // Mock reset password
-      await logAudit('DEMO_PASSWORD_RESET_MOCK', { email: sanitizedEmail });
-      console.log(`[MOCK] Password reset link sent to ${sanitizedEmail}`);
+    try {
+      await FrappeAuthService.resetPassword(sanitizedEmail);
+      await logAudit('PASSWORD_RESET_REQUESTED', { email: sanitizedEmail });
+    } catch (error: any) {
+      console.error('Frappe Reset Password Error:', error);
+      throw new Error(error.message || 'Failed to send reset password email');
     }
   },
 
   async updatePassword(password: string): Promise<void> {
-    if (isSupabaseConfigured) {
-      try {
-        const { error } = await supabase.auth.updateUser({ password });
-        if (error) throw error;
-        await logAudit('PASSWORD_UPDATED', {});
-      } catch (error: any) {
-        console.error('Supabase Update Password Error:', error);
-        throw new Error(error.message || 'Failed to update password');
-      }
-    } else {
-      // Mock update password
-      await logAudit('DEMO_PASSWORD_UPDATE_MOCK', {});
-      console.log('[MOCK] Password updated successfully');
+    try {
+      await FrappeService.callMethod('frappe.core.doctype.user.user.update_password', { password });
+      await logAudit('PASSWORD_UPDATED', {});
+    } catch (error: any) {
+      console.error('Frappe Update Password Error:', error);
+      throw new Error(error.message || 'Failed to update password');
     }
   },
 
   async logout(): Promise<void> {
-    if (isSupabaseConfigured) {
-      try {
-        await supabase.auth.signOut();
-      } catch (err) {
-        console.warn('Supabase signOut failed', err);
-      }
+    try {
+      await FrappeAuthService.logout();
+    } catch (err) {
+      console.warn('Frappe logout failed', err);
     }
   },
 
   async register(data: any): Promise<{ user: User, token: string }> {
     const sanitizedData = sanitizeObject(data);
-    
-    if (isSupabaseConfigured) {
-      try {
-        const { data: authData, error } = await supabase.auth.signUp({
-          email: sanitizedData.email,
-          password: sanitizedData.password,
-        });
-
-        if (error) throw error;
-        if (!authData.user) throw new Error('Registration failed');
-
-        const tenantId = `tenant-${Date.now()}`;
-        const user: User = { 
-          id: authData.user.id, 
-          ...sanitizedData, 
-          role: sanitizedData.role || 'tenant_admin',
-          tenantId,
-          isOnboarded: false, 
-          onboardingStep: 1 
-        };
-
-        // Create profile in Supabase
-        try {
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert([{
-              id: authData.user.id,
-              tenant_id: tenantId,
-              email: sanitizedData.email,
-              name: sanitizedData.name || sanitizedData.email.split('@')[0],
-              role: sanitizedData.role || 'tenant_admin',
-              company: sanitizedData.company,
-              is_onboarded: false,
-              onboarding_step: 1
-            }]);
-          
-          if (profileError) throw profileError;
-        } catch (dbErr) {
-          console.error('Supabase Profile Creation Error:', dbErr);
-          // We continue because the auth user is created, but this is a major issue
-        }
-
-        // Initialize a tenant for the new user
-        const newTenant: Tenant = {
-          id: tenantId,
-          name: sanitizedData.company || 'New Organization',
-          slug: (sanitizedData.company || 'org').toLowerCase().replace(/\s+/g, '-'),
-          subdomain: (sanitizedData.company || 'org').toLowerCase().replace(/\s+/g, '-'),
-          plan: 'GROWTH',
+    try {
+      const result = await FrappeAuthService.register(
+        sanitizedData.email,
+        sanitizedData.name,
+        sanitizedData.password,
+        sanitizedData.role || 'driver'
+      );
+      
+      const tenantId = `tenant-${Date.now()}`;
+      if (sanitizedData.role === 'tenant_admin') {
+        const tenantData = {
+          tenant_name: sanitizedData.company || 'New Tenant',
+          slug: tenantId,
+          plan: 'STARTER',
           status: 'ACTIVE',
           industry: 'GENERAL',
-          settings: {
-            currency: 'KES',
-            timezone: 'Africa/Nairobi',
-            primaryColor: '#0F2A44',
-            onboardingCompleted: false,
-          },
-          enabledModules: ['dispatch', 'fleet', 'driver-portal', 'facility-portal', 'finance'],
-          securitySettings: {
-            auditLogging: true,
-            twoFactorAuth: false,
-            requireNTSAVerification: true,
-          },
-          createdAt: new Date().toISOString()
+          settings: JSON.stringify({ currency: 'KES', timezone: 'Africa/Nairobi', primaryColor: '#0EA5E9' }),
+          enabled_modules: JSON.stringify(['dashboard', 'dispatch', 'fleet']),
+          security_settings: JSON.stringify({ auditLogging: true, twoFactorAuth: false, requireNTSAVerification: false })
         };
-        setStore('tenant', newTenant);
-
-        // Save to local store for demo purposes
-        const users = await api.getUsers();
-        setStore('users', [...users, user]);
-        
-        return { user, token: authData.session?.access_token || '' };
-      } catch (error: any) {
-        const errorMessage = error.message?.toLowerCase() || '';
-        const isRateLimit = errorMessage.includes('rate limit exceeded');
-        const isInvalidEmail = errorMessage.includes('invalid') && errorMessage.includes('email');
-        const isConnectivityError = errorMessage.includes('failed to fetch') || 
-                                   errorMessage.includes('network error') ||
-                                   error.status === 0;
-
-        if (isRateLimit || isConnectivityError) {
-          console.warn('Supabase issue during registration, falling back to mock registration for demo stability');
-        } else if (isInvalidEmail) {
-          throw new Error(`The identity profile for "${sanitizedData.email}" was rejected by the security gateway. Ensure the email is formatted correctly or try an alternative operational ID.`);
-        } else {
-          console.error('Supabase Registration Error:', error);
-          // Standard register fallback for demo users if it fails in Supabase for any reason (e.g. user already exists)
-          if (errorMessage.includes('already registered') || errorMessage.includes('exists')) {
-             console.warn('User already exists in Supabase, using mock registration path to avoid blockers');
-          } else {
-             throw new Error(error.message || 'Registration failed');
-          }
-        }
+        await FrappeService.createDoc('Tenant', tenantData);
       }
+      
+      return result;
+    } catch (error: any) {
+      console.error('Frappe Registration Error:', error);
+      throw error;
     }
-
-    const user: User = { 
-      id: `u-${Date.now()}`, 
-      ...sanitizedData, 
-      role: 'tenant_admin', // Automatically set as tenant_admin
-      isOnboarded: false, 
-      onboardingStep: 1 
-    };
-
-    // Initialize a tenant for the new user (demo mode)
-    const newTenant: Tenant = {
-      id: `tenant-${Date.now()}`,
-      name: sanitizedData.company || 'New Organization',
-      slug: (sanitizedData.company || 'org').toLowerCase().replace(/\s+/g, '-'),
-      subdomain: (sanitizedData.company || 'org').toLowerCase().replace(/\s+/g, '-'),
-      plan: 'GROWTH',
-      status: 'ACTIVE',
-      industry: 'GENERAL',
-      settings: {
-        currency: 'KES',
-        timezone: 'Africa/Nairobi',
-        primaryColor: '#0F2A44',
-        onboardingCompleted: false,
-      },
-      enabledModules: ['dispatch', 'fleet', 'driver-portal', 'facility-portal', 'finance'],
-      securitySettings: {
-        auditLogging: true,
-        twoFactorAuth: false,
-        requireNTSAVerification: true,
-      },
-      createdAt: new Date().toISOString()
-    };
-    setStore('tenant', newTenant);
-
-    const users = await api.getUsers();
-    setStore('users', [...users, user]);
-    return { user, token: 'mock-jwt-token' };
   },
 
   async completeOnboarding(
@@ -2635,6 +2417,22 @@ export const api = {
 
   async reconcileTrip(tripId: string, data: { codCollected: number, returnedItemsCount: number }): Promise<void> {
     clearCache('trips');
+
+    if (canUseFrappe()) {
+      try {
+        await FrappeService.callMethod('shipstack.api.reconcile_trip', {
+          trip_id: tripId,
+          cod_collected: data.codCollected,
+          returned_items_count: data.returnedItemsCount
+        });
+        await logAudit('RECONCILE_TRIP', { tripId, ...data });
+        return;
+      } catch (err) {
+        console.warn('Frappe reconcileTrip failed, falling back to local store', err);
+        isFrappeHealthy = false;
+      }
+    }
+
     const trips = await api.getTrips();
     const updated = trips.map(t => t.id === tripId ? { ...t, ...data, status: 'RECONCILED' as const } : t);
     setStore('trips', updated);
@@ -2805,7 +2603,19 @@ export const api = {
     const cached = getCached(cacheKey);
     if (cached) return cached;
 
-    const data = { dispatchTimeAvg: 18, completionRate: 94, exceptionRate: 3, telemetryLag: 4 };
+    // Computed from live delivery notes — previously returned hardcoded
+    // numbers that made empty accounts look busy.
+    const dns = await api.getDeliveryNotes();
+    const completed = dns.filter(d => d.status === DNStatus.DELIVERED || d.status === DNStatus.COMPLETED);
+
+    const data = {
+      // No per-status timestamps exist yet to measure dispatch latency;
+      // report 0 rather than a made-up average until they do.
+      dispatchTimeAvg: 0,
+      completionRate: dns.length > 0 ? Math.round((completed.length / dns.length) * 100) : 0,
+      exceptionRate: dns.length > 0 ? Math.round((dns.filter(d => d.exceptionType).length / dns.length) * 100) : 0,
+      telemetryLag: 0
+    };
     setCached(cacheKey, data);
     return data;
   },
@@ -3156,6 +2966,19 @@ export const api = {
   async batchDisburseCommission(tripIds: string[], requesterRole?: UserRole, tenantId: string = 'tenant-1', requestId?: string): Promise<void> {
     if (requesterRole) checkRole(requesterRole, ['ADMIN', 'FINANCE']);
     if (!checkIdempotency(requestId)) return;
+    clearCache('trips');
+
+    if (canUseFrappe()) {
+      try {
+        await FrappeService.callMethod('shipstack.api.batch_disburse_commission', { trip_ids: tripIds });
+        await logAudit('BATCH_PAYOUT', { count: tripIds.length, tripIds, tenantId });
+        return;
+      } catch (err) {
+        console.warn('Frappe batchDisburseCommission failed, falling back to local store', err);
+        isFrappeHealthy = false;
+      }
+    }
+
     const allTrips = getStore('trips', []);
     const updated = allTrips.map(t => tripIds.includes(t.id) ? { ...t, commissionStatus: 'DISBURSED' as const } : t);
     setStore('trips', updated);
@@ -3442,6 +3265,18 @@ export const api = {
     const cached = getCached(cacheKey);
     if (cached) return cached;
 
+    if (canUseFrappe()) {
+      try {
+        const data = await FrappeService.getList<any>('Order', { tenant_id: tenantId });
+        const orders = data.map(mapFrappeOrder);
+        setCached(cacheKey, orders);
+        return orders;
+      } catch (err) {
+        console.warn('Frappe getOrders failed, falling back to local store', err);
+        isFrappeHealthy = false;
+      }
+    }
+
     const all = getStore('orders', initialOrders);
     const filtered = all.filter(o => !o.tenantId || o.tenantId === tenantId);
     setCached(cacheKey, filtered);
@@ -3481,6 +3316,29 @@ export const api = {
       }
     }
 
+    if (canUseFrappe()) {
+      try {
+        const doc = await FrappeService.createDoc<any>('Order', {
+          external_id: sanitizedData.externalId || `SO-${Math.floor(Math.random() * 9000) + 1000}`,
+          customer_id: sanitizedData.customerId || 'cust-new',
+          customer_name: sanitizedData.customerName || 'New Customer',
+          status: sanitizedData.status || 'PENDING',
+          items: JSON.stringify(sanitizedData.items || []),
+          total_amount: sanitizedData.totalAmount || 0,
+          currency: sanitizedData.currency || 'KES',
+          payment_status: sanitizedData.paymentStatus || 'UNPAID',
+          fraud_score: sanitizedData.fraudScore || 0,
+          tenant_id: tenantId
+        });
+        clearCache('orders');
+        await logAudit('CREATE_ORDER', { id: doc.name, tenantId });
+        return mapFrappeOrder(doc);
+      } catch (err) {
+        console.warn('Frappe createOrder failed, falling back to local store', err);
+        isFrappeHealthy = false;
+      }
+    }
+
     const orders = await api.getOrders(tenantId);
     const newOrder: Order = {
       id: `ord-${Date.now()}`,
@@ -3509,10 +3367,105 @@ export const api = {
       return orders.find(o => o.id === id)!;
     }
     clearCache('orders');
+
+    if (canUseFrappe()) {
+      try {
+        const updates: any = {};
+        if (data.externalId !== undefined) updates.external_id = data.externalId;
+        if (data.customerId !== undefined) updates.customer_id = data.customerId;
+        if (data.customerName !== undefined) updates.customer_name = data.customerName;
+        if (data.status !== undefined) updates.status = data.status;
+        if (data.items !== undefined) updates.items = JSON.stringify(data.items);
+        if (data.totalAmount !== undefined) updates.total_amount = data.totalAmount;
+        if (data.currency !== undefined) updates.currency = data.currency;
+        if (data.paymentStatus !== undefined) updates.payment_status = data.paymentStatus;
+        if (data.fraudScore !== undefined) updates.fraud_score = data.fraudScore;
+
+        const doc = await FrappeService.updateDoc<any>('Order', id, updates);
+        await logAudit('UPDATE_ORDER', { id, changes: Object.keys(updates) });
+        return mapFrappeOrder(doc);
+      } catch (err) {
+        console.warn('Frappe updateOrder failed, falling back to local store', err);
+        isFrappeHealthy = false;
+      }
+    }
+
     const orders = await api.getOrders();
     const updated = orders.map(o => o.id === id ? { ...o, ...data, updatedAt: new Date().toISOString() } : o);
     setStore('orders', updated);
     return updated.find(o => o.id === id)!;
+  },
+
+  // --- Rate Profiles ---
+  async getRateProfiles(tenantId: string = 'tenant-1'): Promise<Array<{ id: string; name: string; type: string; rate: string; area: string; status: string }>> {
+    const cacheKey = `rate_profiles_${tenantId}`;
+    const cached = getCached(cacheKey);
+    if (cached) return cached;
+
+    if (canUseFrappe()) {
+      try {
+        const data = await FrappeService.getList<any>('Rate Profile', { tenant_id: tenantId });
+        const profiles = data.map((p: any) => ({
+          id: p.name,
+          name: p.profile_name,
+          type: p.rate_type,
+          rate: String(p.rate ?? ''),
+          area: p.area || '',
+          status: p.status || 'Draft'
+        }));
+        setCached(cacheKey, profiles);
+        return profiles;
+      } catch (err) {
+        console.warn('Frappe getRateProfiles failed, falling back to local store', err);
+        isFrappeHealthy = false;
+      }
+    }
+
+    return getStore('rate_profiles', []);
+  },
+
+  async createRateProfile(data: { name: string; type: string; rate: string; area: string; status: string }, tenantId: string = 'tenant-1'): Promise<{ id: string; name: string; type: string; rate: string; area: string; status: string }> {
+    const sanitizedData = sanitizeObject(data);
+    clearCache(`rate_profiles_${tenantId}`);
+
+    if (canUseFrappe()) {
+      try {
+        const doc = await FrappeService.createDoc<any>('Rate Profile', {
+          profile_name: sanitizedData.name,
+          rate_type: sanitizedData.type,
+          rate: parseFloat(sanitizedData.rate) || 0,
+          area: sanitizedData.area,
+          status: sanitizedData.status,
+          tenant_id: tenantId
+        });
+        await logAudit('CREATE_RATE_PROFILE', { id: doc.name, name: sanitizedData.name, tenantId });
+        return { id: doc.name, ...sanitizedData };
+      } catch (err) {
+        console.warn('Frappe createRateProfile failed, falling back to local store', err);
+        isFrappeHealthy = false;
+      }
+    }
+
+    const newProfile = { id: `rate-${Date.now()}`, ...sanitizedData };
+    setStore('rate_profiles', [...getStore('rate_profiles', [] as any[]), newProfile]);
+    return newProfile;
+  },
+
+  async deleteRateProfile(id: string, tenantId: string = 'tenant-1'): Promise<void> {
+    clearCache(`rate_profiles_${tenantId}`);
+
+    if (canUseFrappe()) {
+      try {
+        await FrappeService.deleteDoc('Rate Profile', id);
+        await logAudit('DELETE_RATE_PROFILE', { id, tenantId });
+        return;
+      } catch (err) {
+        console.warn('Frappe deleteRateProfile failed, falling back to local store', err);
+        isFrappeHealthy = false;
+      }
+    }
+
+    setStore('rate_profiles', getStore('rate_profiles', [] as any[]).filter((p: any) => p.id !== id));
   },
 
   // --- Fleet Maintenance ---
@@ -3866,26 +3819,34 @@ export const api = {
   },
 
   // --- M-Pesa Integration ---
-  async initiateMpesaPayment(phone: string, amount: number, reference: string): Promise<{ success: boolean; message: string; checkoutRequestId?: string; status?: string; receiptNumber?: string }> {
+  async initiateMpesaPayment(phone: string, amount: number, reference: string): Promise<{ success: boolean; message: string; checkoutRequestId?: string; status?: string; receiptNumber?: string; simulated?: boolean }> {
     console.log(`Initiating M-Pesa STK Push for ${phone}, amount: ${amount}, ref: ${reference}`);
     
     try {
-      // Mock implementation calling endpoint
+      const token = (await import('./store')).useAuthStore.getState().token;
       const response = await fetch('/api/mpesa/stk-push', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
+        },
         body: JSON.stringify({ phone, amount, reference })
       });
-      
-      // If endpoint doesn't exist (likely in this environment), we fallback to mock
-      if (!response.ok && response.status !== 404) throw new Error('M-Pesa initiation failed');
-      
-      const result = response.ok ? await response.json() : {
-        success: true,
-        status: 'SUCCESS',
-        message: 'STK Push initiated successfully. Please check your phone.',
-        checkoutRequestId: `ws_CO_${Date.now()}`,
-        receiptNumber: `MP-${Date.now()}`
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.message || data.error || `M-Pesa initiation failed (${response.status})`);
+      }
+
+      // Normalize Daraja's response shape. STK acceptance means the prompt was
+      // sent to the phone — actual payment confirmation arrives asynchronously
+      // via the "payment:update" realtime event.
+      const result = {
+        success: data.ResponseCode === '0' || data.ResponseCode === 0,
+        status: 'PENDING' as const,
+        message: data.CustomerMessage || data.ResponseDescription || 'STK Push sent. Ask the customer to enter their M-Pesa PIN.',
+        checkoutRequestId: data.CheckoutRequestID,
+        simulated: Boolean(data.simulated)
       };
 
       await logAudit('MPESA_INITIATED', { phone, amount, reference, result });
@@ -3897,35 +3858,48 @@ export const api = {
   },
 
   // --- eTIMS Integration ---
-  async generateEtimsInvoice(deliveryNoteId: string): Promise<{ success: boolean; invoiceNumber: string; cuInvoiceNumber: string; qrCodeUrl: string; kraResponse?: any }> {
+  async generateEtimsInvoice(deliveryNoteId: string): Promise<{ success: boolean; invoiceNumber: string; cuInvoiceNumber: string; qrCodeUrl: string; kraResponse?: any; simulated?: boolean }> {
     console.log(`Generating eTIMS invoice for DN: ${deliveryNoteId}`);
-    
-    try {
-      // Mock eTIMS generation logic
-      // In production, this would call the KRA VSCU/OSCU API or a middleware
-      const invoiceNumber = `KRA-ETIMS-${Math.random().toString(36).substring(7).toUpperCase()}`;
-      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://itax.kra.go.ke/KRA-Portal/invoiceVerify.htm?inv=${invoiceNumber}`;
 
-      // Provision for KRA API integration
-      const kraResponse = {
-        status: 'SUCCESS',
-        vscu_id: 'VSCU001',
-        invoice_num: invoiceNumber,
-        date_time: new Date().toISOString()
-      };
+    try {
+      const dn = await api.getDeliveryNote(deliveryNoteId);
+      if (!dn) throw new Error(`Delivery Note ${deliveryNoteId} not found`);
+
+      const token = (await import('./store')).useAuthStore.getState().token;
+      const response = await fetch('/api/etims/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
+        },
+        body: JSON.stringify({
+          invoiceData: {
+            externalId: dn.externalId || deliveryNoteId,
+            clientName: dn.clientName,
+            items: dn.items,
+            currency: 'KES'
+          }
+        })
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.message || data.error || `eTIMS generation failed (${response.status})`);
+      }
 
       const result = {
-        success: true,
-        invoiceNumber,
-        cuInvoiceNumber: invoiceNumber,
-        qrCodeUrl,
-        kraResponse
+        success: data.status === 'SUCCESS',
+        invoiceNumber: data.cuInvoiceNumber,
+        cuInvoiceNumber: data.cuInvoiceNumber,
+        qrCodeUrl: data.qrCodeUrl,
+        kraResponse: data.kraResponse,
+        simulated: Boolean(data.simulated)
       };
 
       // Update DN with invoice info
-      await api.updateDeliveryNote(deliveryNoteId, { 
+      await api.updateDeliveryNote(deliveryNoteId, {
         paymentStatus: 'PENDING',
-        invoiceUrl: qrCodeUrl 
+        invoiceUrl: result.qrCodeUrl
       });
 
       await logAudit('ETIMS_GENERATED', { deliveryNoteId, result });
@@ -4045,6 +4019,19 @@ export const api = {
     const cached = getCached(`tasks_${tenantId}`);
     if (cached) return cached;
 
+    if (canUseFrappe()) {
+      try {
+        const data = await FrappeService.getList<any>('Task', { tenant_id: tenantId });
+        const tasks = data.map(mapFrappeTask);
+        setCached(`tasks_${tenantId}`, tasks);
+        await cacheService.set(`hot_tasks_${tenantId}`, tasks, 300);
+        return tasks;
+      } catch (err) {
+        console.warn('Frappe getTasks failed, falling back to local store', err);
+        isFrappeHealthy = false;
+      }
+    }
+
     try {
       const allTasks: Task[] = JSON.parse(localStorage.getItem('shipstack_tasks') || '[]');
       const filtered = allTasks.filter(t => !t.tenantId || t.tenantId === tenantId);
@@ -4068,6 +4055,31 @@ export const api = {
         return toCamelCase(data);
       } catch (err) {
         console.warn('Supabase createTask failed', err);
+      }
+    }
+
+    if (canUseFrappe()) {
+      try {
+        const doc = await FrappeService.createDoc<any>('Task', {
+          title: task.title,
+          description: task.description,
+          status: task.status || 'TODO',
+          priority: task.priority || 'MEDIUM',
+          user_id: task.userId,
+          assigned_to: task.assignedTo,
+          due_date: task.dueDate,
+          category: task.category,
+          estimated_minutes: task.estimatedMinutes,
+          subtasks: task.subtasks ? JSON.stringify(task.subtasks) : undefined,
+          history: task.history ? JSON.stringify(task.history) : undefined,
+          tenant_id: task.tenantId
+        });
+        clearCache(`tasks_${task.tenantId}`);
+        await cacheService.del(`hot_tasks_${task.tenantId}`);
+        return mapFrappeTask(doc);
+      } catch (err) {
+        console.warn('Frappe createTask failed, falling back to local store', err);
+        isFrappeHealthy = false;
       }
     }
 
@@ -4108,18 +4120,44 @@ export const api = {
       }
     }
 
+    if (canUseFrappe()) {
+      try {
+        const frappeUpdates: any = {};
+        if (updates.title !== undefined) frappeUpdates.title = updates.title;
+        if (updates.description !== undefined) frappeUpdates.description = updates.description;
+        if (updates.status !== undefined) frappeUpdates.status = updates.status;
+        if (updates.priority !== undefined) frappeUpdates.priority = updates.priority;
+        if (updates.assignedTo !== undefined) frappeUpdates.assigned_to = updates.assignedTo;
+        if (updates.dueDate !== undefined) frappeUpdates.due_date = updates.dueDate;
+        if (updates.category !== undefined) frappeUpdates.category = updates.category;
+        if (updates.estimatedMinutes !== undefined) frappeUpdates.estimated_minutes = updates.estimatedMinutes;
+        if (updates.subtasks !== undefined) frappeUpdates.subtasks = JSON.stringify(updates.subtasks);
+        if (updates.history !== undefined) frappeUpdates.history = JSON.stringify(updates.history);
+
+        const doc = await FrappeService.updateDoc<any>('Task', id, frappeUpdates);
+        if (updates.tenantId) {
+          clearCache(`tasks_${updates.tenantId}`);
+          await cacheService.del(`hot_tasks_${updates.tenantId}`);
+        }
+        return mapFrappeTask(doc);
+      } catch (err) {
+        console.warn('Frappe updateTask failed, falling back to local store', err);
+        isFrappeHealthy = false;
+      }
+    }
+
     try {
       const tasks = JSON.parse(localStorage.getItem('shipstack_tasks') || '[]');
       const index = tasks.findIndex((t: Task) => t.id === id);
       if (index === -1) throw new Error('Task not found');
-      
+
       const tenantId = tasks[index].tenantId;
-      tasks[index] = { 
-        ...tasks[index], 
+      tasks[index] = {
+        ...tasks[index],
         ...updates,
         updatedAt: new Date().toISOString()
       };
-      
+
       localStorage.setItem('shipstack_tasks', JSON.stringify(tasks));
       clearCache(`tasks_${tenantId}`);
       return tasks[index];
@@ -4140,6 +4178,18 @@ export const api = {
         return;
       } catch (err) {
         console.warn('Supabase deleteTask failed, falling back to local store', err);
+      }
+    }
+
+    if (canUseFrappe()) {
+      try {
+        await FrappeService.deleteDoc('Task', id);
+        clearCache(`tasks_${tenantId}`);
+        await cacheService.del(`hot_tasks_${tenantId}`);
+        return;
+      } catch (err) {
+        console.warn('Frappe deleteTask failed, falling back to local store', err);
+        isFrappeHealthy = false;
       }
     }
 

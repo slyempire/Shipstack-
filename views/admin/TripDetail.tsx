@@ -121,22 +121,9 @@ const TripDetail: React.FC = () => {
       }
     });
 
-    // Simulated telemetry for demo if in transit
-    let interval: any;
-    if (dn?.status === DNStatus.IN_TRANSIT) {
-      interval = setInterval(() => {
-        setTelemetry(prev => ({
-          ...prev,
-          speed: 45 + Math.random() * 15,
-          heading: (prev.heading + (Math.random() - 0.5) * 5) % 360,
-          lastUpdate: new Date().toISOString()
-        }));
-      }, 3000);
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
+    // No simulated drift on top of the real feed — a random-walk interval
+    // here used to overwrite genuine GPS pings every 3s. If no pings
+    // arrive, telemetry stays at its last real value.
   }, [id, dn?.status]);
 
   const loadAll = async () => {

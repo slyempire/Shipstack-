@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
-import { supabase, isSupabaseConfigured } from '../../supabase';
+import { FrappeService } from '../../services/frappe';
 import { cacheService } from '../../services/redis';
 import { Badge } from '../../packages/ui/Badge';
 import { 
@@ -23,30 +23,26 @@ interface DiagnosticsViewProps {
 }
 
 const DiagnosticsView: React.FC<DiagnosticsViewProps> = ({ embedded }) => {
-  const [supabaseStatus, setSupabaseStatus] = useState<'testing' | 'ok' | 'error' | 'not_configured'>('testing');
+  const [frappeStatus, setFrappeStatus] = useState<'testing' | 'ok' | 'error' | 'not_configured'>('testing');
   const [redisStatus, setRedisStatus] = useState<'testing' | 'ok' | 'error' | 'not_configured'>('testing');
-  const [supabaseLatency, setSupabaseLatency] = useState<number | null>(null);
+  const [frappeLatency, setFrappeLatency] = useState<number | null>(null);
   const [redisLatency, setRedisLatency] = useState<number | null>(null);
   const [lastCheck, setLastCheck] = useState<Date>(new Date());
 
   const runDiagnostics = async () => {
     setLastCheck(new Date());
     
-    // Test Supabase
-    if (!isSupabaseConfigured) {
-      setSupabaseStatus('not_configured');
-    } else {
-      setSupabaseStatus('testing');
-      const start = performance.now();
-      try {
-        const { data, error } = await supabase.from('profiles').select('count');
-        if (error) throw error;
-        setSupabaseLatency(Math.round(performance.now() - start));
-        setSupabaseStatus('ok');
-      } catch (err) {
-        console.error('Supabase diagnostic failed:', err);
-        setSupabaseStatus('error');
-      }
+    // Test Frappe
+    setFrappeStatus('testing');
+    const startFrappe = performance.now();
+    try {
+      const isHealthy = await FrappeService.checkHealth();
+      if (!isHealthy) throw new Error("Frappe ping failed");
+      setFrappeLatency(Math.round(performance.now() - startFrappe));
+      setFrappeStatus('ok');
+    } catch (err) {
+      console.error('Frappe diagnostic failed:', err);
+      setFrappeStatus('error');
     }
 
     // Test Redis
@@ -92,7 +88,7 @@ const DiagnosticsView: React.FC<DiagnosticsViewProps> = ({ embedded }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-        {/* Supabase Monitor */}
+        {/* Frappe Monitor */}
         <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm relative overflow-hidden group">
            <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform">
               <Database size={120} />
@@ -102,21 +98,21 @@ const DiagnosticsView: React.FC<DiagnosticsViewProps> = ({ embedded }) => {
                  <div className="p-4 bg-brand/10 text-brand rounded-2xl shadow-inner">
                     <Database size={28} />
                  </div>
-                 <Badge variant={supabaseStatus === 'ok' ? 'transit' : (supabaseStatus === 'error' ? 'failed' : 'neutral')}>
-                    {supabaseStatus.toUpperCase().replace('_', ' ')}
+                 <Badge variant={frappeStatus === 'ok' ? 'transit' : (frappeStatus === 'error' ? 'failed' : 'neutral')}>
+                    {frappeStatus.toUpperCase().replace('_', ' ')}
                  </Badge>
               </div>
-              <h3 className="text-2xl font-black text-slate-900 mb-2">Supabase Engine</h3>
-              <p className="text-xs text-slate-500 font-medium mb-8 max-w-xs">Primary Postgres cluster handling relational persistence and Row-Level Security.</p>
+              <h3 className="text-2xl font-black text-slate-900 mb-2">Frappe ERP Engine</h3>
+              <p className="text-xs text-slate-500 font-medium mb-8 max-w-xs">Primary Frappe backend cluster handling relational persistence, custom DocTypes, and API methods.</p>
               
               <div className="grid grid-cols-2 gap-4">
                  <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Latency</p>
-                    <p className="text-xl font-black text-slate-900">{supabaseLatency ? `${supabaseLatency}ms` : '--'}</p>
+                    <p className="text-xl font-black text-slate-900">{frappeLatency ? `${frappeLatency}ms` : '--'}</p>
                  </div>
                  <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Protocol</p>
-                    <p className="text-xl font-black text-slate-900">RLS-Gate</p>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Isolation</p>
+                    <p className="text-xl font-black text-slate-900">Multi-Site</p>
                  </div>
               </div>
            </div>
@@ -136,8 +132,8 @@ const DiagnosticsView: React.FC<DiagnosticsViewProps> = ({ embedded }) => {
                     {redisStatus.toUpperCase().replace('_', ' ')}
                  </Badge>
               </div>
-              <h3 className="text-2xl font-black text-slate-900 mb-2">Upstash Redis</h3>
-              <p className="text-xs text-slate-500 font-medium mb-8 max-w-xs">Hot-cache layer for driver telemetry and session-specific temporary data.</p>
+              <h3 className="text-2xl font-black text-slate-900 mb-2">Redis Cache</h3>
+              <p className="text-xs text-slate-500 font-medium mb-8 max-w-xs">Shared high-performance caching layer for driver telemetry and session-specific temporary data.</p>
               
               <div className="grid grid-cols-2 gap-4">
                  <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
@@ -163,16 +159,16 @@ const DiagnosticsView: React.FC<DiagnosticsViewProps> = ({ embedded }) => {
             <div className="flex-1">
                <div className="flex items-center gap-3 mb-6">
                   <Cloud className="text-brand" size={32} />
-                  <h3 className="text-4xl font-black tracking-tighter">Cloud Run Auto-Scale</h3>
+                  <h3 className="text-4xl font-black tracking-tighter">Frappe Bench Scale</h3>
                </div>
                <p className="text-lg text-white/60 font-medium leading-relaxed max-w-2xl mb-8">
                   The infrastructure is configured to handle bursts of up to 10,000 concurrent users. 
-                  Shipstack automatically provisions new compute instances in response to telemetry pressure.
+                  Frappe Bench automatically manages workers, queues, and Redis connections in response to load.
                </p>
                <div className="flex flex-wrap gap-4">
                   <div className="flex items-center gap-2 px-5 py-3 bg-white/5 border border-white/10 rounded-xl">
                      <Cpu size={16} className="text-brand" />
-                     <span className="text-[10px] font-black uppercase tracking-widest">Instance Max: 1,000</span>
+                     <span className="text-[10px] font-black uppercase tracking-widest">Supervisor Managed</span>
                   </div>
                   <div className="flex items-center gap-2 px-5 py-3 bg-white/5 border border-white/10 rounded-xl">
                      <Activity size={16} className="text-emerald-400" />
@@ -180,7 +176,7 @@ const DiagnosticsView: React.FC<DiagnosticsViewProps> = ({ embedded }) => {
                   </div>
                   <div className="flex items-center gap-2 px-5 py-3 bg-white/5 border border-white/10 rounded-xl">
                      <ShieldCheck size={16} className="text-blue-400" />
-                     <span className="text-[10px] font-black uppercase tracking-widest">WAF Active</span>
+                     <span className="text-[10px] font-black uppercase tracking-widest">WAF / Fail2Ban Active</span>
                   </div>
                </div>
             </div>
@@ -188,7 +184,7 @@ const DiagnosticsView: React.FC<DiagnosticsViewProps> = ({ embedded }) => {
             <div className="w-full md:w-80 h-80 bg-white/5 border border-white/10 rounded-[3rem] p-8 flex flex-col justify-between">
                <div className="space-y-6">
                   <div className="flex items-center justify-between">
-                     <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">IOPS Pressure</span>
+                     <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">Worker Pressure</span>
                      <span className="text-[10px] font-black text-brand uppercase tracking-widest">Low</span>
                   </div>
                   <div className="h-12 w-full bg-white/5 rounded-full relative overflow-hidden">
@@ -217,10 +213,10 @@ const DiagnosticsView: React.FC<DiagnosticsViewProps> = ({ embedded }) => {
                <ShieldCheck size={20} />
             </div>
             <div>
-               <h4 className="text-lg font-black text-slate-900 uppercase tracking-tighter">Supabase RLS Isolation Active</h4>
+               <h4 className="text-lg font-black text-slate-900 uppercase tracking-tighter">Frappe Multi-Site Tenant Isolation Active</h4>
                <p className="text-sm text-slate-500 font-medium leading-relaxed mt-2">
-                  Row-Level Security is currently active. Every query is filtered at the database level using your Tenant ID. 
-                  Even with the anonymous key compromised, data cannot be scraped across the cluster.
+                  Multi-site isolation is active. Every tenant uses a completely separate MariaDB database. 
+                  Data is isolated at the database level, preventing any cross-tenant data access.
                </p>
             </div>
          </div>

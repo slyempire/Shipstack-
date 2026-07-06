@@ -190,15 +190,26 @@ const OperationsHub: React.FC = () => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   };
 
+  // Real created-today count per status — never show hardcoded "+N today"
+  // deltas that contradict live totals.
+  const createdTodayCount = (status: DNStatus) => {
+    const today = new Date().toDateString();
+    return dns.filter(d => d.status === status && d.createdAt && new Date(d.createdAt).toDateString() === today).length;
+  };
+  const todayTrend = (status: DNStatus) => {
+    const n = createdTodayCount(status);
+    return n > 0 ? `+${n} today` : 'No new today';
+  };
+
   const tabConfigs = [
     { id: 'ALL' as const, label: 'All Shipments', icon: Activity, color: 'text-slate-500', bg: 'from-slate-50 to-white', border: 'border-l-slate-500', trend: 'Global' },
     { id: DNStatus.PENDING, label: 'Drafts', icon: Edit, color: 'text-gray-500', bg: 'from-gray-50 to-white', border: 'border-l-gray-500', trend: 'Awaiting' },
-    { id: DNStatus.RECEIVED, label: 'Ingested', icon: Inbox, color: 'text-emerald-500', bg: 'from-emerald-50 to-white', border: 'border-l-emerald-500', trend: '+12 today' },
-    { id: DNStatus.VALIDATED, label: 'Verified', icon: CheckSquare, color: 'text-blue-500', bg: 'from-blue-50 to-white', border: 'border-l-blue-500', trend: '+5 today' },
-    { id: DNStatus.READY_FOR_DISPATCH, label: 'Ready', icon: Zap, color: 'text-amber-500', bg: 'from-amber-50 to-white', border: 'border-l-amber-500', trend: '+8 today' },
-    { id: DNStatus.DISPATCHED, label: 'Manifested', icon: UserPlus, color: 'text-violet-500', bg: 'from-violet-50 to-white', border: 'border-l-violet-500', trend: '+4 today' },
+    { id: DNStatus.RECEIVED, label: 'Ingested', icon: Inbox, color: 'text-emerald-500', bg: 'from-emerald-50 to-white', border: 'border-l-emerald-500', trend: todayTrend(DNStatus.RECEIVED) },
+    { id: DNStatus.VALIDATED, label: 'Verified', icon: CheckSquare, color: 'text-blue-500', bg: 'from-blue-50 to-white', border: 'border-l-blue-500', trend: todayTrend(DNStatus.VALIDATED) },
+    { id: DNStatus.READY_FOR_DISPATCH, label: 'Ready', icon: Zap, color: 'text-amber-500', bg: 'from-amber-50 to-white', border: 'border-l-amber-500', trend: todayTrend(DNStatus.READY_FOR_DISPATCH) },
+    { id: DNStatus.DISPATCHED, label: 'Manifested', icon: UserPlus, color: 'text-violet-500', bg: 'from-violet-50 to-white', border: 'border-l-violet-500', trend: todayTrend(DNStatus.DISPATCHED) },
     { id: DNStatus.IN_TRANSIT, label: 'In-Transit', icon: Truck, color: 'text-purple-500', bg: 'from-purple-50 to-white', border: 'border-l-purple-500', trend: 'Live' },
-    { id: DNStatus.DELIVERED, label: 'Settled', icon: CheckCircle, color: 'text-green-500', bg: 'from-green-50 to-white', border: 'border-l-green-500', trend: '+20 today' },
+    { id: DNStatus.DELIVERED, label: 'Settled', icon: CheckCircle, color: 'text-green-500', bg: 'from-green-50 to-white', border: 'border-l-green-500', trend: todayTrend(DNStatus.DELIVERED) },
   ];
 
   const SortIndicator = ({ columnKey }: { columnKey: keyof DeliveryNote }) => {
@@ -339,7 +350,7 @@ const OperationsHub: React.FC = () => {
                       setEditingDn({ items: [{ id: 'item-1', name: '', qty: 1, unit: 'unit' }] });
                       setShowEditModal(true);
                     }}
-                    className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-95"
+                    className="bg-brand hover:bg-brand-orange-dark text-white px-5 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-95"
                   >
                     <Plus size={18} /> NEW ENTRY
                   </button>

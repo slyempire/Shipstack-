@@ -270,8 +270,8 @@ const DriverPortal: React.FC = () => {
           <Layers size={48} className="text-white" strokeWidth={3} />
         </div>
         <div className="space-y-4">
-          <h1 className="text-4xl md:text-8xl font-black text-slate-900 uppercase tracking-tighter leading-tight md:leading-none">Initialize<br/>Session.</h1>
-          <p className="text-slate-400 font-bold uppercase tracking-tight text-sm">Awaiting authentication from terminal.</p>
+          <h1 className="text-4xl md:text-8xl font-black text-slate-900 uppercase tracking-tighter leading-tight md:leading-none">Start<br/>your shift.</h1>
+          <p className="text-slate-400 font-bold uppercase tracking-tight text-sm">Check in to see today's trips.</p>
         </div>
       </div>
       <button 
@@ -279,7 +279,7 @@ const DriverPortal: React.FC = () => {
         disabled={isSubmitting}
         className="w-full max-w-sm h-20 bg-slate-900 text-white text-base font-black uppercase tracking-widest active:scale-95 transition-all hover:bg-black rounded-none shadow-2xl shadow-slate-900/20"
       >
-        {isSubmitting ? <RefreshCw className="animate-spin mx-auto" size={24} /> : "Validate Identity"}
+        {isSubmitting ? <RefreshCw className="animate-spin mx-auto" size={24} /> : "Check in"}
       </button>
     </div>
   );

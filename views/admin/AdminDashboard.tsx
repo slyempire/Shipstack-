@@ -97,17 +97,7 @@ const ChecklistItem = ({ icon: Icon, title, desc, done, onClick, index }: {
   </motion.button>
 );
 
-const StatCard = ({ title, value, icon: Icon, color, subValue, trend, index }: any) => {
-  const sparkData = [
-    { value: 10 + Math.random() * 20 },
-    { value: 15 + Math.random() * 20 },
-    { value: 12 + Math.random() * 20 },
-    { value: 18 + Math.random() * 20 },
-    { value: 25 + Math.random() * 20 },
-    { value: 20 + Math.random() * 20 },
-    { value: 30 + Math.random() * 20 },
-  ];
-
+const StatCard = ({ title, value, icon: Icon, color, subValue, trend, index, sparkData }: any) => {
   return (
     <motion.div 
       initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -130,10 +120,14 @@ const StatCard = ({ title, value, icon: Icon, color, subValue, trend, index }: a
       </div>
       <div className="pt-6 border-t border-slate-50 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <MiniSparkline data={sparkData} color={trend > 0 ? '#10B981' : '#EF4444'} />
+          {/* Sparkline/trend render only when real series data is supplied —
+              no synthetic history. */}
+          {sparkData && sparkData.length > 0 && (
+            <MiniSparkline data={sparkData} color={trend != null && trend < 0 ? '#EF4444' : '#10B981'} />
+          )}
           <span className="text-[10px] font-medium text-gray-400">{subValue}</span>
         </div>
-        {trend && (
+        {trend != null && trend !== 0 && (
           <div className={`flex items-center gap-1 text-[10px] font-bold ${trend > 0 ? 'text-emerald' : 'text-red'}`}>
             {trend > 0 ? '↑' : '↓'} {Math.abs(trend)}%
           </div>
@@ -165,87 +159,121 @@ const AdminDashboard: React.FC = () => {
   const activeVertical = tenant?.industry || 'E-COMMERCE';
   const activeIndustry = activeVertical === 'GENERAL' ? 'E-COMMERCE' : activeVertical;
 
-  // KPI Calculations
+  // KPI calculations — everything below is derived from live data. When
+  // there is nothing to compute yet we show '—' or 0, never an invented
+  // number: a dashboard that lies while empty destroys trust in it when full.
   const activeShipments = dns.filter(d => d.status === DNStatus.IN_TRANSIT).length;
-  
+
   const deliveredDns = dns.filter(d => d.status === DNStatus.DELIVERED || d.status === DNStatus.COMPLETED);
   const onTimeDns = deliveredDns.filter(d => !d.isDeviated);
-  const onTimeRate = deliveredDns.length > 0 ? Math.round((onTimeDns.length / deliveredDns.length) * 100) : 98;
+  const onTimeRate = deliveredDns.length > 0 ? Math.round((onTimeDns.length / deliveredDns.length) * 100) : null;
+  const onTimeDisplay = onTimeRate === null ? '—' : `${onTimeRate}%`;
 
   const activeVehicles = vehicles.filter(v => v.status === 'ACTIVE').length;
-  const fleetUtilization = vehicles.length > 0 ? Math.round((activeVehicles / vehicles.length) * 100) : 85;
+  const fleetUtilization = vehicles.length > 0 ? Math.round((activeVehicles / vehicles.length) * 100) : null;
 
   const monthlyRevenue = dns.reduce((acc, curr) => acc + (curr.rate || 0), 0);
 
+  const exceptionsCount = dns.filter(d => d.exceptionType).length;
+  const exceptionRate = dns.length > 0 ? Math.round((exceptionsCount / dns.length) * 100) : null;
+  const pendingSettlement = dns.filter(d => d.status === DNStatus.DELIVERED).length;
+
+  // The three headline stats are the same real metrics for every industry;
+  // only the framing copy changes per vertical.
+  const computedStats = {
+    stat1: {
+      label: 'Exceptions',
+      value: exceptionRate === null ? '—' : `${exceptionRate}%`,
+      sub: `${exceptionsCount} of ${dns.length} shipments`
+    },
+    stat2: {
+      label: 'Delivery SLA',
+      value: onTimeDisplay,
+      sub: `${deliveredDns.length} delivered`
+    },
+    stat3: {
+      label: 'Awaiting Settlement',
+      value: `${pendingSettlement}`,
+      sub: 'delivered, not yet settled'
+    }
+  };
+
   const verticalLabels: Record<string, any> = {
     'E-COMMERCE': {
-      stat1: { label: "Returns Rate", value: "4.2%", sub: "Processing 12 units", trend: -2 },
-      stat2: { label: "Delivery SLA", value: `${onTimeRate}%`, sub: "Last 30 days", trend: 1 },
-      stat3: { label: "COD Recon", value: "$4.1k", sub: "18 pending payments", trend: 15 },
-      insightTitle: "Marketplace intelligence",
-      insightDesc: "Yielding 18% higher conversion with AI-estimated delivery"
+      ...computedStats,
+      insightTitle: 'Marketplace view',
+      insightDesc: 'Order, payment, and delivery status in one timeline per customer'
     },
     'AGRICULTURE': {
-      stat1: { label: "Cold Chain Deviations", value: "2", sub: "Active monitoring on", trend: -50 },
-      stat2: { label: "Harvest On-Time", value: "98.2%", sub: "Peak season ready", trend: 4 },
-      stat3: { label: "Waste Reduction", value: "12%", sub: "Freshness integrity OK", trend: 8 },
-      insightTitle: "Freshness audit",
-      insightDesc: "ML predicts 2.4 days extended shelf life for current batches"
+      ...computedStats,
+      insightTitle: 'Freshness tracking',
+      insightDesc: 'Time-in-transit monitoring for perishable cargo'
     },
     'MEDICAL': {
-      stat1: { label: "Chain of Custody", value: "100%", sub: "Zero protocol gaps", trend: 0 },
-      stat2: { label: "Temp Stability", value: "99.8%", sub: "Medical grade integrity", trend: 2 },
-      stat3: { label: "KEMSA Sync", value: "Live", sub: "1,240 items tracked", trend: 100 },
-      insightTitle: "Regulatory compliance",
-      insightDesc: "Compliance reports auto-generated for Ministry of Health"
+      ...computedStats,
+      insightTitle: 'Chain of custody',
+      insightDesc: 'Signed, timestamped handover records for every consignment'
     },
     'RETAIL': {
-      stat1: { label: "Store Replenishment", value: "88%", sub: "54 routes active", trend: 12 },
-      stat2: { label: "Inventory Stock-out", value: "1.4%", sub: "AI prediction active", trend: -20 },
-      stat3: { label: "Boda Efficiency", value: "92%", sub: "Hyper-local speed", trend: 5 },
-      insightTitle: "Omnichannel oversight",
-      insightDesc: "Unified visibility across 14 distribution facilities"
+      ...computedStats,
+      insightTitle: 'Replenishment view',
+      insightDesc: 'Store deliveries grouped by route and facility'
     }
   };
 
   const labels = verticalLabels[activeIndustry] || verticalLabels['E-COMMERCE'];
-  const revenueDisplay = monthlyRevenue > 0 ? `$${(monthlyRevenue / 1000).toFixed(1)}k` : "$14.2k";
+  const revenueDisplay = `$${(monthlyRevenue / 1000).toFixed(1)}k`;
+  // Straight-line projection from month-to-date run rate.
+  const now = new Date();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const projectedRevenue = monthlyRevenue > 0
+    ? `Projected $${((monthlyRevenue / now.getDate()) * daysInMonth / 1000).toFixed(1)}k`
+    : 'No billed shipments yet';
 
-  // Data for enhanced charts
+  // Data for charts — real distributions, zeros included.
   const statusData = [
-    { name: 'In Transit', value: dns.filter(d => d.status === DNStatus.IN_TRANSIT).length || 12 },
-    { name: 'Delivered', value: dns.filter(d => d.status === DNStatus.DELIVERED || d.status === DNStatus.COMPLETED).length || 45 },
-    { name: 'Pending', value: dns.filter(d => d.status === DNStatus.PENDING).length || 8 },
-    { name: 'Exceptions', value: dns.filter(d => d.exceptionType).length || 3 },
+    { name: 'In Transit', value: dns.filter(d => d.status === DNStatus.IN_TRANSIT).length },
+    { name: 'Delivered', value: deliveredDns.length },
+    { name: 'Pending', value: dns.filter(d => d.status === DNStatus.PENDING).length },
+    { name: 'Exceptions', value: exceptionsCount },
   ];
 
+  // Radar axes we can actually measure today. Axes without a data source
+  // (cost, safety) are deliberately absent rather than invented.
   const efficiencyData = [
-    { subject: 'Speed', A: 85, fullMark: 100 },
-    { subject: 'Reliability', A: 92, fullMark: 100 },
-    { subject: 'Cost', A: 78, fullMark: 100 },
-    { subject: 'Safety', A: 95, fullMark: 100 },
-    { subject: 'Sustainability', A: 65, fullMark: 100 },
+    { subject: 'On-time', A: onTimeRate ?? 0, fullMark: 100 },
+    { subject: 'Exception-free', A: exceptionRate === null ? 0 : 100 - exceptionRate, fullMark: 100 },
+    { subject: 'Fleet active', A: fleetUtilization ?? 0, fullMark: 100 },
+    { subject: 'Settled', A: dns.length > 0 ? Math.round((dns.filter(d => d.status === DNStatus.COMPLETED).length / dns.length) * 100) : 0, fullMark: 100 },
   ];
 
-  const comparisonData = [
-    { name: 'Nairobi', value: 820 },
-    { name: 'Mombasa', value: 450 },
-    { name: 'Kisumu', value: 320 },
-    { name: 'Nakuru', value: 240 },
-    { name: 'Eldoret', value: 180 },
-  ];
+  // Top origins by shipment count (was a hardcoded city list).
+  const comparisonData = Object.entries(
+    dns.reduce<Record<string, number>>((acc, d) => {
+      const key = d.originName || 'Unassigned';
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {})
+  )
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 5);
 
-  // Weekly Volume Data (Mocking distribution for the chart)
-  const weeklyData = [
-    { day: 'Mon', count: 42 },
-    { day: 'Tue', count: 58 },
-    { day: 'Wed', count: 45 },
-    { day: 'Thu', count: 62 },
-    { day: 'Fri', count: 75 },
-    { day: 'Sat', count: 30 },
-    { day: 'Sun', count: 15 },
-  ];
-  const maxVolume = Math.max(...weeklyData.map(d => d.count));
+  // Shipments created per weekday over the last 7 days (was mocked).
+  const weeklyData = (() => {
+    const days: { day: string; count: number }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = d.toDateString();
+      days.push({
+        day: d.toLocaleDateString('en-US', { weekday: 'short' }),
+        count: dns.filter(x => x.createdAt && new Date(x.createdAt).toDateString() === key).length
+      });
+    }
+    return days;
+  })();
+  const maxVolume = Math.max(1, ...weeklyData.map(d => d.count));
 
   useEffect(() => {
     loadData();
@@ -313,73 +341,47 @@ const AdminDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Stunning Hero Section for Bleed Design */}
-        <section className="relative w-full h-[500px] bg-slate-950 flex flex-col items-center justify-center px-10 overflow-hidden">
-           {/* Background Mesh/Images */}
-           <div className="absolute inset-0 z-0 opacity-20 transition-opacity duration-1000">
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-slate-900 to-slate-950 z-10" />
-              <img 
-                src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&q=80&w=2000" 
-                className="w-full h-full object-cover grayscale transition-transform duration-[20s] scale-110 hover:scale-100" 
-                alt="Logistics Background"
-              />
+        {/* Compact operational header: greeting + today's numbers. The
+            dashboard's job is orientation, not a slogan — keep it short so
+            the KPIs and queues start above the fold. */}
+        <section className="relative w-full bg-slate-950 px-10 py-10 overflow-hidden">
+           <div className="absolute bottom-[-80px] right-[-60px] opacity-10 pointer-events-none">
+              <Zap size={260} className="text-brand" />
            </div>
-           
-           <div className="relative z-10 max-w-4xl w-full text-center">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.8 }}
-                className="inline-flex items-center gap-3 px-4 py-2 bg-brand/20 border border-brand/30 rounded-full mb-8 backdrop-blur-md"
-              >
-                 <ShieldCheck size={14} className="text-brand-accent animate-pulse" />
-                 <span className="text-[10px] font-black uppercase tracking-widest text-white">Advanced Telemetry Node Active</span>
-              </motion.div>
-              
-              <motion.h1 
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2, duration: 0.8 }}
-                className="text-6xl md:text-8xl font-black text-white italic tracking-tighter leading-[0.8] mb-8 uppercase"
-              >
-                Control.<br />
-                <span className="text-brand-accent">Precision.</span>
-              </motion.h1>
-              
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.6 }}
-                className="flex flex-wrap justify-center gap-8 md:gap-12"
-              >
-                 <div className="text-center group">
+           <div className="relative z-10 flex flex-col md:flex-row md:items-end md:justify-between gap-8 max-w-7xl">
+              <div>
+                 <p className="text-[10px] font-black uppercase tracking-widest text-brand-accent mb-2 flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live overview
+                 </p>
+                 <h1 className="text-3xl md:text-4xl font-black text-white tracking-tighter uppercase">
+                    {(() => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; })()}{user?.name ? `, ${user.name.split(' ')[0]}` : ''}.
+                 </h1>
+                 <p className="text-sm text-white/50 font-medium mt-2">Here's where your operation stands right now.</p>
+              </div>
+              <div className="flex flex-wrap gap-8 md:gap-12">
+                 <div className="group">
                     <p className="text-xs font-black text-white/40 uppercase tracking-widest mb-1 group-hover:text-brand-accent transition-colors">Shipments</p>
                     <p className="text-3xl font-black text-white tracking-tighter">{dns.length}</p>
                  </div>
-                 <div className="w-px h-10 bg-white/10 hidden md:block" />
-                 <div className="text-center group">
-                    <p className="text-xs font-black text-white/40 uppercase tracking-widest mb-1 group-hover:text-brand-accent transition-colors">Fleet Nodes</p>
+                 <div className="w-px h-12 bg-white/10 hidden md:block" />
+                 <div className="group">
+                    <p className="text-xs font-black text-white/40 uppercase tracking-widest mb-1 group-hover:text-brand-accent transition-colors">Vehicles</p>
                     <p className="text-3xl font-black text-white tracking-tighter">{vehicles.length}</p>
                  </div>
-                 <div className="w-px h-10 bg-white/10 hidden md:block" />
-                 <div className="text-center group">
-                    <p className="text-xs font-black text-white/40 uppercase tracking-widest mb-1 group-hover:text-brand-accent transition-colors">Hub Efficiency</p>
-                    <p className="text-3xl font-black text-white tracking-tighter">{onTimeRate}%</p>
+                 <div className="w-px h-12 bg-white/10 hidden md:block" />
+                 <div className="group">
+                    <p className="text-xs font-black text-white/40 uppercase tracking-widest mb-1 group-hover:text-brand-accent transition-colors">On-time rate</p>
+                    <p className="text-3xl font-black text-white tracking-tighter">{onTimeDisplay}</p>
                  </div>
-              </motion.div>
-           </div>
-
-           {/* Floating UI elements for "Pulse" */}
-           <div className="absolute bottom-[-50px] left-[-50px] opacity-10 pointer-events-none">
-              <Zap size={300} className="text-brand animate-pulse" />
+              </div>
            </div>
         </section>
 
         <div className="px-10 py-12 space-y-12">
           <div className="flex justify-between items-end">
              <div>
-                <h2 className="text-4xl font-black tracking-tighter text-gray-900 mb-1 uppercase">Command Hub</h2>
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Tactical Oversight Layer v2.4</p>
+                <h2 className="text-4xl font-black tracking-tighter text-gray-900 mb-1 uppercase">Overview</h2>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Today's operations at a glance</p>
              </div>
              <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-2xl border border-slate-200 mr-4">
@@ -388,20 +390,20 @@ const AdminDashboard: React.FC = () => {
                       onClick={() => setActiveTab('HEALTH')}
                       className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'HEALTH' ? 'bg-white text-brand shadow-xl' : 'text-slate-400 hover:text-brand'}`}
                     >
-                      System Lifecycle
+                      Operations
                     </button>
                   )}
                   <button 
                     onClick={() => setActiveTab('INTELLIGENCE')}
                     className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'INTELLIGENCE' ? 'bg-white text-brand shadow-xl' : 'text-slate-400 hover:text-brand'}`}
                   >
-                    Neural Mesh
+                    Insights
                   </button>
                   <button 
                     onClick={() => setActiveTab('VERTICAL')}
                     className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'VERTICAL' ? 'bg-white text-brand shadow-xl' : 'text-slate-400 hover:text-brand'}`}
                   >
-                    Industry Hubs
+                    Industry
                   </button>
                 </div>
              </div>
@@ -416,7 +418,46 @@ const AdminDashboard: React.FC = () => {
                 exit={{ opacity: 0, y: -20 }}
                 className="space-y-12"
               >
-                {/* Tech Seeding Utility - EXECUTABLE FOR REAL */}
+                <div id="dashboard-kpis" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard
+                  index={0}
+                  title={labels.stat1.label}
+                  value={labels.stat1.value}
+                  icon={Navigation}
+                  color="bg-brand/10 text-brand"
+                  subValue={labels.stat1.sub}
+                />
+                <StatCard
+                  index={1}
+                  title={labels.stat2.label}
+                  value={labels.stat2.value}
+                  icon={CheckCircle}
+                  color="bg-emerald/10 text-emerald"
+                  subValue={labels.stat2.sub}
+                  sparkData={weeklyData.map(d => ({ value: d.count }))}
+                />
+                <StatCard
+                  index={2}
+                  title={labels.stat3.label}
+                  value={labels.stat3.value}
+                  icon={DatabaseZap}
+                  color="bg-amber/10 text-amber"
+                  subValue={labels.stat3.sub}
+                />
+                {isModuleEnabled('finance') && (
+                  <StatCard
+                    index={3}
+                    title="Revenue (MTD)"
+                    value={revenueDisplay}
+                    icon={DollarSign}
+                    color="bg-emerald/10 text-emerald"
+                    subValue={projectedRevenue}
+                  />
+                )}
+              </div>
+
+                {/* Demo/test tooling — super-admin only, kept below the
+                    operational KPIs so real operations lead the dashboard. */}
                 {currentUserRole === 'super_admin' && (
                   <div className="bg-slate-900 rounded-[3rem] p-10 border border-white/5 shadow-2xl relative overflow-hidden group">
                      <div className="absolute inset-0 bg-gradient-to-r from-brand/10 to-transparent pointer-events-none" />
@@ -426,22 +467,22 @@ const AdminDashboard: React.FC = () => {
                               <div className="h-12 w-12 bg-white/10 text-brand-accent rounded-2xl flex items-center justify-center">
                                  <DatabaseZap size={24} />
                               </div>
-                              <h3 className="text-2xl font-black text-white uppercase tracking-tight">Technical Audit & Seeding</h3>
+                              <h3 className="text-2xl font-black text-white uppercase tracking-tight">Demo & test data</h3>
                            </div>
                            <p className="text-sm text-white/50 font-medium leading-relaxed uppercase tracking-tight">
-                              Execute deep-store synchronization and generate high-fidelity test telemetry to audit Driver Portal progression and Routing throughput.
+                              Generate sample trips and telemetry to explore the driver portal and routing, or run a data health check.
                            </p>
                         </div>
                         <div className="flex flex-col sm:flex-row gap-4 shrink-0">
-                           <button 
+                           <button
                              onClick={async () => {
                                setTroubleshooting(true);
                                try {
                                  const res = await api.generateTestTelemetry();
-                                 addNotification("Test Telemetry Injected: Nodes active in Driver Portal", "success");
+                                 addNotification("Sample data created — open the driver portal to see it live", "success");
                                  loadData();
                                } catch (err) {
-                                 addNotification("Seeding protocol failed", "error");
+                                 addNotification("Couldn't create sample data. Try again.", "error");
                                } finally {
                                  setTroubleshooting(false);
                                }
@@ -449,59 +490,18 @@ const AdminDashboard: React.FC = () => {
                              disabled={troubleshooting}
                              className="px-10 py-5 bg-white text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-2xl disabled:opacity-50"
                            >
-                             {troubleshooting ? 'Initializing...' : 'Seed Operational Data'}
+                             {troubleshooting ? 'Creating…' : 'Create sample data'}
                            </button>
-                           <button 
+                           <button
                              onClick={handleTroubleshoot}
                              className="px-10 py-5 bg-white/5 border border-white/10 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
                            >
-                             Run Integrity Audit
+                             Run data health check
                            </button>
                         </div>
                      </div>
                   </div>
                 )}
-
-                <div id="dashboard-kpis" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard 
-                  index={0}
-                  title={labels.stat1.label} 
-                  value={labels.stat1.value} 
-                  icon={Navigation} 
-                  color="bg-brand/10 text-brand" 
-                  subValue={labels.stat1.sub} 
-                  trend={labels.stat1.trend}
-                />
-                <StatCard 
-                  index={1}
-                  title={labels.stat2.label} 
-                  value={labels.stat2.value} 
-                  icon={CheckCircle} 
-                  color="bg-emerald/10 text-emerald" 
-                  subValue={labels.stat2.sub} 
-                  trend={labels.stat2.trend}
-                />
-                <StatCard 
-                  index={2}
-                  title={labels.stat3.label} 
-                  value={labels.stat3.value} 
-                  icon={DatabaseZap} 
-                  color="bg-amber/10 text-amber" 
-                  subValue={labels.stat3.sub} 
-                  trend={labels.stat3.trend}
-                />
-                {isModuleEnabled('finance') && (
-                  <StatCard 
-                    index={3}
-                    title="Revenue (MTD)" 
-                    value={revenueDisplay} 
-                    icon={DollarSign} 
-                    color="bg-emerald/10 text-emerald" 
-                    subValue="Projected $18k" 
-                    trend={8}
-                  />
-                )}
-              </div>
             </motion.div>
           ) : activeTab === 'INTELLIGENCE' ? (
             <motion.div 
@@ -619,7 +619,7 @@ const AdminDashboard: React.FC = () => {
                         </div>
                         <h4 className="text-lg font-black uppercase tracking-tight text-slate-900 mb-2">Idle Time Reduction</h4>
                         <p className="text-xs font-medium text-slate-500 leading-relaxed uppercase">
-                           Neural mesh has optimized warehouse loading cycles, reducing average dispatch latency by 14.5 minutes.
+                           Routing suggestions are based on your recent trips. Estimates improve as more trips complete.
                         </p>
                      </div>
                   </div>
@@ -732,8 +732,8 @@ const AdminDashboard: React.FC = () => {
                   <div className="card-logistics !p-8">
                     <div className="flex items-center justify-between mb-8">
                       <div>
-                        <h3 className="heading-primary mb-1">Network Volume Matrix</h3>
-                        <p className="label-logistics text-gray-400">Tactical shipment distribution</p>
+                        <h3 className="heading-primary mb-1">Shipment volume</h3>
+                        <p className="label-logistics text-gray-400">Shipments over time</p>
                       </div>
                       <div className="flex items-center gap-6">
                         <div className="flex items-center gap-2">

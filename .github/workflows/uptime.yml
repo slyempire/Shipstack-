@@ -1,0 +1,25 @@
+name: Uptime check
+
+# Pings the production health endpoint every 15 minutes. A failing run
+# shows up as a red X + GitHub notification — a free uptime monitor until
+# a dedicated one (UptimeRobot, Better Stack, etc.) is set up.
+#
+# Enable by adding a repository variable PRODUCTION_URL, e.g.
+# https://app.example.com — the job skips silently while it's unset.
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    if: vars.PRODUCTION_URL != ''
+    steps:
+      - name: Check /api/health
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 "${{ vars.PRODUCTION_URL }}/api/health")
+          echo "Health endpoint returned $code"
+          [ "$code" = "200" ]

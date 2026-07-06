@@ -310,6 +310,15 @@ export const useAppStore = create<AppState>()(
           payload = n;
         }
 
+        // Dedupe: identical message within the last 5s collapses into the
+        // existing notification instead of stacking duplicate toasts.
+        const now = Date.now();
+        const isDuplicate = state.notifications.some(existing =>
+          existing.message === payload.message &&
+          now - new Date(existing.timestamp).getTime() < 5000
+        );
+        if (isDuplicate) return state;
+
         const newNotif: Notification = {
           ...payload,
           id: Math.random().toString(36).substr(2, 9),

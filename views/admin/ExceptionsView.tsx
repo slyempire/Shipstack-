@@ -132,43 +132,55 @@ const ExceptionsView: React.FC = () => {
 
   return (
     <Layout title="Exception Control Center">
+      {/* KPI cards derive from live exception data — no invented risk
+          scores or accuracy claims. */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden group border border-white/5">
            <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform">
               <ShieldAlert size={80} />
            </div>
            <div className="relative z-10">
-              <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-2">AI Risk Index</p>
-              <h3 className="text-4xl font-black tracking-tighter mb-4">High</h3>
+              <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-2">Critical</p>
+              <h3 className="text-4xl font-black tracking-tighter mb-4">{exceptions.filter(e => e.severity === 'CRITICAL').length}</h3>
               <div className="flex items-center gap-2">
-                 <div className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
-                 <span className="text-[9px] font-black uppercase tracking-widest text-red-500">4 Critical Anomalies</span>
+                 <div className={`h-1.5 w-1.5 rounded-full ${exceptions.some(e => e.severity === 'CRITICAL') ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`} />
+                 <span className="text-[9px] font-black uppercase tracking-widest text-white/60">
+                   {exceptions.some(e => e.severity === 'CRITICAL') ? 'Needs attention now' : 'No critical incidents'}
+                 </span>
               </div>
            </div>
         </div>
         <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
-           <p className="label-logistics text-slate-400 mb-2">Auto-Classified</p>
+           <p className="label-logistics text-slate-400 mb-2">Open Exceptions</p>
            <div className="flex items-center justify-between">
-              <h3 className="text-4xl font-black text-slate-900">{exceptions.length}</h3>
-              <div className="p-4 bg-brand/10 text-brand rounded-2xl"><BrainCircuit size={24} /></div>
+              <h3 className="text-4xl font-black text-slate-900">{exceptions.filter(e => e.status !== ExceptionStatus.RESOLVED).length}</h3>
+              <div className="p-4 bg-brand/10 text-brand rounded-2xl"><AlertTriangle size={24} /></div>
            </div>
-           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-4">92% Accuracy Rating</p>
+           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-4">{exceptions.length} total reported</p>
         </div>
         <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
            <p className="label-logistics text-slate-400 mb-2">Resolution Rate</p>
            <div className="flex items-center justify-between">
-              <h3 className="text-4xl font-black text-slate-900">84%</h3>
+              <h3 className="text-4xl font-black text-slate-900">
+                {exceptions.length > 0
+                  ? `${Math.round((exceptions.filter(e => e.status === ExceptionStatus.RESOLVED).length / exceptions.length) * 100)}%`
+                  : '—'}
+              </h3>
               <div className="p-4 bg-emerald-50 text-emerald-600 rounded-2xl"><Zap size={24} /></div>
            </div>
-           <p className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest mt-4">+12% vs Last Week</p>
+           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-4">
+             {exceptions.filter(e => e.status === ExceptionStatus.RESOLVED).length} resolved
+           </p>
         </div>
         <div className="bg-brand p-8 rounded-[2.5rem] text-white shadow-2xl shadow-brand/20 flex flex-col justify-between">
            <div>
-              <h3 className="text-lg font-black uppercase tracking-tighter mb-1">Smart Resolve</h3>
-              <p className="text-[9px] font-bold text-white/60 uppercase tracking-widest">AI-Suggested Actions</p>
+              <h3 className="text-lg font-black uppercase tracking-tighter mb-1">Report an issue</h3>
+              <p className="text-[9px] font-bold text-white/60 uppercase tracking-widest">Flag a shipment problem</p>
            </div>
-           <button className="w-full py-3 bg-white text-brand rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all">
-              Execute Batch Fix
+           <button
+              onClick={() => navigate('/admin/queue')}
+              className="w-full py-3 bg-white text-brand rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all">
+              Open shipment queue
            </button>
         </div>
       </div>
@@ -207,8 +219,8 @@ const ExceptionsView: React.FC = () => {
                   <tr className="bg-slate-50/50 border-b border-slate-100">
                      <th className="px-10 py-5 label-logistics">AI Classification</th>
                      <th className="px-10 py-5 label-logistics">Incident Detail</th>
-                     <th className="px-10 py-5 label-logistics">Confidence</th>
-                     <th className="px-10 py-5 label-logistics">Smart Resolution</th>
+                     <th className="px-10 py-5 label-logistics">Status</th>
+                     <th className="px-10 py-5 label-logistics">Suggested Next Step</th>
                      <th className="px-10 py-5 text-right"></th>
                   </tr>
                </thead>
@@ -225,9 +237,8 @@ const ExceptionsView: React.FC = () => {
                   ) : (
                     filteredExceptions.map(ex => {
                       const aiCategory = ex.type === ExceptionType.LATE ? 'Logistics Delay' : 'Data Integrity';
-                      const aiSuggestion = ex.type === ExceptionType.LATE ? 'Re-route via Loresho' : 'Manual Address Validation';
-                      const confidence = 85 + Math.floor(Math.random() * 10);
-                      
+                      const nextStep = ex.type === ExceptionType.LATE ? 'Review route & ETA' : 'Verify shipment details';
+
                       return (
                         <tr key={ex.id} className="hover:bg-slate-50 transition-colors group cursor-pointer" onClick={() => setSelectedException(ex)}>
                            <td className="px-10 py-8">
@@ -246,17 +257,12 @@ const ExceptionsView: React.FC = () => {
                               <p className="text-[10px] font-bold text-slate-400 italic line-clamp-1">"{ex.resolutionNotes || 'Root cause analysis pending'}"</p>
                            </td>
                            <td className="px-10 py-8">
-                              <div className="flex items-center gap-3">
-                                 <div className="w-20 h-2 bg-slate-100 rounded-full overflow-hidden">
-                                    <div className="h-full bg-brand" style={{ width: `${confidence}%` }} />
-                                 </div>
-                                 <span className="text-[10px] font-black text-slate-900">{confidence}%</span>
-                              </div>
+                              <Badge variant={ex.status === 'RESOLVED' ? 'delivered' : 'pending'}>{ex.status || 'OPEN'}</Badge>
                            </td>
                            <td className="px-10 py-8">
                               <div className="flex items-center gap-3 text-brand">
                                  <Sparkles size={14} />
-                                 <span className="text-[10px] font-black uppercase tracking-widest">{aiSuggestion}</span>
+                                 <span className="text-[10px] font-black uppercase tracking-widest">{nextStep}</span>
                               </div>
                            </td>
                            <td className="px-10 py-8 text-right">

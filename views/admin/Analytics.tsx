@@ -69,44 +69,15 @@ const PredictiveInsights = () => {
     fetchForecast();
   }, []);
 
-  const handleOptimize = async () => {
-    setIsOptimizing(true);
-    try {
-      await aiService.optimizeRoute([], {} as any);
-      addNotification("Operational insights: Route optimization complete. 18% efficiency gain projected.", "success");
-    } catch (e) {
-      addNotification("AI Optimization failed.", "error");
-    } finally {
-      setIsOptimizing(false);
-    }
-  };
-
-  const insights = [
-    { 
-      id: 1, 
-      type: 'DELAY_PREDICTION', 
-      title: 'High Delay Risk: Westlands Route', 
-      desc: 'ML Model predicts 25min delay for 3 deliveries due to unusual traffic surge on Waiyaki Way.',
-      impact: 'High',
-      action: 'Re-route via Loresho',
-      handler: handleOptimize,
-      loading: isOptimizing,
-      color: 'text-brand',
-      icon: Navigation
-    },
-    { 
-      id: 2, 
-      type: 'DEMAND_FORECAST', 
-      title: 'Inventory Alert: Mombasa Hub', 
-      desc: forecast?.insights[0] || 'Predictive demand analysis suggests stock-out for "Medical Kit A" in 48 hours.',
-      impact: 'Medium',
-      action: 'Restock from Nairobi',
-      handler: () => addNotification("Restock order initiated via AI recommendation.", "info"),
-      loading: loadingForecast,
-      color: 'text-emerald-500',
-      icon: Truck
-    }
-  ];
+  // Insights render ONLY from real forecast output — no scripted scenarios
+  // ("Waiyaki Way traffic", invented stock-outs) and no fake confidence.
+  const insights = (forecast?.insights || []).slice(0, 2).map((text: string, i: number) => ({
+    id: i,
+    title: i === 0 ? 'Demand forecast' : 'Operational note',
+    desc: text,
+    color: i === 0 ? 'text-brand' : 'text-emerald-500',
+    icon: i === 0 ? Truck : Navigation
+  }));
 
   return (
     <div id="ai-intelligence" className="bg-slate-900 rounded-[2.5rem] p-10 text-white relative overflow-hidden shadow-2xl border border-white/5">
@@ -118,13 +89,13 @@ const PredictiveInsights = () => {
             </div>
             <h4 className="text-xl font-bold text-slate-900 tracking-tight mb-2">Intelligence Hub</h4>
             <p className="text-sm text-slate-500 font-medium mb-6">
-              AI-assisted operational directives to optimize your fleet and save costs. Upgrade to SCALE to unlock real-time recommendations.
+              AI-assisted recommendations to optimize your fleet and cut costs. Available on the Growth plan.
             </p>
             <button 
               onClick={() => window.location.href = '/admin/subscription'}
               className="w-full py-4 bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 transition-all font-sans"
             >
-              View Scale Intelligence
+              See Growth plan
             </button>
           </div>
         </div>
@@ -142,43 +113,31 @@ const PredictiveInsights = () => {
           <Badge variant="delivered" className="bg-brand/20 text-brand border-none">Active Engine</Badge>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {insights.map((item) => (
-            <div key={item.id} className="p-6 bg-white/5 border border-white/5 rounded-2xl group hover:bg-white/10 transition-all">
-              <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-xl bg-white/5 ${item.color}`}>
+        {loadingForecast ? (
+          <div className="p-8 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-center gap-3">
+            <RefreshCw className="animate-spin text-brand" size={16} />
+            <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Analyzing trip history…</span>
+          </div>
+        ) : insights.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {insights.map((item: any) => (
+              <div key={item.id} className="p-6 bg-white/5 border border-white/5 rounded-2xl group hover:bg-white/10 transition-all">
+                <div className={`p-3 rounded-xl bg-white/5 inline-flex mb-4 ${item.color}`}>
                   <item.icon size={20} />
                 </div>
-                <div className="text-right">
-                  <p className="text-[8px] font-black text-white/20 uppercase tracking-widest">Est. Impact</p>
-                  <p className={`text-[10px] font-black uppercase opacity-60`}>{item.impact}</p>
-                </div>
+                <h4 className="text-sm font-bold tracking-tight mb-2">{item.title}</h4>
+                <p className="text-[11px] font-medium text-white/50 leading-relaxed">{item.desc}</p>
               </div>
-              <h4 className="text-sm font-bold tracking-tight mb-2">{item.title}</h4>
-              <p className="text-[10px] font-bold text-white/40 leading-relaxed italic mb-4">"{item.desc}"</p>
-              
-              <div className="mb-4 flex flex-col gap-1.5 p-3 bg-white/5 rounded-xl border border-white/5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[8px] font-bold text-white/30 uppercase tracking-widest">Confidence</span>
-                  <span className={`text-[10px] font-bold ${item.color}`}>94%</span>
-                </div>
-                <div className="h-0.5 bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-brand-accent w-[94%]" />
-                </div>
-                <p className="text-[8px] text-white/30 font-medium whitespace-nowrap overflow-hidden text-ellipsis">Based on telemetry logs</p>
-              </div>
-
-              <button 
-                onClick={item.handler}
-                disabled={item.loading}
-                className="w-full py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
-              >
-                {item.loading ? <RefreshCw className="animate-spin" size={14} /> : <Zap size={14} />}
-                Apply directive
-              </button>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-8 bg-white/5 border border-white/5 rounded-2xl text-center">
+            <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2">Not enough history yet</p>
+            <p className="text-[9px] font-bold text-white/25 uppercase tracking-widest leading-relaxed">
+              Insights are generated from your completed trips — they'll appear after your first few deliveries
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -216,15 +175,32 @@ const Analytics: React.FC = () => {
 
   // Derived Analytics
   const deliveredDns = allDns.filter(d => d.status === DNStatus.DELIVERED || d.status === DNStatus.COMPLETED);
-  const onTimeRate = deliveredDns.length > 0 
-    ? Math.round((deliveredDns.filter(d => !d.isDeviated).length / deliveredDns.length) * 100) 
-    : 94;
+  // Real values only — '—'/zeros when there's no history yet, never
+  // invented fallbacks.
+  const onTimeRate = deliveredDns.length > 0
+    ? Math.round((deliveredDns.filter(d => !d.isDeviated).length / deliveredDns.length) * 100)
+    : null;
 
   const exceptionBreakdown = [
-    { name: 'Late', value: allDns.filter(d => d.exceptionType === ExceptionType.LATE).length || 12 },
-    { name: 'Damaged', value: allDns.filter(d => d.exceptionType === ExceptionType.DAMAGE).length || 4 },
-    { name: 'Shortage', value: allDns.filter(d => d.exceptionType === ExceptionType.SHORTAGE).length || 2 },
+    { name: 'Late', value: allDns.filter(d => d.exceptionType === ExceptionType.LATE).length },
+    { name: 'Damaged', value: allDns.filter(d => d.exceptionType === ExceptionType.DAMAGE).length },
+    { name: 'Shortage', value: allDns.filter(d => d.exceptionType === ExceptionType.SHORTAGE).length },
   ];
+
+  // Weekday × time-of-day shipment density from real createdAt timestamps
+  // (drives the volume heatmap; replaces a Math.random() decoration).
+  const heatmapCells = (() => {
+    const buckets = Array.from({ length: 25 }, () => 0);
+    allDns.forEach(d => {
+      if (!d.createdAt) return;
+      const dt = new Date(d.createdAt);
+      const day = Math.min(4, (dt.getDay() + 6) % 7);      // Mon–Fri columns
+      const slot = Math.min(4, Math.floor(dt.getHours() / 5)); // 5 daily slots
+      buckets[slot * 5 + day] += 1;
+    });
+    const max = Math.max(1, ...buckets);
+    return buckets.map(count => ({ count, intensity: count / max }));
+  })();
 
   const driverRankings = drivers.map(d => {
     const driverDns = allDns.filter(dn => dn.driverId === d.id);
@@ -277,8 +253,8 @@ const Analytics: React.FC = () => {
   return (
     <Layout title="Analytics">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <MetricTile icon={Zap} label="Dispatch velocity" value={`${metrics.dispatchTimeAvg}m`} color="text-blue-600" />
-        <MetricTile icon={CheckCircle} label="On-time delivery" value={`${onTimeRate}%`} color="text-emerald-600" />
+        <MetricTile icon={Zap} label="Dispatch velocity" value={metrics.dispatchTimeAvg > 0 ? `${metrics.dispatchTimeAvg}m` : "—"} color="text-blue-600" />
+        <MetricTile icon={CheckCircle} label="On-time delivery" value={onTimeRate === null ? "—" : `${onTimeRate}%`} color="text-emerald-600" />
         <MetricTile icon={ShieldAlert} label="Exception rate" value={`${metrics.exceptionRate}%`} color="text-rose-600" />
         <MetricTile icon={Activity} label="Fleet utilization" value="88%" color="text-orange-600" />
       </div>
@@ -290,40 +266,38 @@ const Analytics: React.FC = () => {
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-10 shadow-sm relative overflow-hidden">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h3 className="text-xl font-black uppercase tracking-tighter text-slate-900 dark:text-white">Inventory Velocity Heatmap</h3>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">ML-Predicted Stock Depletion Rates</p>
+              <h3 className="text-xl font-black uppercase tracking-tighter text-slate-900 dark:text-white">Shipment Volume Heatmap</h3>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Weekday &times; time-of-day density</p>
             </div>
-            <Badge variant="delivered" className="bg-emerald/10 text-emerald border-none">Live Sync</Badge>
+            <Badge variant="delivered" className="bg-emerald/10 text-emerald border-none">Live</Badge>
           </div>
-          
+
           <div className="grid grid-cols-5 gap-3 h-48">
-            {Array.from({ length: 25 }).map((_, i) => {
-              const intensity = Math.random();
-              return (
-                <div 
-                  key={i} 
-                  className="rounded-lg transition-all hover:scale-110 cursor-help"
-                  style={{ 
-                    backgroundColor: intensity > 0.8 ? '#DC2626' : intensity > 0.5 ? '#F59E0B' : '#10B981',
-                    opacity: 0.2 + intensity * 0.8
-                  }}
-                />
-              );
-            })}
+            {heatmapCells.map((cell, i) => (
+              <div
+                key={i}
+                title={`${cell.count} shipment${cell.count === 1 ? '' : 's'}`}
+                className="rounded-lg transition-all hover:scale-110 cursor-help"
+                style={{
+                  backgroundColor: cell.intensity > 0.66 ? '#DC2626' : cell.intensity > 0.33 ? '#F59E0B' : '#10B981',
+                  opacity: cell.count === 0 ? 0.08 : 0.2 + cell.intensity * 0.8
+                }}
+              />
+            ))}
           </div>
           <div className="mt-6 flex justify-between items-center px-2">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-emerald" />
-                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Stable</span>
+                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Low</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-amber" />
-                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Warning</span>
+                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Medium</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-red" />
-                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Critical</span>
+                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">High</span>
               </div>
             </div>
           </div>

@@ -3,6 +3,7 @@ import React from 'react';
 import MarketingNavbar from './MarketingNavbar';
 import MarketingFooter from './MarketingFooter';
 import ScrollToTop from '../ScrollToTop';
+import CookieConsent from './CookieConsent';
 
 interface MarketingLayoutProps {
   children: React.ReactNode;
@@ -17,6 +18,7 @@ const MarketingLayout: React.FC<MarketingLayoutProps> = ({ children }) => {
       </main>
       <MarketingFooter />
       <ScrollToTop />
+      <CookieConsent />
     </div>
   );
 };

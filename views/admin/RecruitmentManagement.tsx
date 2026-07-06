@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Layout from '../../components/Layout';
+import { statusLabel } from '../../packages/ui/Badge';
 import { api } from '../../api';
 import { DriverApplication } from '../../types';
 import { 
@@ -384,7 +385,7 @@ const RecruitmentManagement: React.FC = () => {
                           app.status === 'REJECTED' ? 'bg-rose-50 text-rose-600' :
                           'bg-amber-50 text-amber-600'
                         }`}>
-                          {app.status}
+                          {statusLabel(app.status)}
                         </span>
                       </td>
                       <td className="px-8 py-6 text-right">
@@ -546,7 +547,7 @@ const RecruitmentManagement: React.FC = () => {
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{selectedApp.vehicleType} Candidate</p>
                   <div className="flex gap-2 mt-2">
                     <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-[9px] font-black uppercase tracking-widest">
-                      {selectedApp.status}
+                      {statusLabel(selectedApp.status)}
                     </span>
                   </div>
                 </div>

@@ -3,8 +3,12 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
+import { initMonitoring } from './services/monitoring';
 import './index.css';
 import './i18n';
+
+// Error monitoring first, so boot-time crashes are captured too.
+initMonitoring();
 
 // Suppress specific console logs and errors
 const originalConsoleError = console.error;

@@ -8,27 +8,27 @@ import { useAppStore } from '../store';
 const TELEMETRY_INTERVAL = 15000; 
 
 export const useTripTelemetry = (tripId: string | undefined, enabled: boolean) => {
-  const { isOnline, addNotification } = useAppStore();
+  const { isOnline } = useAppStore();
   const [syncing, setSyncing] = useState(false);
   const lastPingAt = useRef<number>(0);
   const watchId = useRef<number | null>(null);
+  const syncInFlight = useRef(false);
 
+  // Flush the offline queue when connectivity (re)appears. Background sync
+  // is silent — no toast on success; failures retry on the next transition.
+  // syncInFlight guards re-entry; `syncing` must NOT be an effect dependency
+  // (it re-armed the effect on completion, causing an endless sync/toast loop).
   useEffect(() => {
-    if (isOnline && !syncing) {
-      const sync = async () => {
-        setSyncing(true);
-        try {
-          await api.syncOfflineTelemetry();
-          addNotification(`Synced offline telemetry markers.`, 'success');
-        } catch (err) {
-          console.debug("Telemetry sync deferred.");
-        } finally {
-          setSyncing(false);
-        }
-      };
-      sync();
-    }
-  }, [isOnline, syncing]);
+    if (!isOnline || syncInFlight.current) return;
+    syncInFlight.current = true;
+    setSyncing(true);
+    api.syncOfflineTelemetry()
+      .catch(() => console.debug('Telemetry sync deferred.'))
+      .finally(() => {
+        syncInFlight.current = false;
+        setSyncing(false);
+      });
+  }, [isOnline]);
 
   useEffect(() => {
     if (!enabled || !tripId || !navigator.geolocation) {

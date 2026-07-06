@@ -151,11 +151,11 @@ const LoginView: React.FC = () => {
 
         {/* Login Form Section */}
         <div className="flex-1 flex flex-col justify-center px-8 lg:px-32 py-24 relative">
-          <Link to="/" className="absolute top-12 left-12 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-slate-300 hover:text-slate-900 transition-colors">
+          <Link to="/" className="absolute top-12 left-12 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 hover:text-slate-900 transition-colors">
             <ArrowLeft size={14} /> Back
           </Link>
 
-          <div className="w-full max-w-md mx-auto space-y-20">
+          <div className="w-full max-w-md mx-auto space-y-12">
             <div className="space-y-2 lg:hidden">
                 <h2 className="text-5xl font-black tracking-tighter uppercase">Shipstack.</h2>
             </div>
@@ -174,7 +174,7 @@ const LoginView: React.FC = () => {
                           required
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          className="w-full bg-white border-b-2 border-slate-100 py-6 text-2xl font-black outline-none focus:border-slate-900 transition-all placeholder:text-slate-200 tracking-tighter"
+                          className="w-full bg-white border-b-2 border-slate-100 py-4 text-2xl font-black outline-none focus:border-slate-900 transition-all placeholder:text-slate-400 tracking-tighter"
                           placeholder="Email"
                         />
                         <label className="absolute -top-4 left-0 text-[9px] font-black uppercase tracking-widest text-slate-400 opacity-0 group-focus-within:opacity-100 transition-all">Email</label>
@@ -186,7 +186,7 @@ const LoginView: React.FC = () => {
                           required
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
-                          className="w-full bg-white border-b-2 border-slate-100 py-6 text-2xl font-black outline-none focus:border-slate-900 transition-all placeholder:text-slate-200 tracking-tighter"
+                          className="w-full bg-white border-b-2 border-slate-100 py-4 text-2xl font-black outline-none focus:border-slate-900 transition-all placeholder:text-slate-400 tracking-tighter"
                           placeholder="Password"
                         />
                         <label className="absolute -top-4 left-0 text-[9px] font-black uppercase tracking-widest text-slate-400 opacity-0 group-focus-within:opacity-100 transition-all">Password</label>
@@ -203,27 +203,27 @@ const LoginView: React.FC = () => {
                         />
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] group-hover:text-slate-900 transition-colors">Remember me</span>
                      </label>
-                     <Link to="/forgot-password" virtual-id="forgot-password-link" className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em] hover:text-slate-900 transition-colors">Forgot password?</Link>
+                     <Link to="/forgot-password" virtual-id="forgot-password-link" className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] hover:text-slate-900 transition-colors">Forgot password?</Link>
                   </div>
 
                   <button
                     type="submit"
                     disabled={isLoading || !isOnline}
-                    className="w-full bg-slate-900 text-white h-20 text-sm font-black uppercase tracking-[0.3em] hover:bg-black active:scale-[0.98] transition-all disabled:opacity-20 flex items-center justify-center gap-4 shadow-2xl shadow-slate-900/10"
+                    className="w-full bg-slate-900 text-white h-16 text-sm font-black uppercase tracking-[0.3em] hover:bg-black active:scale-[0.98] transition-all disabled:opacity-20 flex items-center justify-center gap-4 shadow-2xl shadow-slate-900/10"
                   >
                     {isLoading ? <RefreshCw className="animate-spin" size={20} /> : <><LogIn size={18} strokeWidth={3} /> Sign in</>}
                   </button>
 
                   <div className="flex items-center gap-4 py-4">
                      <div className="flex-1 h-px bg-slate-100" />
-                     <span className="text-[9px] font-black text-slate-200 uppercase tracking-widest">Or continue with</span>
+                     <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Or continue with</span>
                      <div className="flex-1 h-px bg-slate-100" />
                   </div>
 
                   <button
                     type="button"
                     onClick={() => api.loginWithGoogle()}
-                    className="w-full h-20 border-2 border-slate-100 flex items-center justify-center gap-4 text-[11px] font-black uppercase tracking-[0.2em] hover:border-slate-900 transition-all active:scale-[0.98]"
+                    className="w-full h-16 border-2 border-slate-100 flex items-center justify-center gap-4 text-[11px] font-black uppercase tracking-[0.2em] hover:border-slate-900 transition-all active:scale-[0.98]"
                   >
                     <img src="https://authjs.dev/img/providers/google.svg" alt="Google" className="w-5 h-5 grayscale group-hover:grayscale-0 transition-all" />
                     Continue with Google
@@ -231,9 +231,9 @@ const LoginView: React.FC = () => {
                </form>
             </div>
 
-            <div className="space-y-8 pt-12 border-t border-slate-50">
+            <div className="space-y-6 pt-8 border-t border-slate-100">
                <div className="flex justify-between items-center">
-                  <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-200">Try a demo account</h4>
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Try a demo account</h4>
                   <div className="flex gap-1">
                      <div className="h-1 w-4 bg-slate-900" />
                      <div className="h-1 w-2 bg-slate-100" />
@@ -252,7 +252,7 @@ const LoginView: React.FC = () => {
                       onClick={() => handleDemoLogin(role.email)}
                       className="p-4 border border-slate-100 hover:border-slate-900 transition-all group flex flex-col items-center gap-3"
                     >
-                       <role.icon size={20} className="text-slate-300 group-hover:text-slate-900 transition-colors" />
+                       <role.icon size={20} className="text-slate-500 group-hover:text-slate-900 transition-colors" />
                        <span className="text-[9px] font-black uppercase tracking-tighter text-slate-400 group-hover:text-slate-900 transition-colors">{role.label}</span>
                     </button>
                   ))}
@@ -260,7 +260,7 @@ const LoginView: React.FC = () => {
             </div>
 
             <div className="text-center">
-               <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.3em]">
+               <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em]">
                   New to Shipstack? <Link to="/register" className="text-slate-900 hover:underline">Create an account</Link>
                </p>
             </div>

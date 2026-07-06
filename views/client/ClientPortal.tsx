@@ -6,7 +6,7 @@ import { api } from '../../api';
 import { useTenant } from '../../hooks/useTenant';
 import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 import { DeliveryNote, DNStatus, Vehicle } from '../../types';
-import { Badge } from '../../packages/ui/Badge';
+import { Badge, statusLabel } from '../../packages/ui/Badge';
 import { 
   Truck, 
   Search, 
@@ -196,7 +196,7 @@ const ClientPortal: React.FC = () => {
                 <div className="flex justify-between items-start mb-12">
                   <div>
                     <p className="label-logistics !text-brand mb-2">Order Status</p>
-                    <h3 className="text-3xl font-black tracking-tighter uppercase">{trackedDn.status.replace('_', ' ')}</h3>
+                    <h3 className="text-3xl font-black tracking-tighter uppercase">{statusLabel(trackedDn.status)}</h3>
                   </div>
                   <div className="text-right">
                     <p className="label-logistics mb-2">Estimated Delivery</p>

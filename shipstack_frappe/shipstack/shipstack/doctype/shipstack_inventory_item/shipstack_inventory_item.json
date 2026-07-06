@@ -1,0 +1,139 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-06-25 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "sku",
+  "qty",
+  "warehouse_id",
+  "name",
+  "expiry_date",
+  "batch_number",
+  "category",
+  "bin_location",
+  "unit",
+  "min_threshold",
+  "temp_requirement_min",
+  "temp_requirement_max",
+  "temp_requirement_current",
+  "temp_requirement_unit",
+  "status"
+ ],
+ "fields": [
+  {
+   "fieldname": "sku",
+   "fieldtype": "Data",
+   "label": "SKU",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "qty",
+   "fieldtype": "Float",
+   "label": "Quantity",
+   "reqd": 1
+  },
+  {
+   "fieldname": "warehouse_id",
+   "fieldtype": "Link",
+   "label": "Warehouse",
+   "options": "Shipstack Facility",
+   "reqd": 1
+  },
+  {
+   "fieldname": "name",
+   "fieldtype": "Data",
+   "label": "Item Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "expiry_date",
+   "fieldtype": "Date",
+   "label": "Expiry Date"
+  },
+  {
+   "fieldname": "batch_number",
+   "fieldtype": "Data",
+   "label": "Batch Number"
+  },
+  {
+   "fieldname": "category",
+   "fieldtype": "Data",
+   "label": "Category"
+  },
+  {
+   "fieldname": "bin_location",
+   "fieldtype": "Data",
+   "label": "Bin Location"
+  },
+  {
+   "fieldname": "unit",
+   "fieldtype": "Data",
+   "label": "Unit"
+  },
+  {
+   "fieldname": "min_threshold",
+   "fieldtype": "Float",
+   "label": "Minimum Stock Threshold"
+  },
+  {
+   "fieldname": "temp_requirement_min",
+   "fieldtype": "Float",
+   "label": "Min Temperature Requirement"
+  },
+  {
+   "fieldname": "temp_requirement_max",
+   "fieldtype": "Float",
+   "label": "Max Temperature Requirement"
+  },
+  {
+   "fieldname": "temp_requirement_current",
+   "fieldtype": "Float",
+   "label": "Current Temp"
+  },
+  {
+   "fieldname": "temp_requirement_unit",
+   "fieldtype": "Select",
+   "label": "Temperature Unit",
+   "options": "C\nF"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Data",
+   "label": "Status"
+  }
+ ],
+ "links": [],
+ "modified": "2026-06-25 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Shipstack",
+ "name": "Shipstack Inventory Item",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "All"
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "istable": 0,
+ "autoname": "field:sku"
+}

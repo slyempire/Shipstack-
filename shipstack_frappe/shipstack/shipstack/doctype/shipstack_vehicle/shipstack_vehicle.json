@@ -1,0 +1,207 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-06-25 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "plate",
+  "type",
+  "capacity_kg",
+  "status",
+  "owner_id",
+  "verification_status",
+  "has_cold_storage",
+  "current_temp",
+  "next_service_date",
+  "next_service_odometer",
+  "fuel_level",
+  "ntsa_inspection_expiry",
+  "insurance_expiry",
+  "current_odometer",
+  "logbook_number",
+  "chassis_number",
+  "engine_number",
+  "speed_governor_id",
+  "tracker_id",
+  "insurance_policy_number",
+  "last_inspection_date",
+  "next_inspection_date",
+  "compliance_score",
+  "color",
+  "year_of_manufacture",
+  "owner_pin"
+ ],
+ "fields": [
+  {
+   "fieldname": "plate",
+   "fieldtype": "Data",
+   "label": "Plate Number",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "type",
+   "fieldtype": "Select",
+   "label": "Vehicle Type",
+   "options": "Boda Boda (Motorcycle)\nTuk Tuk (Three-wheeler)\nSmall Van (Probox/AD Van)\nLarge Van (Hiace/Sprinter)\nLight Truck (3-5 Tons)\nMedium Truck (7-10 Tons)\nHeavy Truck (Prime Mover)\nBicycle\nRefrigerated Truck (Cold Chain)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "capacity_kg",
+   "fieldtype": "Float",
+   "label": "Capacity (Kg)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "ACTIVE\nMAINTENANCE\nINACTIVE",
+   "reqd": 1
+  },
+  {
+   "fieldname": "owner_id",
+   "fieldtype": "Link",
+   "label": "Owner User",
+   "options": "User"
+  },
+  {
+   "fieldname": "verification_status",
+   "fieldtype": "Select",
+   "label": "Verification Status",
+   "options": "PENDING\nVERIFIED\nREJECTED"
+  },
+  {
+   "fieldname": "has_cold_storage",
+   "fieldtype": "Check",
+   "label": "Has Cold Storage"
+  },
+  {
+   "fieldname": "current_temp",
+   "fieldtype": "Float",
+   "label": "Current Temperature"
+  },
+  {
+   "fieldname": "next_service_date",
+   "fieldtype": "Date",
+   "label": "Next Service Date"
+  },
+  {
+   "fieldname": "next_service_odometer",
+   "fieldtype": "Float",
+   "label": "Next Service Odometer"
+  },
+  {
+   "fieldname": "fuel_level",
+   "fieldtype": "Float",
+   "label": "Fuel Level (%)"
+  },
+  {
+   "fieldname": "ntsa_inspection_expiry",
+   "fieldtype": "Date",
+   "label": "NTSA Inspection Expiry"
+  },
+  {
+   "fieldname": "insurance_expiry",
+   "fieldtype": "Date",
+   "label": "Insurance Expiry"
+  },
+  {
+   "fieldname": "current_odometer",
+   "fieldtype": "Float",
+   "label": "Current Odometer"
+  },
+  {
+   "fieldname": "logbook_number",
+   "fieldtype": "Data",
+   "label": "Logbook Number"
+  },
+  {
+   "fieldname": "chassis_number",
+   "fieldtype": "Data",
+   "label": "Chassis Number"
+  },
+  {
+   "fieldname": "engine_number",
+   "fieldtype": "Data",
+   "label": "Engine Number"
+  },
+  {
+   "fieldname": "speed_governor_id",
+   "fieldtype": "Data",
+   "label": "Speed Governor ID"
+  },
+  {
+   "fieldname": "tracker_id",
+   "fieldtype": "Data",
+   "label": "Tracker ID"
+  },
+  {
+   "fieldname": "insurance_policy_number",
+   "fieldtype": "Data",
+   "label": "Insurance Policy Number"
+  },
+  {
+   "fieldname": "last_inspection_date",
+   "fieldtype": "Date",
+   "label": "Last Inspection Date"
+  },
+  {
+   "fieldname": "next_inspection_date",
+   "fieldtype": "Date",
+   "label": "Next Inspection Date"
+  },
+  {
+   "fieldname": "compliance_score",
+   "fieldtype": "Float",
+   "label": "Compliance Score"
+  },
+  {
+   "fieldname": "color",
+   "fieldtype": "Data",
+   "label": "Color"
+  },
+  {
+   "fieldname": "year_of_manufacture",
+   "fieldtype": "Int",
+   "label": "Year of Manufacture"
+  },
+  {
+   "fieldname": "owner_pin",
+   "fieldtype": "Data",
+   "label": "Owner PIN"
+  }
+ ],
+ "links": [],
+ "modified": "2026-06-25 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Shipstack",
+ "name": "Shipstack Vehicle",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "All"
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "istable": 0,
+ "autoname": "field:plate"
+}

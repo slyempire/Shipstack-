@@ -1,0 +1,10 @@
+node_modules
+dist
+.git
+.github
+frappe
+.agents
+*.log
+Dockerfile*
+docker-compose*
+nginx.conf

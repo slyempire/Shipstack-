@@ -1,0 +1,332 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-06-25 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "external_id",
+  "type",
+  "client_name",
+  "address",
+  "status",
+  "priority",
+  "recipient",
+  "lat",
+  "lng",
+  "driver_id",
+  "vehicle_id",
+  "pod_image_url",
+  "signature_url",
+  "industry",
+  "is_deviated",
+  "last_lat",
+  "last_lng",
+  "speed",
+  "heading",
+  "route_geometry",
+  "zone_id",
+  "rate",
+  "weight_kg",
+  "origin_name",
+  "origin_address",
+  "notes",
+  "is_perishable",
+  "temp_requirement_min",
+  "temp_requirement_max",
+  "temp_requirement_current",
+  "temp_requirement_unit",
+  "payment_status",
+  "compliance_status",
+  "planned_pickup_time",
+  "planned_delivery_date",
+  "last_telemetry_at",
+  "exception_type",
+  "exception_status",
+  "exception_reason",
+  "phone",
+  "odometer_start",
+  "invoice_url",
+  "safety_score",
+  "items",
+  "logs"
+ ],
+ "fields": [
+  {
+   "fieldname": "external_id",
+   "fieldtype": "Data",
+   "label": "External ID",
+   "unique": 1
+  },
+  {
+   "fieldname": "type",
+   "fieldtype": "Select",
+   "label": "Type",
+   "options": "INBOUND\nOUTBOUND",
+   "reqd": 1
+  },
+  {
+   "fieldname": "client_name",
+   "fieldtype": "Data",
+   "label": "Client Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "address",
+   "fieldtype": "Small Text",
+   "label": "Address",
+   "reqd": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "PENDING\nRECEIVED\nVALIDATED\nREADY_FOR_DISPATCH\nDISPATCHED\nLOADED\nIN_TRANSIT\nDELIVERED\nCOMPLETED\nINVOICED\nEXCEPTION\nASSIGN_DRIVER",
+   "reqd": 1
+  },
+  {
+   "fieldname": "priority",
+   "fieldtype": "Select",
+   "label": "Priority",
+   "options": "LOW\nMEDIUM\nHIGH",
+   "reqd": 1
+  },
+  {
+   "fieldname": "recipient",
+   "fieldtype": "Data",
+   "label": "Recipient"
+  },
+  {
+   "fieldname": "lat",
+   "fieldtype": "Float",
+   "label": "Latitude"
+  },
+  {
+   "fieldname": "lng",
+   "fieldtype": "Float",
+   "label": "Longitude"
+  },
+  {
+   "fieldname": "driver_id",
+   "fieldtype": "Link",
+   "label": "Driver",
+   "options": "User"
+  },
+  {
+   "fieldname": "vehicle_id",
+   "fieldtype": "Link",
+   "label": "Vehicle",
+   "options": "Shipstack Vehicle"
+  },
+  {
+   "fieldname": "pod_image_url",
+   "fieldtype": "Small Text",
+   "label": "POD Image URL"
+  },
+  {
+   "fieldname": "signature_url",
+   "fieldtype": "Small Text",
+   "label": "Signature URL"
+  },
+  {
+   "fieldname": "industry",
+   "fieldtype": "Select",
+   "label": "Industry",
+   "options": "MEDICAL\nPHARMA\nMANUFACTURING\nFOOD\nRETAIL\nCONSTRUCTION\nE-COMMERCE\nPROCESSING\nAGRICULTURE\nHEALTHCARE\nGENERAL"
+  },
+  {
+   "fieldname": "is_deviated",
+   "fieldtype": "Check",
+   "label": "Is Deviated"
+  },
+  {
+   "fieldname": "last_lat",
+   "fieldtype": "Float",
+   "label": "Last Lat"
+  },
+  {
+   "fieldname": "last_lng",
+   "fieldtype": "Float",
+   "label": "Last Lng"
+  },
+  {
+   "fieldname": "speed",
+   "fieldtype": "Float",
+   "label": "Speed"
+  },
+  {
+   "fieldname": "heading",
+   "fieldtype": "Float",
+   "label": "Heading"
+  },
+  {
+   "fieldname": "route_geometry",
+   "fieldtype": "Long Text",
+   "label": "Route Geometry"
+  },
+  {
+   "fieldname": "zone_id",
+   "fieldtype": "Link",
+   "label": "Zone",
+   "options": "Shipstack Zone"
+  },
+  {
+   "fieldname": "rate",
+   "fieldtype": "Currency",
+   "label": "Rate"
+  },
+  {
+   "fieldname": "weight_kg",
+   "fieldtype": "Float",
+   "label": "Weight (Kg)"
+  },
+  {
+   "fieldname": "origin_name",
+   "fieldtype": "Data",
+   "label": "Origin Name"
+  },
+  {
+   "fieldname": "origin_address",
+   "fieldtype": "Small Text",
+   "label": "Origin Address"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "is_perishable",
+   "fieldtype": "Check",
+   "label": "Is Perishable"
+  },
+  {
+   "fieldname": "temp_requirement_min",
+   "fieldtype": "Float",
+   "label": "Min Temp"
+  },
+  {
+   "fieldname": "temp_requirement_max",
+   "fieldtype": "Float",
+   "label": "Max Temp"
+  },
+  {
+   "fieldname": "temp_requirement_current",
+   "fieldtype": "Float",
+   "label": "Current Temp"
+  },
+  {
+   "fieldname": "temp_requirement_unit",
+   "fieldtype": "Select",
+   "label": "Temp Unit",
+   "options": "C\nF"
+  },
+  {
+   "fieldname": "payment_status",
+   "fieldtype": "Select",
+   "label": "Payment Status",
+   "options": "PENDING\nCOLLECTED\nREMITTED\nPAID\nUNPAID"
+  },
+  {
+   "fieldname": "compliance_status",
+   "fieldtype": "Select",
+   "label": "Compliance Status",
+   "options": "PENDING\nPASS\nFAIL\nREVIEW_REQUIRED"
+  },
+  {
+   "fieldname": "planned_pickup_time",
+   "fieldtype": "Datetime",
+   "label": "Planned Pickup Time"
+  },
+  {
+   "fieldname": "planned_delivery_date",
+   "fieldtype": "Date",
+   "label": "Planned Delivery Date"
+  },
+  {
+   "fieldname": "last_telemetry_at",
+   "fieldtype": "Datetime",
+   "label": "Last Telemetry At"
+  },
+  {
+   "fieldname": "exception_type",
+   "fieldtype": "Select",
+   "label": "Exception Type",
+   "options": "DAMAGE\nSHORTAGE\nREFUSAL\nWRONG_ITEM\nTECHNICAL\nLATE\nWEATHER"
+  },
+  {
+   "fieldname": "exception_status",
+   "fieldtype": "Select",
+   "label": "Exception Status",
+   "options": "REPORTED\nINVESTIGATING\nRESOLVED\nREJECTED"
+  },
+  {
+   "fieldname": "exception_reason",
+   "fieldtype": "Small Text",
+   "label": "Exception Reason"
+  },
+  {
+   "fieldname": "phone",
+   "fieldtype": "Data",
+   "label": "Phone Number"
+  },
+  {
+   "fieldname": "odometer_start",
+   "fieldtype": "Float",
+   "label": "Odometer Start"
+  },
+  {
+   "fieldname": "invoice_url",
+   "fieldtype": "Small Text",
+   "label": "Invoice URL"
+  },
+  {
+   "fieldname": "safety_score",
+   "fieldtype": "Float",
+   "label": "Safety Score"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Delivery Items",
+   "options": "Shipstack Delivery Item"
+  },
+  {
+   "fieldname": "logs",
+   "fieldtype": "Table",
+   "label": "Logs",
+   "options": "Shipstack Delivery Log"
+  }
+ ],
+ "links": [],
+ "modified": "2026-06-25 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Shipstack",
+ "name": "Shipstack Delivery Note",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "All"
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "istable": 0,
+ "autoname": "hash"
+}

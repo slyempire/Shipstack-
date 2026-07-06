@@ -1,0 +1,231 @@
+version: '3.8'
+
+services:
+  mariadb:
+    image: mariadb:10.6
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes:
+      - db-data:/var/lib/mysql
+    networks:
+      - shipstack-net
+    restart: always
+
+  redis-cache:
+    image: redis:6.2-alpine
+    networks:
+      - shipstack-net
+    restart: always
+
+  redis-queue:
+    image: redis:6.2-alpine
+    networks:
+      - shipstack-net
+    restart: always
+
+  redis-socketio:
+    image: redis:6.2-alpine
+    networks:
+      - shipstack-net
+    restart: always
+
+  # Assets initializer runs at startup to copy/compile updated assets into the shared sites volume
+  assets-init:
+    image: shipstack-frappe:latest
+    command: ["bench", "build", "--app", "shipstack"]
+    volumes:
+      - sites-data:/home/frappe/frappe-bench/sites
+    networks:
+      - shipstack-net
+
+  backend:
+    image: shipstack-frappe:latest
+    command: ["bench", "serve", "--port", "8000"]
+    depends_on:
+      - mariadb
+      - redis-cache
+      - redis-queue
+      - assets-init
+    volumes:
+      - sites-data:/home/frappe/frappe-bench/sites
+    environment:
+      - DB_HOST=mariadb
+      - REDIS_CACHE=redis-cache:6379
+      - REDIS_QUEUE=redis-queue:6379
+      - REDIS_SOCKETIO=redis-socketio:6379
+    networks:
+      - shipstack-net
+    restart: always
+
+  websocket:
+    image: shipstack-frappe:latest
+    command: ["node", "/home/frappe/frappe-bench/apps/frappe/socketio.js"]
+    depends_on:
+      - backend
+      - redis-socketio
+    volumes:
+      - sites-data:/home/frappe/frappe-bench/sites
+    networks:
+      - shipstack-net
+    restart: always
+
+  scheduler:
+    image: shipstack-frappe:latest
+    command: ["bench", "schedule"]
+    depends_on:
+      - backend
+    volumes:
+      - sites-data:/home/frappe/frappe-bench/sites
+    networks:
+      - shipstack-net
+    restart: always
+
+  worker-default:
+    image: shipstack-frappe:latest
+    command: ["bench", "worker", "--queue", "default"]
+    depends_on:
+      - backend
+    volumes:
+      - sites-data:/home/frappe/frappe-bench/sites
+    networks:
+      - shipstack-net
+    restart: always
+
+  worker-short:
+    image: shipstack-frappe:latest
+    command: ["bench", "worker", "--queue", "short"]
+    depends_on:
+      - backend
+    volumes:
+      - sites-data:/home/frappe/frappe-bench/sites
+    networks:
+      - shipstack-net
+    restart: always
+
+  worker-long:
+    image: shipstack-frappe:latest
+    command: ["bench", "worker", "--queue", "long"]
+    depends_on:
+      - backend
+    volumes:
+      - sites-data:/home/frappe/frappe-bench/sites
+    networks:
+      - shipstack-net
+    restart: always
+
+  shipstack-node:
+    image: shipstack-node:latest
+    depends_on:
+      - backend
+    environment:
+      - NODE_ENV=production
+      - SECURITY_SECRET=${SECURITY_SECRET}
+      - INTERNAL_API_SECRET=${INTERNAL_API_SECRET}
+      - APP_URL=${APP_URL}
+      - FRAPPE_BASE_URL=http://backend:8000
+      - FRAPPE_API_KEY=${FRAPPE_API_KEY}
+      - FRAPPE_API_SECRET=${FRAPPE_API_SECRET}
+      - FRAPPE_SITE=${FRAPPE_SITE}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - UPSTASH_REDIS_REST_URL=${UPSTASH_REDIS_REST_URL}
+      - UPSTASH_REDIS_REST_TOKEN=${UPSTASH_REDIS_REST_TOKEN}
+      - MPESA_ENV=${MPESA_ENV}
+      - MPESA_CONSUMER_KEY=${MPESA_CONSUMER_KEY}
+      - MPESA_CONSUMER_SECRET=${MPESA_CONSUMER_SECRET}
+      - MPESA_SHORTCODE=${MPESA_SHORTCODE}
+      - MPESA_PASSKEY=${MPESA_PASSKEY}
+      - MPESA_CALLBACK_URL=${MPESA_CALLBACK_URL}
+      - ETIMS_BASE_URL=${ETIMS_BASE_URL}
+      - ETIMS_API_KEY=${ETIMS_API_KEY}
+      - ETIMS_DEVICE_SERIAL=${ETIMS_DEVICE_SERIAL}
+      - SENTRY_DSN=${SENTRY_DSN}
+      - SENTRY_TRACES_SAMPLE_RATE=${SENTRY_TRACES_SAMPLE_RATE}
+    networks:
+      - shipstack-net
+    restart: always
+
+  nginx-proxy:
+    image: nginx:alpine
+    depends_on:
+      - shipstack-node
+      - websocket
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # For TLS, switch to nginx.ssl.conf and mount certs (see nginx.ssl.conf header):
+      #   - ./nginx.ssl.conf:/etc/nginx/conf.d/default.conf:ro
+      #   - /etc/letsencrypt:/etc/letsencrypt:ro
+      #   - certbot-www:/var/www/certbot
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - sites-data:/home/frappe/frappe-bench/sites
+    networks:
+      - shipstack-net
+    restart: always
+
+  # Offsite copy of ./backups to any S3-compatible bucket (AWS S3, R2,
+  # Backblaze B2, MinIO). On-host dumps die with the disk — this is the
+  # copy that survives. No-ops harmlessly until BACKUP_S3_BUCKET is set.
+  backup-sync:
+    image: rclone/rclone:1.68
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        if [ -z "$${BACKUP_S3_BUCKET}" ]; then
+          echo "backup-sync: BACKUP_S3_BUCKET not set — offsite sync disabled."
+          sleep infinity
+        fi
+        while true; do
+          rclone sync /backups ":s3:$${BACKUP_S3_BUCKET}/db-backups" \
+            --s3-provider "$${BACKUP_S3_PROVIDER:-AWS}" \
+            --s3-access-key-id "$${BACKUP_S3_ACCESS_KEY}" \
+            --s3-secret-access-key "$${BACKUP_S3_SECRET_KEY}" \
+            --s3-endpoint "$${BACKUP_S3_ENDPOINT}" \
+            --s3-region "$${BACKUP_S3_REGION:-auto}" \
+            && echo "backup-sync: synced $$(date)" \
+            || echo "backup-sync: FAILED $$(date)"
+          sleep 21600
+        done
+    environment:
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:-}
+      BACKUP_S3_PROVIDER: ${BACKUP_S3_PROVIDER:-AWS}
+      BACKUP_S3_ACCESS_KEY: ${BACKUP_S3_ACCESS_KEY:-}
+      BACKUP_S3_SECRET_KEY: ${BACKUP_S3_SECRET_KEY:-}
+      BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
+      BACKUP_S3_REGION: ${BACKUP_S3_REGION:-auto}
+    volumes:
+      - ./backups:/backups:ro
+    networks:
+      - shipstack-net
+    restart: always
+
+  # Nightly MariaDB dump kept for 14 days. Restore with:
+  #   gunzip < backups/shipstack-YYYY-MM-DD.sql.gz | mysql -h mariadb -u root -p
+  db-backup:
+    image: mariadb:10.6
+    depends_on:
+      - mariadb
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        while true; do
+          mysqldump -h mariadb -u root -p"$${MYSQL_ROOT_PASSWORD}" --all-databases --single-transaction \
+            | gzip > /backups/shipstack-$$(date +%F).sql.gz
+          find /backups -name 'shipstack-*.sql.gz' -mtime +14 -delete
+          sleep 86400
+        done
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes:
+      - ./backups:/backups
+    networks:
+      - shipstack-net
+    restart: always
+
+volumes:
+  db-data:
+  sites-data:
+
+networks:
+  shipstack-net:
+    driver: bridge

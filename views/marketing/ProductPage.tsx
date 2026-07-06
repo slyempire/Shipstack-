@@ -37,7 +37,7 @@ const ProductPage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             className="self-start inline-flex items-center gap-3 px-5 py-2.5 bg-white/5 border border-white/10 rounded-full backdrop-blur-md"
           >
-            <Package size={14} className="text-[#FF5722]" />
+            <Package size={14} className="text-brand" />
             <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/80">What you get</span>
           </motion.div>
 
@@ -49,7 +49,7 @@ const ProductPage: React.FC = () => {
           >
             <h1 className="text-5xl md:text-7xl font-black text-white tracking-tight leading-[0.95] mb-8 uppercase">
               Everything you need <br />
-              <span className="text-[#FF5722]">to run logistics.</span>
+              <span className="text-brand">to run logistics.</span>
             </h1>
             <p className="text-lg md:text-xl text-white/70 font-medium leading-relaxed max-w-2xl">
               Everything you need to run modern logistics in Africa &mdash; from first mile to last.
@@ -225,7 +225,7 @@ const ProductPage: React.FC = () => {
           <p className="text-xl md:text-3xl text-slate-400 font-bold uppercase tracking-tight mb-16 leading-tight">
             Join our first cohort of pilot partners <br className="hidden md:block" /> shaping African logistics with us.
           </p>
-          <Link to="/register" className="inline-flex bg-brand hover:bg-orange-600 text-white px-16 py-8 rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] shadow-2xl active:scale-95 transition-all">
+          <Link to="/register" className="inline-flex bg-brand hover:bg-brand-orange-dark text-white px-16 py-8 rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] shadow-2xl active:scale-95 transition-all">
             Apply for pilot
           </Link>
         </div>

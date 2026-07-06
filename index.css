@@ -6,12 +6,15 @@
   --font-display: "Space Grotesk", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   
-  --color-brand: #000000;
-  --color-brand-accent: #000000;
-  --color-brand-orange: #000000;
-  --color-brand-orange-dark: #1A1A1A;
-  --color-navy: #000000;
-  --color-navy-dark: #000000;
+  /* Brand accent — the ONE orange. Readable on both white and night
+     surfaces; hover is the darker step. Never hardcode orange hexes in
+     components; use these tokens. */
+  --color-brand: #FF5722;
+  --color-brand-accent: #FF8A65;
+  --color-brand-orange: #FF5722;
+  --color-brand-orange-dark: #E64A19;
+  --color-navy: #0F2A44;
+  --color-navy-dark: #0B1E33;
   --color-charcoal: #1A1A1A;
   --color-eggshell: #FFFFFF;
   --color-brand-teal: #27C4BD;

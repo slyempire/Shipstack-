@@ -25,14 +25,14 @@ const AccessDeniedView = ({ missingPermissions, requiredRoles }: { missingPermis
       <div className="h-20 w-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mb-6 shadow-sm">
         <ShieldAlert size={40} />
       </div>
-      <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-900 mb-2">Access Restricted</h3>
+      <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-900 mb-2">You don't have access to this page</h3>
       <p className="text-sm text-slate-500 font-medium max-w-md mb-8">
-        Your current role (<span className="text-slate-900 font-bold uppercase tracking-widest text-[10px] bg-slate-100 px-2 py-1 rounded-md">{currentUserRole}</span>) does not have the necessary security clearances to view this terminal.
+        Your role (<span className="text-slate-900 font-bold uppercase tracking-widest text-[10px] bg-slate-100 px-2 py-1 rounded-md">{currentUserRole}</span>) can't view this page. If you need it for your work, ask your workspace admin to update your permissions.
       </p>
       
       {(missingPermissions && missingPermissions.length > 0) && (
         <div className="mb-8 w-full max-w-xs mx-auto text-left">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-2">Missing Clearances</p>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-2">Missing permissions</p>
           <div className="space-y-2">
             {missingPermissions.map(p => (
               <div key={p} className="flex items-center gap-3 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100">
@@ -109,13 +109,16 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({
     return false;
   }, [effectiveRoles, currentUserRole, user]);
   
+  // Fail CLOSED: if the permission check itself is broken, deny rather than
+  // grant. A crash-avoidance default of "allow" turns every bug in the
+  // permission layer into an access-control bypass.
   const checkPermissionSafely = (p: Permission) => {
-    if (typeof hasPermission !== 'function') return true; // Default to allow if check is broken to avoid crash
+    if (typeof hasPermission !== 'function') return false;
     try {
       return hasPermission(p);
     } catch (e) {
       console.error('Permission check failed:', e);
-      return true;
+      return false;
     }
   };
 
@@ -146,7 +149,7 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({
     if (fallback) return <>{fallback}</>;
     if (showFullPageError) {
       return (
-        <Layout title="Security Protocol" subtitle="Restricted Access Zone">
+        <Layout title="Access denied" subtitle="This page needs a different role">
           <div className="py-20">
             <AccessDeniedView 
               missingPermissions={permissions?.filter(p => !checkPermissionSafely(p))} 

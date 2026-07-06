@@ -11,6 +11,7 @@ import DocumentPreview from '../../components/DocumentPreview';
 import { useAuthStore, useAppStore } from '../../store';
 import { useTenant } from '../../hooks/useTenant';
 import { useRealtimeTable } from '../../hooks/useRealtimeTable';
+import { frappe_realtime } from '../../services/frappe-realtime';
 import { EmptyState } from '../../components/EmptyState';
 import { 
   Truck, 
@@ -86,30 +87,32 @@ const TripManagement: React.FC = () => {
   useRealtimeTable('trips', () => loadData(), tenant?.id ? { column: 'tenant_id', value: tenant.id } : undefined);
   useRealtimeTable('delivery_notes', () => loadData(), tenant?.id ? { column: 'tenant_id', value: tenant.id } : undefined);
 
+  // Live telemetry from the real feed (driver app → /api/telemetry →
+  // Frappe → socket.io `telemetry:update`). Replaces a Math.random()
+  // simulator that showed invented positions for real trips. Until the
+  // first ping arrives, telemetry stays null and the UI shows "no signal".
   useEffect(() => {
-    let interval: any;
-    if (selectedTrip && selectedTrip.status === 'ACTIVE') {
-      const poll = async () => {
-        // Simulate live feeds for the specific driver/vehicle
-        const mockLat = -1.286389 + (Math.random() - 0.5) * 0.01;
-        const mockLng = 36.817223 + (Math.random() - 0.5) * 0.01;
-        setTelemetry({
-          speed: Math.floor(Math.random() * 20 + 40),
-          heading: Math.floor(Math.random() * 360),
-          lat: mockLat,
-          lng: mockLng,
-          lastUpdated: new Date().toISOString(),
-          signalStrength: 'EXCELLENT',
-          engineStatus: 'RUNNING'
-        });
-      };
-      poll();
-      interval = setInterval(poll, 3000);
-    } else {
+    if (!selectedTrip || selectedTrip.status !== 'ACTIVE') {
       setTelemetry(null);
+      return;
     }
-    return () => { if (interval) clearInterval(interval); };
-  }, [selectedTrip]);
+    const handler = (data: any) => {
+      const matchesTrip = data.dnId === selectedTrip.id || (selectedTrip.dnIds || []).includes(data.dnId);
+      if (!matchesTrip) return;
+      setTelemetry({
+        speed: data.speed ?? 0,
+        heading: data.heading ?? 0,
+        lat: data.lat,
+        lng: data.lng,
+        lastUpdated: data.timestamp || new Date().toISOString(),
+        signalStrength: 'LIVE',
+        engineStatus: 'RUNNING'
+      });
+    };
+    frappe_realtime.subscribe('shipstack_telemetry');
+    frappe_realtime.on('telemetry:update', handler);
+    return () => { frappe_realtime.off('telemetry:update', handler); };
+  }, [selectedTrip?.id, selectedTrip?.status]);
 
   useEffect(() => {
     if (location.state?.selectedDnIds && location.state.selectedDnIds.length > 0) {
@@ -289,7 +292,7 @@ const TripManagement: React.FC = () => {
   };
 
   return (
-    <Layout title="Dispatch & Route Manifesting">
+    <Layout title="Dispatch & Routing">
       <div className="space-y-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
@@ -1122,9 +1125,9 @@ const TripManagement: React.FC = () => {
                     </p>
                  </div>
                  <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 text-center">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Asset Efficiency</p>
-                    <p className="text-xl font-black text-emerald-500">
-                      {Math.floor(Math.random() * 20 + 80)}%
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Total Items</p>
+                    <p className="text-xl font-black text-slate-900">
+                      {getDnDetails(isFormOpen ? formData.dnIds : selectedTrip?.dnIds || []).reduce((acc, dn) => acc + (dn.items?.length || 0), 0)}
                     </p>
                  </div>
               </div>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Shipstack — Modern Logistics Infrastructure for East Africa</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    {% if css_file %}
+    <link rel="stylesheet" href="{{ css_file }}" />
+    {% endif %}
+  </head>
+  <body>
+    <div id="root"></div>
+    {% if js_file %}
+    <script type="module" src="{{ js_file }}"></script>
+    {% endif %}
+  </body>
+</html>
