@@ -15,6 +15,7 @@
     "@google/genai": "^2.3.0",
     "@google/generative-ai": "^0.24.1",
     "@sentry/node": "^10.63.0",
+    "@sentry/react": "^10.63.0",
     "@splinetool/react-spline": "^4.1.0",
     "@splinetool/runtime": "^1.12.73",
     "@tailwindcss/vite": "^4.2.2",

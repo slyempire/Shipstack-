@@ -163,6 +163,42 @@ services:
       - shipstack-net
     restart: always
 
+  # Offsite copy of ./backups to any S3-compatible bucket (AWS S3, R2,
+  # Backblaze B2, MinIO). On-host dumps die with the disk — this is the
+  # copy that survives. No-ops harmlessly until BACKUP_S3_BUCKET is set.
+  backup-sync:
+    image: rclone/rclone:1.68
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        if [ -z "$${BACKUP_S3_BUCKET}" ]; then
+          echo "backup-sync: BACKUP_S3_BUCKET not set — offsite sync disabled."
+          sleep infinity
+        fi
+        while true; do
+          rclone sync /backups ":s3:$${BACKUP_S3_BUCKET}/db-backups" \
+            --s3-provider "$${BACKUP_S3_PROVIDER:-AWS}" \
+            --s3-access-key-id "$${BACKUP_S3_ACCESS_KEY}" \
+            --s3-secret-access-key "$${BACKUP_S3_SECRET_KEY}" \
+            --s3-endpoint "$${BACKUP_S3_ENDPOINT}" \
+            --s3-region "$${BACKUP_S3_REGION:-auto}" \
+            && echo "backup-sync: synced $$(date)" \
+            || echo "backup-sync: FAILED $$(date)"
+          sleep 21600
+        done
+    environment:
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:-}
+      BACKUP_S3_PROVIDER: ${BACKUP_S3_PROVIDER:-AWS}
+      BACKUP_S3_ACCESS_KEY: ${BACKUP_S3_ACCESS_KEY:-}
+      BACKUP_S3_SECRET_KEY: ${BACKUP_S3_SECRET_KEY:-}
+      BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
+      BACKUP_S3_REGION: ${BACKUP_S3_REGION:-auto}
+    volumes:
+      - ./backups:/backups:ro
+    networks:
+      - shipstack-net
+    restart: always
+
   # Nightly MariaDB dump kept for 14 days. Restore with:
   #   gunzip < backups/shipstack-YYYY-MM-DD.sql.gz | mysql -h mariadb -u root -p
   db-backup:

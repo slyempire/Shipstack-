@@ -48,6 +48,8 @@ cp .env.example .env
 | `MPESA_CALLBACK_URL` | ✅ for live payments | `https://<domain>/api/mpesa/callback` — must be public HTTPS and registered in the Daraja portal |
 | `ETIMS_BASE_URL` / `ETIMS_API_KEY` / `ETIMS_DEVICE_SERIAL` | ✅ for live invoices | KRA eTIMS OSCU/VSCU endpoint + credentials |
 | `SENTRY_DSN` | optional | Enables server error monitoring; empty disables it |
+| `VITE_SENTRY_DSN` | optional | Browser error monitoring (separate Sentry project). Baked in at build time — set before `npm run build` |
+| `BACKUP_S3_*` | recommended | Offsite backup sync to any S3-compatible bucket (see §6) |
 | `SENTRY_TRACES_SAMPLE_RATE` | optional | Default `0.1` |
 | `GEMINI_API_KEY` | optional | AI features. Server-side only — never `VITE_*` |
 | `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | optional | Hot-cache; the server degrades gracefully without it |
@@ -158,6 +160,17 @@ API 60 r/m, telemetry 150 r/m) on top of the Node proxy's own limiter.
 The `db-backup` service dumps all databases nightly to `./backups/`
 (`shipstack-YYYY-MM-DD.sql.gz`) and deletes dumps older than 14 days.
 
+**Offsite copy (strongly recommended):** the `backup-sync` service syncs
+`./backups/` to any S3-compatible bucket every 6 hours. Set the
+`BACKUP_S3_*` variables in `.env` (bucket, access key, secret, endpoint —
+works with AWS S3, Cloudflare R2, Backblaze B2, or MinIO). Until
+`BACKUP_S3_BUCKET` is set, the service idles harmlessly. On-host backups
+do not survive a dead disk — do not skip this.
+
+**Rehearse the restore once** before launch: pull a dump from the bucket
+onto a scratch machine, restore it, and confirm the app boots against it.
+An untested backup is a hope, not a backup.
+
 **Restore:**
 
 ```bash
@@ -199,8 +212,12 @@ docker compose -f docker-compose.production.yml run --rm backend \
 - [ ] STK Push sandbox test succeeds and the callback updates the payment
       (Daraja portal must point at `MPESA_CALLBACK_URL`)
 - [ ] A dated dump appears in `./backups/` after the first night
+- [ ] The same dump appears in the offsite bucket (`docker compose logs backup-sync`)
 - [ ] Sentry receives a test event (`SENTRY_DSN` set): trigger any 500 and
       check the project inbox
+- [ ] Uptime monitor armed: set the `PRODUCTION_URL` repository variable on
+      GitHub so `.github/workflows/uptime.yml` pings `/api/health` every
+      15 minutes (or configure a dedicated monitor like UptimeRobot)
 
 ## Troubleshooting
 
